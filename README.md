@@ -10,3 +10,5 @@ Configure your device so that:
 * ADB is enabled
 * Resolution is 1920x1080 (other 16:9 resolutions are technically supported but may cause issues)
 * AFK's in-game language is set to English (I'd love to support other languages but all image files are taken from the English version)
+
+Jc has discontinued the development @ version 0.15.6 so Ill maintain it here.
