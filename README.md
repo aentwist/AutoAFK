@@ -12,5 +12,5 @@ Configure your device so that:
 * AFK's in-game language is set to English (I'd love to support other languages but all image files are taken from the English version)
 <br /><br />
 
-**Jc has discontinued the development @ version 0.15.6 so Ill maintain it here.**
+**Original code by Jc. He has discontinued the development @ version 0.15.6 so Ill maintain it here.**
 
