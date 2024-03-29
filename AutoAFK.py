@@ -9,8 +9,6 @@ from datetime import datetime, timezone
 import argparse
 import requests
 
-global settings
-
 currenttime = datetime.now()
 currenttimeutc = datetime.now(timezone.utc)
 cwd = os.path.dirname(__file__) # We prefix all file calls with cwd so we can call from other directories (I.E via batch or cron)
@@ -24,7 +22,7 @@ parser.add_argument("-c", "--config", metavar="CONFIG", default = "settings.ini"
 # parser.add_argument("-p", "--push", metavar="PUSH", help = "Path to your input image")
 parser.add_argument("-d", "--dailies", action = 'store_true', help = "Run the Dailies function")
 parser.add_argument("-at", "--autotower", action = 'store_true', help = "Run the Auto-Towers function")
-parser.add_argument("-tower", "--tower", choices=['lb', 'lightbringer', 'm', 'mauler', 'w', 'wilder', 'gb', 'graveborn', 'cele', 'celestial', 'hypo', 'hypogean', 'kt', 'kingstower'], help = "Select and run the given tower")
+parser.add_argument("-tower", "--tower", choices=['lb', 'lightbearer', 'm', 'mauler', 'w', 'wilder', 'gb', 'graveborn', 'cele', 'celestial', 'hypo', 'hypogean', 'kt', 'kingstower'], help = "Select and run the given tower")
 parser.add_argument("-t", "--test", action = 'store_true', help = "Auto-launch Test server")
 parser.add_argument("-l", "--logging", action = 'store_true', help = "Log output to text file")
 args = vars(parser.parse_args())
@@ -35,15 +33,15 @@ else:
     settings = os.path.join(cwd, 'settings.ini')
 config.read(settings)
 
-repo_releases = requests.get('https://api.github.com/repos/Fortigate/AutoAFK/releases/latest')
+version = "0.16.3"
+
+repo_releases = requests.get('https://api.github.com/repos/Hammanek/AutoAFK/releases/latest')
 json = repo_releases.json() if repo_releases and repo_releases.status_code == 200 else None
 if json != None:
     latest_release = json.get('name')
+    latest_release_changelog = json.get('body')
 else:
     latest_release = 'Cannot retrieve!'
-
-
-version = "0.15.6"
 
 #Main Window
 class App(customtkinter.CTk):
@@ -52,7 +50,7 @@ class App(customtkinter.CTk):
 
         # configure window
         self.title("AutoAFK " + version)
-        self.geometry(f"{800}x{600}")
+        self.geometry(f"{800}x{540}")
         self.wm_iconbitmap(os.path.join(cwd, 'img', 'auto.ico'))
 
         # Dailies Frame
@@ -116,14 +114,14 @@ class App(customtkinter.CTk):
 
         # Quit button
         self.quitButton = customtkinter.CTkButton(master=self, text="Close", fg_color=["#B60003", "#C03335"], width=180, command=lambda: threading.Thread(target=cleanExit).start())
-        self.quitButton.place(x=10, y=550)
+        #self.quitButton.place(x=10, y=550)
 
         def cleanExit():
             closeADB()
             self.destroy()
 
         # Textbox Frame
-        self.textbox = customtkinter.CTkTextbox(master=self, width=580, height=560)
+        self.textbox = customtkinter.CTkTextbox(master=self, width=580, height=500)
         self.textbox.place(x=200, y=20)
         self.textbox.configure(text_color='white', font=('Arial', 14))
         self.textbox.tag_config("error", foreground="red")
@@ -133,15 +131,25 @@ class App(customtkinter.CTk):
         self.textbox.tag_config('purple', foreground='#af5ac9')
         self.textbox.tag_config('yellow', foreground='yellow')
         self.textbox.insert('end', 'Welcome to AutoAFK!\n', 'green')
-        self.textbox.insert('end', 'Github: ', 'purple')
-        self.textbox.insert('end',  'Github.com/Fortigate/AutoAFK/\n')
-        self.textbox.insert('end', 'Discord DM: ', 'purple')
-        self.textbox.insert('end',  'Jc.2\n')
-        self.textbox.insert('end', 'Discord Server: ', 'purple')
-        self.textbox.insert('end',  'dsc.gg/cero-crowdsource in #autoafk-help\n\n')
+        #self.textbox.insert('end', 'Github: ', 'purple')
+        #self.textbox.insert('end',  'Github.com/Fortigate/AutoAFK/\n')
+        #self.textbox.insert('end', 'Discord DM: ', 'purple')
+        #self.textbox.insert('end',  'Jc.2\n')
+        self.textbox.insert('end', 'Discord chats:\n', 'purple')
+        self.textbox.insert('end', '• afk.hamman.eu/discord in #auto-afk\n', 'purple')
+        self.textbox.insert('end', '• dsc.gg/floofpire in #auto-afk\n\n', 'purple')
+
         if latest_release.split(' ')[1] != version and latest_release.split(' ')[1] != 'retrieve!':
-            if not version.split('.')[1] >= latest_release.split('.')[1]: # If minor version is above release don't display (suppress for pre-releases generally)
-                self.textbox.insert('end', 'Newer version available (' + latest_release.split(' ')[1] + '), please update!\n\n', 'yellow')
+            if version.replace(".", "") < latest_release.split(' ')[1].replace(".", ""):
+                self.textbox.insert('end', 'New version available!\n\n', 'yellow')
+                self.textbox.insert('end', 'Version ' + latest_release.split(' ')[1] + ' changes: \n' + latest_release_changelog + '\n\n', 'yellow')
+                self.textbox.insert('end', 'Download here: https://github.com/Hammanek/AutoAFK/releases/\n\n', 'yellow')
+
+        # Welcome message
+        welcome_message = requests.get('https://afk.hamman.eu/autoafk/welcome.txt')
+        if welcome_message.text:
+            self.textbox.insert('end', welcome_message.text + '\n\n', 'white')
+
         if (args['config']) != 'settings.ini':
             self.textbox.insert('end', (args['config']) + ' loaded\n\n', 'yellow')
         if not args['dailies']:
@@ -151,7 +159,6 @@ class App(customtkinter.CTk):
         self.shop_window = None
         self.activity_window = None
         self.advanced_window = None
-        self.summons_window = None
 
     # For updating the artifact setting when the checkbox is selected/unselected
     def updateArtifacts(self):
@@ -352,44 +359,49 @@ class activityWindow(customtkinter.CTkToplevel):
         self.label = customtkinter.CTkLabel(master=self.BountiesFrame, text="Bounties:", font=("Arial", 15, 'bold'))
         self.label.place(x=10, y=5)
 
+        # Enable bounties
+        self.dispatchSoloBountiesLabel = customtkinter.CTkLabel(master=self.BountiesFrame, text='Enable solo bounties', fg_color=("gray86", "gray17"))
+        self.dispatchSoloBountiesLabel.place(x=10, y=40)
+        self.dispatchSoloBountiesCheckbox = customtkinter.CTkCheckBox(master=self.BountiesFrame, text=None, onvalue=True, offvalue=False, command=self.activityUpdate)
+        self.dispatchSoloBountiesCheckbox.place(x=200, y=40)
+
+        self.dispatchTeamBountiesLabel = customtkinter.CTkLabel(master=self.BountiesFrame, text='Enable team bounties', fg_color=("gray86", "gray17"))
+        self.dispatchTeamBountiesLabel.place(x=10, y=70)
+        self.dispatchTeamBountiesCheckbox = customtkinter.CTkCheckBox(master=self.BountiesFrame, text=None, onvalue=True, offvalue=False, command=self.activityUpdate)
+        self.dispatchTeamBountiesCheckbox.place(x=200, y=70)
+
         # Handle Solo Bounties Dust
         self.dispatchDustLabel = customtkinter.CTkLabel(master=self.BountiesFrame, text='Dispatch Dust', fg_color=("gray86", "gray17"))
-        self.dispatchDustLabel.place(x=10, y=40)
+        self.dispatchDustLabel.place(x=10, y=100)
         self.dispatchDustCheckbox = customtkinter.CTkCheckBox(master=self.BountiesFrame, text=None, onvalue=True, offvalue=False, command=self.activityUpdate)
-        self.dispatchDustCheckbox.place(x=200, y=40)
+        self.dispatchDustCheckbox.place(x=200, y=100)
         # Handle Solo Bounties Diamonds
         self.dispatchDiamondsLabel = customtkinter.CTkLabel(master=self.BountiesFrame, text='Dispatch Diamonds', fg_color=("gray86", "gray17"))
-        self.dispatchDiamondsLabel.place(x=10, y=70)
+        self.dispatchDiamondsLabel.place(x=10, y=130)
         self.dispatchDiamondsCheckbox = customtkinter.CTkCheckBox(master=self.BountiesFrame, text=None, onvalue=True, offvalue=False, command=self.activityUpdate)
-        self.dispatchDiamondsCheckbox.place(x=200, y=70)
+        self.dispatchDiamondsCheckbox.place(x=200, y=130)
         # Handle Solo Bounties Shards
         self.dispatchShardsLabel = customtkinter.CTkLabel(master=self.BountiesFrame, text='Dispatch Shards', fg_color=("gray86", "gray17"))
-        self.dispatchShardsLabel.place(x=10, y=100)
+        self.dispatchShardsLabel.place(x=10, y=160)
         self.dispatchShardsCheckbox = customtkinter.CTkCheckBox(master=self.BountiesFrame, text=None, onvalue=True, offvalue=False, command=self.activityUpdate)
-        self.dispatchShardsCheckbox.place(x=200, y=100)
+        self.dispatchShardsCheckbox.place(x=200, y=160)
         # Handle Solo Bounties Juice
         self.dispatchJuiceLabel = customtkinter.CTkLabel(master=self.BountiesFrame, text='Dispatch Juice', fg_color=("gray86", "gray17"))
-        self.dispatchJuiceLabel.place(x=10, y=130)
+        self.dispatchJuiceLabel.place(x=10, y=190)
         self.dispatchJuiceCheckbox = customtkinter.CTkCheckBox(master=self.BountiesFrame, text=None, onvalue=True, offvalue=False, command=self.activityUpdate)
-        self.dispatchJuiceCheckbox.place(x=200, y=130)
+        self.dispatchJuiceCheckbox.place(x=200, y=190)
         # Refreshes
         self.refreshLabel = customtkinter.CTkLabel(master=self.BountiesFrame, text='Number of Refreshes', fg_color=("gray86", "gray17"))
-        self.refreshLabel.place(x=10, y=160)
+        self.refreshLabel.place(x=10, y=220)
         self.refreshEntry = customtkinter.CTkEntry(master=self.BountiesFrame, height=20, width=25)
         self.refreshEntry.insert('end', config.get('BOUNTIES', 'refreshes'))
-        self.refreshEntry.place(x=200, y=160)
+        self.refreshEntry.place(x=200, y=220)
         # Remaining
         self.remainingLabel = customtkinter.CTkLabel(master=self.BountiesFrame, text='# Remaining to Dispatch All', fg_color=("gray86", "gray17"))
-        self.remainingLabel.place(x=10, y=190)
+        self.remainingLabel.place(x=10, y=250)
         self.remainingEntry = customtkinter.CTkEntry(master=self.BountiesFrame, height=20, width=25)
         self.remainingEntry.insert('end', config.get('BOUNTIES', 'remaining'))
-        self.remainingEntry.place(x=200, y=190)
-
-        # # Handle Team Bounties
-        # self.teamBountiesLabel = customtkinter.CTkLabel(master=self.activityFrame, text='Dispatch Team Bounties', fg_color=("gray86", "gray17"))
-        # self.teamBountiesLabel.place(x=10, y=190)
-        # self.teamBountiesCheckbox = customtkinter.CTkCheckBox(master=self.activityFrame, text=None, onvalue=True, offvalue=False, command=self.activityUpdate)
-        # self.teamBountiesCheckbox.place(x=200, y=190)
+        self.remainingEntry.place(x=200, y=250)
 
         # Misc Frame
         self.MiscFrame = customtkinter.CTkFrame(master=self, width=235, height=210)
@@ -411,7 +423,7 @@ class activityWindow(customtkinter.CTkToplevel):
                          'fountainOfTime', 'kingsTower', 'collectInn', 'guildHunt', 'storePurchases', 'twistedRealm',
                          'collectQuests', 'collectMerchants', 'fightOfFates', 'battleOfBlood', 'circusTour', 'dispatchDust',
                          'dispatchDiamonds', 'dispatchShards', 'dispatchJuice', 'runLab', 'battleArena', 'tsCollect',
-                         'useBagConsumables', 'heroesOfEsperia']
+                         'useBagConsumables', 'heroesOfEsperia', 'dispatchSoloBounties', 'dispatchTeamBounties']
         for activity in activityBoxes:
             if activity[0:8] == 'dispatch':
                 if config.getboolean('BOUNTIES', activity):
@@ -431,7 +443,7 @@ class activityWindow(customtkinter.CTkToplevel):
                          'fountainOfTime', 'kingsTower', 'collectInn', 'guildHunt', 'storePurchases', 'twistedRealm',
                          'collectQuests', 'collectMerchants', 'fightOfFates', 'battleOfBlood', 'circusTour', 'dispatchDust',
                          'dispatchDiamonds', 'dispatchShards', 'dispatchJuice', 'runLab', 'battleArena', 'tsCollect',
-                         'useBagConsumables', 'heroesOfEsperia']
+                         'useBagConsumables', 'heroesOfEsperia', 'dispatchSoloBounties', 'dispatchTeamBounties']
         for activity in activityBoxes:
             if activity[0:8] == 'dispatch':
                 if self.__getattribute__(activity + 'Checkbox').get() == 1:
@@ -480,18 +492,18 @@ class activityWindow(customtkinter.CTkToplevel):
 class shopWindow(customtkinter.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.geometry("400x440")
+        self.geometry("430x440")
         self.title('Shop Options')
         self.attributes("-topmost", True)
 
         # Shop Frame
-        self.shopGoldFrame = customtkinter.CTkFrame(master=self, width=185, height=380)
+        self.shopGoldFrame = customtkinter.CTkFrame(master=self, width=200, height=380)
         self.shopGoldFrame.place(x=10, y=10)
         self.label = customtkinter.CTkLabel(master=self.shopGoldFrame, text="Gold Purchases:", font=("Arial", 15, 'bold'))
         self.label.place(x=20, y=5)
         # Dim Frame
-        self.shopDiamondFrame = customtkinter.CTkFrame(master=self, width=185, height=380)
-        self.shopDiamondFrame.place(x=205, y=10)
+        self.shopDiamondFrame = customtkinter.CTkFrame(master=self, width=200, height=380)
+        self.shopDiamondFrame.place(x=220, y=10)
         self.label = customtkinter.CTkLabel(master=self.shopDiamondFrame, text="Diamond Purchases:", font=("Arial", 15, 'bold'))
         self.label.place(x=20, y=5)
 
@@ -501,27 +513,27 @@ class shopWindow(customtkinter.CTkToplevel):
         self.shards_goldLabel = customtkinter.CTkLabel(master=self.shopGoldFrame, text='Shards', fg_color=("gray86", "gray17"))
         self.shards_goldLabel.place(x=10, y=40)
         self.shards_goldCheckbox = customtkinter.CTkCheckBox(master=self.shopGoldFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
-        self.shards_goldCheckbox.place(x=130, y=40)
+        self.shards_goldCheckbox.place(x=165, y=40)
         # Dust Gold
         self.dust_goldLabel = customtkinter.CTkLabel(master=self.shopGoldFrame, text='Dust', fg_color=("gray86", "gray17"))
         self.dust_goldLabel.place(x=10, y=70)
         self.dust_goldCheckbox = customtkinter.CTkCheckBox(master=self.shopGoldFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
-        self.dust_goldCheckbox.place(x=130, y=70)
+        self.dust_goldCheckbox.place(x=165, y=70)
         # Silver Emblems
         self.silver_emblemLabel = customtkinter.CTkLabel(master=self.shopGoldFrame, text='Silver Emblems', fg_color=("gray86", "gray17"))
         self.silver_emblemLabel.place(x=10, y=100)
         self.silver_emblemCheckbox = customtkinter.CTkCheckBox(master=self.shopGoldFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
-        self.silver_emblemCheckbox.place(x=130, y=100)
+        self.silver_emblemCheckbox.place(x=165, y=100)
         # Gold Emblems
         self.gold_emblemLabel = customtkinter.CTkLabel(master=self.shopGoldFrame, text='Gold Emblems', fg_color=("gray86", "gray17"))
         self.gold_emblemLabel.place(x=10, y=130)
         self.gold_emblemCheckbox = customtkinter.CTkCheckBox(master=self.shopGoldFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
-        self.gold_emblemCheckbox.place(x=130, y=130)
+        self.gold_emblemCheckbox.place(x=165, y=130)
         # PoE Gold
         self.poeLabel = customtkinter.CTkLabel(master=self.shopGoldFrame, text='POE', fg_color=("gray86", "gray17"))
         self.poeLabel.place(x=10, y=160)
         self.poeCheckbox = customtkinter.CTkCheckBox(master=self.shopGoldFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
-        self.poeCheckbox.place(x=130, y=160)
+        self.poeCheckbox.place(x=165, y=160)
 
         ## Diamond Shop
 
@@ -529,51 +541,57 @@ class shopWindow(customtkinter.CTkToplevel):
         self.timegazerLabel = customtkinter.CTkLabel(master=self.shopDiamondFrame, text='Timegazer Card', fg_color=("gray86", "gray17"))
         self.timegazerLabel.place(x=10, y=40)
         self.timegazerCheckbox = customtkinter.CTkCheckBox(master=self.shopDiamondFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
-        self.timegazerCheckbox.place(x=130, y=40)
+        self.timegazerCheckbox.place(x=165, y=40)
         # Arcane Staffs
         self.arcanestaffsLabel = customtkinter.CTkLabel(master=self.shopDiamondFrame, text='Arcane Staffs', fg_color=("gray86", "gray17"))
         self.arcanestaffsLabel.place(x=10, y=70)
         self.arcanestaffsCheckbox = customtkinter.CTkCheckBox(master=self.shopDiamondFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
-        self.arcanestaffsCheckbox.place(x=130, y=70)
+        self.arcanestaffsCheckbox.place(x=165, y=70)
         # Bait
         self.baitsLabel = customtkinter.CTkLabel(master=self.shopDiamondFrame, text='Baits', fg_color=("gray86", "gray17"))
         self.baitsLabel.place(x=10, y=100)
         self.baitsCheckbox = customtkinter.CTkCheckBox(master=self.shopDiamondFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
-        self.baitsCheckbox.place(x=130, y=100)
+        self.baitsCheckbox.place(x=165, y=100)
         # Cores
         self.coresLabel = customtkinter.CTkLabel(master=self.shopDiamondFrame, text='Cores', fg_color=("gray86", "gray17"))
         self.coresLabel.place(x=10, y=130)
         self.coresCheckbox = customtkinter.CTkCheckBox(master=self.shopDiamondFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
-        self.coresCheckbox.place(x=130, y=130)
+        self.coresCheckbox.place(x=165, y=130)
         # Dust Diamonds
         self.dust_diamondLabel = customtkinter.CTkLabel(master=self.shopDiamondFrame, text='Dust', fg_color=("gray86", "gray17"))
         self.dust_diamondLabel.place(x=10, y=160)
         self.dust_diamondCheckbox = customtkinter.CTkCheckBox(master=self.shopDiamondFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
-        self.dust_diamondCheckbox.place(x=130, y=160)
+        self.dust_diamondCheckbox.place(x=165, y=160)
         # Elite Soulstone
         self.elite_soulstoneLabel = customtkinter.CTkLabel(master=self.shopDiamondFrame, text='Elite Soulstone', fg_color=("gray86", "gray17"))
         self.elite_soulstoneLabel.place(x=10, y=190)
         self.elite_soulstoneCheckbox = customtkinter.CTkCheckBox(master=self.shopDiamondFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
-        self.elite_soulstoneCheckbox.place(x=130, y=190)
+        self.elite_soulstoneCheckbox.place(x=165, y=190)
         # Superb Soulstone
         self.superb_soulstoneLabel = customtkinter.CTkLabel(master=self.shopDiamondFrame, text='Superb Soulstone', fg_color=("gray86", "gray17"))
         self.superb_soulstoneLabel.place(x=10, y=220)
         self.superb_soulstoneCheckbox = customtkinter.CTkCheckBox(master=self.shopDiamondFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
-        self.superb_soulstoneCheckbox.place(x=130, y=220)
+        self.superb_soulstoneCheckbox.place(x=165, y=220)
+
+        # Quick
+        self.quickLabel = customtkinter.CTkLabel(master=self.shopDiamondFrame, text='Ignore above, do quickbuy', fg_color=("gray86", "gray17"))
+        self.quickLabel.place(x=10, y=350)
+        self.quickCheckbox = customtkinter.CTkCheckBox(master=self.shopDiamondFrame, text=None, onvalue=True, offvalue=False, command=self.shopUpdate)
+        self.quickCheckbox.place(x=165, y=350)
 
         # Save button
         self.shopSaveButton = customtkinter.CTkButton(master=self, text="Save", fg_color=["#3B8ED0", "#1F6AA5"], width=120, command=self.shopSave)
-        self.shopSaveButton.place(x=140, y=400)
+        self.shopSaveButton.place(x=155, y=400)
 
         checkboxes = ['arcanestaffs', 'shards_gold', 'cores', 'timegazer', 'baits', 'dust_gold', 'dust_diamond', 'elite_soulstone',
-                      'superb_soulstone', 'silver_emblem', 'gold_emblem', 'poe']
+                      'superb_soulstone', 'silver_emblem', 'gold_emblem', 'poe', 'quick']
         for box in checkboxes:
             if config.getboolean('SHOP', box):
                 self.__getattribute__(box+'Checkbox').select()
 
     def shopUpdate(self):
         checkboxes = ['arcanestaffs', 'shards_gold', 'cores', 'timegazer', 'baits', 'dust_gold', 'dust_diamond', 'elite_soulstone',
-                      'superb_soulstone', 'silver_emblem', 'gold_emblem', 'poe']
+                      'superb_soulstone', 'silver_emblem', 'gold_emblem', 'poe', 'quick']
         for box in checkboxes:
             if self.__getattribute__(box+'Checkbox').get() == 1:
                 config.set('SHOP', box, 'True')
@@ -653,7 +671,7 @@ class advancedWindow(customtkinter.CTkToplevel):
         else:
             self.supressCheckbox.deselect()
 
-        if config.getboolean('ADVANCED', 'debug') is True:
+        if config.getboolean('ADVANCED', 'debug'):
             self.debugCheckbox.select()
         else:
             self.debugCheckbox.deselect()
@@ -683,60 +701,16 @@ class advancedWindow(customtkinter.CTkToplevel):
         updateSettings()
         advancedWindow.destroy(self)
 
-class summonsWindow(customtkinter.CTkToplevel):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.geometry("200x260")
-        self.title('Unlimited Summons')
-        self.attributes("-topmost", True)
-        self.wm_iconbitmap(os.path.join(cwd, 'img', 'auto.ico'))
-
-        # Activity Frame
-        self.summonsFrame = customtkinter.CTkFrame(master=self, width=180, height=250)
-        self.summonsFrame.place(x=10, y=10)
-        self.label = customtkinter.CTkLabel(master=self.summonsFrame, text="Unlimited Summons:", font=("Arial", 15, 'bold'))
-        self.label.place(x=10, y=5)
-
-        self.wokeLabel = customtkinter.CTkLabel(master=self.summonsFrame, text='Desired Awakened:', fg_color=("gray86", "gray17"))
-        self.wokeLabel.place(x=10, y=40)
-        # Activities Dropdown
-        self.wokeDropdown = customtkinter.CTkComboBox(master=self.summonsFrame, values=['Awakened Talene', 'Awakened Athalia',
-        'Gavus', 'Maetria', 'Awakened Ezizh', 'Awakened Thane', 'Awakened Belinda', 'Awakened Brutus', 'Awakened Safiya',
-        'Awakened Solise', 'Awakened Lyca', 'Awakened Baden', 'Awakened Shemira'], width=160)
-        self.wokeDropdown.configure(state='readonly')
-        self.wokeDropdown.place(x=10, y=70)
-
-        self.celehypoLabel = customtkinter.CTkLabel(master=self.summonsFrame, text='Desired CeleHypo:', fg_color=("gray86", "gray17"))
-        self.celehypoLabel.place(x=10, y=100)
-        # Activities Dropdown
-        self.celehypoDropdown = customtkinter.CTkComboBox(master=self.summonsFrame, values=['Audrae', 'Canisa and Ruke',
-        'Daemia', 'Ezizh', 'Khazard', 'Lavatune', 'Liberta', 'Lucilla', 'Lucretia', 'Mehira', 'Mortas', 'Olgath', 'Talene',
-        'Tarnos', 'Elijah and Lailah', 'Veithal', 'Vyloris', 'Zaphrael', 'Zikis'], width=160)
-        self.celehypoDropdown.configure(state='readonly')
-        self.celehypoDropdown.place(x=10, y=130)
-
-        self.x6Checkbox = customtkinter.CTkCheckBox(master=self.summonsFrame, text='x6 Speed Mode', onvalue=True, offvalue=False)
-        self.x6Checkbox.place(x=10, y=170)
-
-        # Summons button
-        self.summonsButton = customtkinter.CTkButton(master=self.summonsFrame, text="Run Summons", command=lambda: threading.Thread(target=unlimitedSummons).start())
-        self.summonsButton.place(x=20, y=210)
-
-        def unlimitedSummons():
-            connect_device()
-            infiniteSummons(self.wokeDropdown.get(), self.celehypoDropdown.get(), self.x6Checkbox.get())
-            summonsWindow.destroy(self)
-
 # Will change the dropdown to only include open towers
 # May cause issues with timezones..
 def setUlockedTowers():
-    days = {1:["Campaign", "King's Tower", "Lightbringer Tower"],
+    days = {1:["Campaign", "King's Tower", "Lightbearer Tower"],
     2:["Campaign", "King's Tower", "Mauler Tower"],
     3:["Campaign", "King's Tower", "Wilder Tower", "Celestial Tower"],
     4:["Campaign", "King's Tower", "Graveborn Tower", "Hypogean Tower"],
-    5:["Campaign", "King's Tower", "Lightbringer Tower", "Mauler Tower", "Celestial Tower"],
+    5:["Campaign", "King's Tower", "Lightbearer Tower", "Mauler Tower", "Celestial Tower"],
     6:["Campaign", "King's Tower", "Wilder Tower", "Graveborn Tower", "Hypogean Tower"],
-    7:["Campaign", "King's Tower", "Lightbringer Tower", "Wilder Tower", "Mauler Tower", "Graveborn Tower", "Hypogean Tower", "Celestial Tower"]}
+    7:["Campaign", "King's Tower", "Lightbearer Tower", "Wilder Tower", "Mauler Tower", "Graveborn Tower", "Hypogean Tower", "Celestial Tower"]}
     for day, towers in days.items():
         if currenttimeutc.isoweekday() == day:
             app.pushLocationDropdown.configure(values=towers)
@@ -749,7 +723,7 @@ def headlessArgs():
         connect_device()
         formation = int(str(config.get('PUSH', 'formation'))[0:1])
         duration = int(config.get('PUSH', 'victoryCheck'))
-        towerdays = {1: 'Lightbringer Tower', 2: 'Mauler Tower', 3: 'Wilder Tower', 4: 'Graveborn Tower', 5: 'Celestial Tower',
+        towerdays = {1: 'Lightbearer Tower', 2: 'Mauler Tower', 3: 'Wilder Tower', 4: 'Graveborn Tower', 5: 'Celestial Tower',
                      6: 'Hypogean Tower', 7: 'King\'s Tower'}
         for day, tower in towerdays.items():
             if currenttimeutc.isoweekday() == day:
@@ -815,14 +789,6 @@ def activityManager():
         print('')
         return
 
-def open_summonswindow():
-    summons_window = None
-    if summons_window is None or not summons_window.winfo_exists():
-        summons_window = summonsWindow()  # create window if its None or destroyed
-        summons_window.focus()
-    else:
-        summons_window.focus()  # if window exists focus it
-
 def dailiesButton():
     buttonState('disabled')
     dailies()
@@ -830,73 +796,58 @@ def dailiesButton():
     buttonState('normal')
     return
 
-def serverCheck():
-    slotsXY = {1: [700, 575], 2: [700, 750], 3: [700, 920], 4: [700, 1100], 5: [700, 1250], 6: [700, 1450]} # Slot positions
-    server = ((config.getint('ADVANCED', 'server'))) # Slot defined in settings
-    if (config.getint('ADVANCED', 'server')) != 0:
-        clickXY(120, 100, seconds=5) # Navigate to server selection
-        clickXY(650, 1675)
-        clickXY(300, 500)
-        for slot, pos in slotsXY.items(): # Click corresponding server
-            if server == slot:
-                clickXY(pos[0], pos[1], seconds=10)
-                if isVisible('buttons/confirm'):
-                    printGreen('Switching to server slot ' + str(server))
-                    click('buttons/confirm', confidence=0.8)
-                    waitUntilGameActive()
-                else:
-                    printWarning('No server change confirmation found')
-                    clickXY(70, 1810)
-                    clickXY(70, 1810)
-
 def dailies():
     connect_device()
-    serverCheck() # Change server slot if defined before doing dailies
-    if config.getboolean('DAILIES', 'collectrewards') is True:
+
+    # Count as started dailies
+    count_api = 'https://api.api-ninjas.com/v1/counter?id=AutoAFK-' + version + '-run&hit=true'
+    hit = requests.get(count_api, headers={'X-Api-Key': 'Nc9+gX2u0w/F5smHLYOrdg==3Mh0tPQWWux2OZsA'})
+
+    if config.getboolean('DAILIES', 'collectrewards'):
         collectAFKRewards()
-    if config.getboolean('DAILIES', 'collectmail') is True:
+    if config.getboolean('DAILIES', 'collectmail'):
         collectMail()
-    if config.getboolean('DAILIES', 'companionpoints') is True:
+    if config.getboolean('DAILIES', 'companionpoints'):
         collectCompanionPoints(config.getboolean('DAILIES', 'lendmercs'))
     if config.getint('DAILIES', 'fastrewards') > 0:
         collectFastRewards(config.getint('DAILIES', 'fastrewards'))
-    if config.getboolean('DAILIES', 'attemptcampaign') is True:
+    if config.getboolean('DAILIES', 'attemptcampaign'):
         attemptCampaign()
-    if config.getboolean('BOUNTIES', 'teambounties') is True:
+    if config.getboolean('BOUNTIES', 'dispatchsolobounties') or config.getboolean('BOUNTIES', 'dispatchteambounties'):
         handleBounties()
-    if config.getboolean('ARENA', 'battlearena') is True:
+    if config.getboolean('ARENA', 'battlearena'):
         handleArenaOfHeroes(config.getint('ARENA', 'arenabattles'), config.getint('ARENA', 'arenaopponent'))
-    if config.getboolean('ARENA', 'tscollect') is True:
+    if config.getboolean('ARENA', 'tscollect'):
         collectTSRewards()
-    if config.getboolean('ARENA', 'gladiatorcollect') is True:
+    if config.getboolean('ARENA', 'gladiatorcollect'):
         collectGladiatorCoins()
-    if config.getboolean('DAILIES', 'fountainoftime') is True:
+    if config.getboolean('DAILIES', 'fountainoftime'):
         collectFountainOfTime()
-    if config.getboolean('DAILIES', 'kingstower') is True:
+    if config.getboolean('DAILIES', 'kingstower'):
         handleKingsTower()
-    if config.getboolean('DAILIES', 'collectinn') is True:
+    if config.getboolean('DAILIES', 'collectinn'):
         collectInnGifts()
-    if config.getboolean('DAILIES', 'guildhunt') is True:
+    if config.getboolean('DAILIES', 'guildhunt'):
         handleGuildHunts()
-    if config.getboolean('DAILIES', 'storepurchases') is True:
+    if config.getboolean('DAILIES', 'storepurchases'):
         shopPurchases(config.getint('DAILIES', 'shoprefreshes'))
-    if config.getboolean('DAILIES', 'twistedrealm') is True:
+    if config.getboolean('DAILIES', 'twistedrealm'):
         handleTwistedRealm()
-    if config.getboolean('EVENTS', 'fightoffates') is True:
+    if config.getboolean('EVENTS', 'fightoffates'):
         handleFightOfFates()
-    if config.getboolean('EVENTS', 'battleofblood') is True:
+    if config.getboolean('EVENTS', 'battleofblood'):
         handleBattleofBlood()
-    if config.getboolean('EVENTS', 'circusTour') is True:
+    if config.getboolean('EVENTS', 'circusTour'):
         handleCircusTour()
-    if config.getboolean('DAILIES', 'runLab') is True:
+    if config.getboolean('DAILIES', 'runLab'):
         handleLab()
-    if config.getboolean('EVENTS', 'heroesofesperia') is True:
+    if config.getboolean('EVENTS', 'heroesofesperia'):
         handleHeroesofEsperia(3, 4)
-    if config.getboolean('DAILIES', 'collectquests') is True:
+    if config.getboolean('DAILIES', 'collectquests'):
         collectQuests()
-    if config.getboolean('DAILIES', 'collectmerchants') is True:
+    if config.getboolean('DAILIES', 'collectmerchants'):
         clearMerchant()
-    if config.getboolean('DAILIES', 'usebagconsumables') is True:
+    if config.getboolean('DAILIES', 'usebagconsumables'):
         useBagConsumables()
     printGreen('Dailies done!')
     return

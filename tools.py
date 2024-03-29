@@ -1,5 +1,6 @@
 # Imports
 import io
+import random
 
 import numpy as np
 from ppadb.client import Client
@@ -93,7 +94,7 @@ def connect_device():
             print('scrcpy device: ' + str(scrcpyClient))
             print('Resolution: ' + device.shell('wm size'))
             print('DPI: ' + device.shell('wm density'))
-            save_scrcpy_screenshot('debug')
+            #save_scrcpy_screenshot('debug')
 
         resolutionCheck(device) # Four start up checks, so we have an exact position/screen configuration to start with
         afkRunningCheck()
@@ -185,7 +186,7 @@ def closeADB():
 
 # Expands the left and right button menus
 def expandMenus():
-    while isVisible('buttons/downarrow', 0.8):
+    while isVisible('buttons/downarrow', 0.8, suppress=True):
         click('buttons/downarrow', 0.8, retry=3)
 
 # Checks if AFK Arena process is running, if not we launch it
@@ -282,7 +283,7 @@ def swipe(x1, y1, x2, y2, duration=100, seconds=1):
 # Returns True if the image is found, False if not
 # Confidence value can be reduced for images with animations
 # Retry for retrying image search
-def isVisible(image, confidence=0.9, seconds=1, retry=1, click=False, region=(0, 0, 1080, 1920)):
+def isVisible(image, confidence=0.9, seconds=1, retry=1, click=False, region=(0, 0, 1080, 1920), xyshift=None, suppress=False):
     counter = 0
     screenshot = getFrame()
     search = Image.open(os.path.join(cwd, 'img', image + '.png'))
@@ -297,6 +298,9 @@ def isVisible(image, confidence=0.9, seconds=1, retry=1, click=False, region=(0,
                     x, y, w, h = res
                     x_center = round(x + w / 2)
                     y_center = round(y + h / 2)
+                    if xyshift is not None:
+                        x_center += xyshift[0]
+                        y_center += xyshift[1]                    
                     device.input_tap(x_center, y_center)
                 wait(seconds)
                 return True
@@ -311,12 +315,18 @@ def isVisible(image, confidence=0.9, seconds=1, retry=1, click=False, region=(0,
         wait(seconds)
         return True
     else:
+        if suppress is not True and config.getboolean('ADVANCED', 'debug'):
+            printWarning('Image:' + image + ' not found on screen, saving screenshot.')
+            save_scrcpy_screenshot('debug/' + image.replace("/", "_").replace("\\", "_").replace(".png", "") + "_" + str(time.time()))
         wait(seconds)
         return False
 
 # Clicks on the given XY coordinates
-def clickXY(x,y, seconds=1):
-    device.input_tap(x, y)
+def clickXY(x, y, seconds=1, rs=None, xrandom_shift=0, yrandom_shift=0):
+    if rs is not None:
+        xrandom_shift = rs
+        yrandom_shift = rs
+    device.input_tap(x + random.randint(0, xrandom_shift), y + random.randint(0, yrandom_shift))
     wait(seconds)
 
 # If the given image is found, it will click on the center of it, if not returns "No image found"
@@ -324,7 +334,7 @@ def clickXY(x,y, seconds=1):
 # Seconds is time to wait after clicking the image
 # Retry will try and find the image x number of times, useful for animated or covered buttons, or to make sure the button is not skipped
 # Suppress will disable warnings, sometimes we don't need to know if a button isn't found
-def click(image,confidence=0.9, seconds=1, retry=1, suppress=False, grayscale=False, region=(0, 0, 1080, 1920)):
+def click(image,confidence=0.9, seconds=1, retry=1, suppress=False, grayscale=False, region=(0, 0, 1080, 1920), xyshift=None):
     counter = 0
     screenshot = getFrame()
 
@@ -341,6 +351,9 @@ def click(image,confidence=0.9, seconds=1, retry=1, suppress=False, grayscale=Fa
                 x, y, w, h = result
                 x_center = round(x + w / 2)
                 y_center = round(y + h / 2)
+                if xyshift is not None:
+                    x_center += xyshift[0]
+                    y_center += xyshift[1]                
                 device.input_tap(x_center, y_center)
                 wait(seconds)
                 return
@@ -355,8 +368,9 @@ def click(image,confidence=0.9, seconds=1, retry=1, suppress=False, grayscale=Fa
         device.input_tap(x_center, y_center)
         wait(seconds)
     else:
-        if suppress is not True:
-            printWarning('Image:' + image + ' not found!')
+        if suppress is not True and config.getboolean('ADVANCED', 'debug'):
+            printWarning('Image:' + image + ' not found on screen, saving screenshot.')
+            save_scrcpy_screenshot('debug/' + image.replace("/", "_").replace("\\", "_").replace(".png", "") + "_" + str(time.time()))
         wait(seconds)
 
 #   This function will keep clicking `image` until `secureimage` is no longer visible
@@ -488,23 +502,6 @@ def pixelCheck(x, y, c, seconds=1):
 
     wait(seconds)
     return screenshot[y, x, c]
-
-# For the Unlimited Summons but leaving it in as we could find some use for this in the future
-def returnCardPullsRarity():
-    im = getFrame()
-    screenshot = np.asarray(im) # Make it an array
-
-    cards = {'1': [95, 550], '2': [95, 900], '3': [95, 1350], '4': [410, 250], '5': [410, 650], '6': [410, 1100], '7': [410, 1550], '8': [729, 550], '9': [729, 900], '10': [729, 1350]}
-
-    for card, location in cards.items(): # screenshot[] searchs Y first then X for reasons, so the locations[] are reversed
-        if screenshot[location[1], location[0], 0] > 200 and screenshot[location[1], location[0], 1] > 200: # Red and Green > 200 = Yellow border
-            return 'Awakened'
-
-    for card, location in cards.items():
-        if screenshot[location[1], location[0], 0] > 200 and screenshot[location[1], location[0], 2] > 200: # Red and Blue > 200 = Purple border
-            return 'Epic'
-
-    return 'Rare'
 
 # Used to confirm which game screen we're currently sitting in, and change to if we're not.
 # Optionally with 'bool' flag we can return boolean for if statements

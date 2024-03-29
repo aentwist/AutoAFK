@@ -8,11 +8,6 @@ config = configparser.ConfigParser()
 config.read(settings)
 d = datetime.datetime.now()
 
-# Counters for summonsCrashDetector()
-rarecounter = int()
-epiccounter = int()
-awakenedcounter = int()
-
 boundaries = {
     #locate
     'campaignSelect': (424, 1750, 232, 170),
@@ -173,14 +168,18 @@ def handleBounties():
     confirmLocation('darkforest', region=boundaries['darkforestSelect'])
     clickXY(600, 1320)
     if isVisible('labels/bountyboard', retry=3):
-        clickXY(650, 1700) # Solo tab
-        isVisible('buttons/collect_all', seconds=3, click=True)
-        if config.getboolean('BOUNTIES', 'solobounties'):
+
+        if config.getboolean('BOUNTIES', 'dispatchsolobounties'):
+            clickXY(650, 1700) # Solo tab
+            isVisible('buttons/collect_all', seconds=3, click=True)
             dispatchSoloBounties(remaining=config.getint('BOUNTIES', 'remaining'), maxrefreshes=config.getint('BOUNTIES', 'refreshes'))
-        clickXY(950, 1700) # Team tab
-        click('buttons/collect_all', seconds=2, suppress=True)
-        click('buttons/dispatch', confidence=0.8, suppress=True, grayscale=True)
-        click('buttons/confirm', suppress=True)
+
+        if config.getboolean('BOUNTIES', 'dispatchteambounties'):
+            clickXY(950, 1700) # Team tab
+            click('buttons/collect_all', seconds=2, suppress=True)
+            click('buttons/dispatch', confidence=0.8, suppress=True, grayscale=True)
+            click('buttons/confirm', suppress=True)
+
         click('buttons/back', region=boundaries['backMenu'])
         printGreen('    Bounties attempted successfully')
     else:
@@ -245,7 +244,7 @@ def handleArenaOfHeroes(count, opponent):
             selectOpponent(choice=opponent)
             # clickMultipleChoice('buttons/arenafight', count=4, confidence=0.98, region=boundries['attackAoH'], seconds=3) # Select 4th opponent
             while isVisible('buttons/heroclassselect', retry=3, region=boundaries['heroclassselect']): # This is rather than Battle button as that is animated and hard to read
-                clickXY(550, 1800, seconds=3)
+                clickXY(550, 1800)
             click('buttons/skip', retry=5, confidence=0.8, suppress=True, region=boundaries['skipAoH']) # Retries as ulting heros can cover the button
             if returnBattleResults(type='arena'):
                 printGreen('    Battle #' + str(counter+1) + ' Victory!')
@@ -267,6 +266,7 @@ def collectGladiatorCoins():
     confirmLocation('darkforest', region=boundaries['darkforestSelect'])
     clickXY(740, 1050)
     clickXY(550, 50)
+    swipe(550, 800, 550, 500, duration=200, seconds=2) # scroll down
     if isVisible('labels/legendstournament_new'): # The label font changes for reasons
         click('labels/legendstournament_new', suppress=True)
         clickXY(550, 300, seconds=2)
@@ -310,14 +310,22 @@ def collectTSRewards():
     confirmLocation('darkforest', region=boundaries['darkforestSelect'])
     clickXY(740, 1050) # open Arena of Heroes
     clickXY(550, 50) # Clear Arena Tickets
-    ts_banners = ['labels/tsbanner_forest', 'labels/tsbanner_ice', 'labels/tsbanner_fog']
+    ts_banners = ['labels/tsbanner_forest', 'labels/tsbanner_ice', 'labels/tsbanner_fog', 'labels/tsbanner_volcano']
     for banner in ts_banners: # Check the 4 debuffs
-        if isVisible(banner, click=True, seconds=3):
-            clickXY(400, 50, seconds=2) # Clear Rank Up
-            clickXY(400, 50, seconds=2) # Clear Loot
-            click('buttons/back', retry=3, region=boundaries['backMenu'])
-            click('buttons/back', retry=3, region=boundaries['backMenu'])
-            printGreen('    Treasure Scramble daily loot collected!')
+        if isVisible(banner, click=True):
+            wait(2)
+            if isVisible('buttons/ts_path', click=True):
+                clickXY(370, 945) # Choose path
+                clickXY(520, 1700) # Confirm path
+                click('buttons/back', retry=3, region=boundaries['backMenu'])
+                click('buttons/back', retry=3, region=boundaries['backMenu'])
+                return
+            else:
+                clickXY(400, 50, seconds=2) # Clear Rank Up
+                clickXY(400, 50, seconds=2) # Clear Loot
+                click('buttons/back', retry=3, region=boundaries['backMenu'])
+                click('buttons/back', retry=3, region=boundaries['backMenu'])
+                printGreen('    Treasure Scramble daily loot collected!')
             return
     else:
         printError('    Treasure Scramble not found, attempting to recover')
@@ -347,7 +355,7 @@ def openTower(name):
     wait(3) # Medium wait to make sure tower button is active when we click
     clickXY(500, 870, seconds=3) # Long pause for animation opening towers
     if isVisible('labels/kingstower', region=boundaries['kingstowerLabel'], retry=3, confidence=0.85):
-        towers = {"King's Tower": [500, 870], "Lightbringer Tower": [300, 1000], "Wilder Tower": [800, 600], "Mauler Tower": [400, 1200],
+        towers = {"King's Tower": [500, 870], "Lightbearer Tower": [300, 1000], "Wilder Tower": [800, 600], "Mauler Tower": [400, 1200],
                   "Graveborn Tower": [800, 1200], "Hypogean Tower": [600, 1500], "Celestial Tower": [300, 500]}
         for tower, location in towers.items():
             if tower == name:
@@ -556,7 +564,10 @@ def handleShopPurchasing(counter):
                 clickXY(550, 1220)
     wait(3) # Long wait else Twisted Realm isn't found after if enabled in Dailies
 
-def shopPurchases(shoprefreshes):
+def shopPurchases(shoprefreshes,skipQuick=0):
+    if config.getboolean('SHOP', 'quick') and skipQuick==0:
+        shopPurchases_quick(shoprefreshes)
+        return
     printBlue('Attempting store purchases (Refreshes: ' + str(shoprefreshes) + ')')
     counter = 0
     confirmLocation('ranhorn', region=boundaries['ranhornSelect'])
@@ -575,6 +586,35 @@ def shopPurchases(shoprefreshes):
         click('buttons/back')
         printGreen('    Store purchases attempted.')
         wait(2) # wait before next task as loading ranhorn can be slow
+    else:
+        printError('Store not found, attempting to recover')
+        recover()
+
+def shopPurchases_quick(shoprefreshes):
+    printBlue('Attempting store quick-purchases (Refreshes: ' + str(shoprefreshes) + ')')
+    counter = 0
+    confirmLocation('ranhorn')
+    wait(2)
+    clickXY(300, 1725, seconds=5)
+    if isVisible('labels/store'):
+        if isVisible('buttons/quickbuy', click=True):
+            wait(1)
+            click('buttons/purchase', seconds=5)
+            clickXY(970, 90, seconds=2)
+            while counter < shoprefreshes:
+                clickXY(1000, 300)
+                click('buttons/confirm', suppress=True, seconds=2)
+                click('buttons/quickbuy', seconds=2)
+                click('buttons/purchase', seconds=2)
+                clickXY(970, 90)
+                counter += 1
+            click('buttons/back')
+            printGreen('Store purchases attempted.')
+        else:
+            printBlue('Quickbuy not found, switching to old style')
+            click('buttons/back')
+            shopPurchases(shoprefreshes,1)
+
     else:
         printError('Store not found, attempting to recover')
         recover()
@@ -715,7 +755,7 @@ def clearMerchant():
         if isVisible('buttons/merchant_daily', confidence=0.8, retry=2, click=True):
             printPurple('    Collecting Daily Deal')
             swipe(550, 1400, 550, 1200, 500, seconds=3)
-            click('buttons/dailydeals')
+            click('buttons/dailydeals', confidence=0.8, retry=2)
             clickXY(400, 1675, seconds=2)
         # Biweeklies
         if d.isoweekday() == 3: # Wednesday
@@ -730,13 +770,14 @@ def clearMerchant():
             clickXY(200, 1825)
             clickXY(240, 880)
             clickXY(150, 1625, seconds=2)
-        # Clear Rhapsody bundles
-        printPurple('    Clearing Rhapsody notification')
-        clickXY(200, 1825)
-        clickXY(620, 1600)
-        clickXY(980, 200)
-        clickXY(70, 1810)
-        clickXY(70, 1810)
+        # Clear Rhapsody bundles notification
+        printPurple('    Clearing Rhapsody bundles notification')
+        swipe(200, 1825, 1000, 1825, 450, seconds=2)
+        if isVisible('labels/wishing_ship', confidence=0.8, retry=2, click=True):
+            clickXY(620, 1600)
+            clickXY(980, 200)
+            clickXY(70, 1810)
+            clickXY(70, 1810)
         printGreen('    Merchant deals collected')
     else:
         printError('    Noble screen not found, attempting to recover')

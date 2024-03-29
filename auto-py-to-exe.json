@@ -1,0 +1,81 @@
+{
+ "version": "auto-py-to-exe-configuration_v1",
+ "pyinstallerOptions": [
+  {
+   "optionDest": "noconfirm",
+   "value": true
+  },
+  {
+   "optionDest": "filenames",
+   "value": "D:/-= Soft =-/AutoAFK/AutoAFK/AutoAFK.py"
+  },
+  {
+   "optionDest": "onefile",
+   "value": false
+  },
+  {
+   "optionDest": "console",
+   "value": true
+  },
+  {
+   "optionDest": "icon_file",
+   "value": "D:/-= Soft =-/AutoAFK/AutoAFK/img/auto.ico"
+  },
+  {
+   "optionDest": "clean_build",
+   "value": false
+  },
+  {
+   "optionDest": "strip",
+   "value": false
+  },
+  {
+   "optionDest": "noupx",
+   "value": false
+  },
+  {
+   "optionDest": "disable_windowed_traceback",
+   "value": false
+  },
+  {
+   "optionDest": "uac_admin",
+   "value": false
+  },
+  {
+   "optionDest": "uac_uiaccess",
+   "value": false
+  },
+  {
+   "optionDest": "argv_emulation",
+   "value": false
+  },
+  {
+   "optionDest": "bootloader_ignore_signals",
+   "value": false
+  },
+  {
+   "optionDest": "datas",
+   "value": "D:/-= Soft =-/AutoAFK/AutoAFK/img;img/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "D:/-= Soft =-/AutoAFK/AutoAFK/adb.exe;."
+  },
+  {
+   "optionDest": "datas",
+   "value": "D:/-= Soft =-/AutoAFK/AutoAFK/AdbWinApi.dll;."
+  },
+  {
+   "optionDest": "datas",
+   "value": "D:/-= Soft =-/AutoAFK/AutoAFK/settings.ini;."
+  },
+  {
+   "optionDest": "datas",
+   "value": "D:/-= Soft =-/AutoAFK/AutoAFK/scrcpy;scrcpy/"
+  }
+ ],
+ "nonPyinstallerOptions": {
+  "increaseRecursionLimit": true,
+  "manualArguments": ""
+ }
+}
