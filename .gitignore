@@ -1,13 +1,2 @@
-/screen.bin
-/screen.png
-/adb.exe
-/AdbWinApi.dll
-/output/main/
-/TS Screens/
-/output/
-/.idea/
-venv
-*.pyc
-/AutoAFK/
-/build/AutoAFK/
-/dist/AutoAFK/
+.idea
+__pycache__
