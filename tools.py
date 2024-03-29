@@ -1,6 +1,7 @@
 # Imports
 import io
 import random
+import os
 
 import numpy as np
 from ppadb.client import Client
@@ -317,6 +318,8 @@ def isVisible(image, confidence=0.9, seconds=1, retry=1, click=False, region=(0,
     else:
         if suppress is not True and config.getboolean('ADVANCED', 'debug'):
             printWarning('Image:' + image + ' not found on screen, saving screenshot.')
+            if not os.path.exists('debug'):
+                os.makedirs('debug')
             save_scrcpy_screenshot('debug/' + image.replace("/", "_").replace("\\", "_").replace(".png", "") + "_" + str(time.time()))
         wait(seconds)
         return False
@@ -370,6 +373,8 @@ def click(image,confidence=0.9, seconds=1, retry=1, suppress=False, grayscale=Fa
     else:
         if suppress is not True and config.getboolean('ADVANCED', 'debug'):
             printWarning('Image:' + image + ' not found on screen, saving screenshot.')
+            if not os.path.exists('debug'):
+                os.makedirs('debug')
             save_scrcpy_screenshot('debug/' + image.replace("/", "_").replace("\\", "_").replace(".png", "") + "_" + str(time.time()))
         wait(seconds)
 
