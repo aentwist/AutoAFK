@@ -632,12 +632,12 @@ class shopWindow(customtkinter.CTkToplevel):
 class advancedWindow(customtkinter.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.geometry("250x260")
+        self.geometry("250x290")
         self.title('Advanced Options')
         self.attributes("-topmost", True)
 
         # Activity Frame
-        self.advancedFrame = customtkinter.CTkFrame(master=self, width=230, height=200)
+        self.advancedFrame = customtkinter.CTkFrame(master=self, width=230, height=230)
         self.advancedFrame.place(x=10, y=10)
         self.label = customtkinter.CTkLabel(master=self.advancedFrame, text="Advanced Options:", font=("Arial", 15, 'bold'))
         self.label.place(x=20, y=5)
@@ -669,15 +669,21 @@ class advancedWindow(customtkinter.CTkToplevel):
         self.supressCheckbox = customtkinter.CTkCheckBox(master=self.advancedFrame, text=None, onvalue=True, offvalue=False)
         self.supressCheckbox.place(x=190, y=130)
 
+        # Use popular formations
+        self.popularFormationsLabel = customtkinter.CTkLabel(master=self.advancedFrame, text='Use popular formations', fg_color=("gray86", "gray17"))
+        self.popularFormationsLabel.place(x=10, y=160)
+        self.popularFormationsCheckbox = customtkinter.CTkCheckBox(master=self.advancedFrame, text=None, onvalue=True, offvalue=False)
+        self.popularFormationsCheckbox.place(x=190, y=160)
+
         # Debug Mode
         self.debugLabel = customtkinter.CTkLabel(master=self.advancedFrame, text='Debug Mode', fg_color=("gray86", "gray17"))
-        self.debugLabel.place(x=10, y=160)
+        self.debugLabel.place(x=10, y=190)
         self.debugCheckbox = customtkinter.CTkCheckBox(master=self.advancedFrame, text=None, onvalue=True, offvalue=False)
-        self.debugCheckbox.place(x=190, y=160)
+        self.debugCheckbox.place(x=190, y=190)
 
         # Save button
         self.advanceSaveButton = customtkinter.CTkButton(master=self, text="Save", fg_color=["#3B8ED0", "#1F6AA5"], width=120, command=self.advancedSaveButton)
-        self.advanceSaveButton.place(x=60, y=220)
+        self.advanceSaveButton.place(x=60, y=250)
 
         self.advancedLoadSettings()
 
@@ -694,6 +700,11 @@ class advancedWindow(customtkinter.CTkToplevel):
             self.supressCheckbox.select()
         else:
             self.supressCheckbox.deselect()
+
+        if config.getboolean('ADVANCED', 'popularformations'):
+            self.popularFormationsCheckbox.select()
+        else:
+            self.popularFormationsCheckbox.deselect()
 
         if config.getboolean('ADVANCED', 'debug'):
             self.debugCheckbox.select()
@@ -713,6 +724,12 @@ class advancedWindow(customtkinter.CTkToplevel):
                 config.set('PUSH', 'suppressSpam', 'True')
             else:
                 config.set('PUSH', 'suppressSpam', 'False')
+
+        if self.popularFormationsCheckbox.get() != config.getboolean('ADVANCED', 'popularformations'):
+            if self.popularFormationsCheckbox.get() == 1:
+                config.set('ADVANCED', 'popularformations', 'True')
+            else:
+                config.set('ADVANCED', 'popularformations', 'False')
 
         if self.debugCheckbox.get() != config.getboolean('ADVANCED', 'debug'):
             if self.debugCheckbox.get() == 1:

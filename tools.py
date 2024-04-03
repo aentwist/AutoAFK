@@ -34,7 +34,10 @@ def connect_device():
     global device
     global connect_counter
     global connected  # So we don't reconnect with every new activity in the same session
+    global config 
+    print(config.getboolean('ADVANCED', 'popularformations'))
     config.read(settings) # Load settings
+    print(config.getboolean('ADVANCED', 'popularformations'))
 
     printGreen('Attempting to connect..')
 
