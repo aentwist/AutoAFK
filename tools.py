@@ -8,7 +8,7 @@ from ppadb.client import Client
 from AutoAFK import printGreen, printError, printWarning, printBlue, printPurple, settings, args
 from pyscreeze import locate
 from subprocess import Popen, PIPE
-import time, os, configparser, sys
+import time, datetime, os, configparser, sys
 from PIL import Image
 from shutil import which
 from platform import system
@@ -534,7 +534,7 @@ def confirmLocation(location, change=True, bool=False, region=(0,0, 1080, 1920))
         return False
 
 # This function will cycle through known buttons to try and return us to the Campaign screen so we can start from a known location
-# It will try 8 times and if we haven't gotten back in that time we exit as we are lost
+# It will try 10 times and if we haven't gotten back in that time we exit as we are lost
 def recover():
     recoverCounter = 0
     while not isVisible('buttons/campaign_selected'):
@@ -547,7 +547,7 @@ def recover():
         click('buttons/campaign_unselected', suppress=True, seconds=0.5, region=(424, 1750, 232, 170))
         clickXY(420, 50) # Neutral location for closing reward pop ups etc, should never be an in game button here
         recoverCounter += 1
-        if recoverCounter > 8:
+        if recoverCounter > 10:
             break
     if confirmLocation('campaign', bool=True):
         clickXY(550, 1900) # Click in case we found Campaign in the background (basically if a campaign attempt fails)
@@ -556,3 +556,25 @@ def recover():
     else:
         printError('Recovery failed, exiting')
         exit(0)
+
+# Delay start so it starts after reset
+def delayed_start(delay_minutes=0):
+
+    if delay_minutes > 0: delay_minutes = delay_minutes+0.1
+
+    # Get the current time
+    current_time = datetime.datetime.now()
+
+    # Calculate the target start time (add delay to current time)
+    target_time = current_time + datetime.timedelta(minutes=delay_minutes)
+
+    while current_time < target_time:
+        # Print message indicating remaining time
+        remaining_time = target_time - current_time
+        printWarning(f"Script will start in {remaining_time.seconds // 60} minutes")
+
+        # Sleep for a short duration (avoid tight loop)
+        time.sleep(60)
+
+        # Update current time
+        current_time = datetime.datetime.now()

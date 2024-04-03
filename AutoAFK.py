@@ -60,12 +60,15 @@ class App(customtkinter.CTk):
         # Dailies button
         self.dailiesButton = customtkinter.CTkButton(master=self.dailiesFrame, text="Run Dailies", command=lambda: threading.Thread(target=dailiesButton).start())
         self.dailiesButton.place(x=20, y=10)
+
         # Activities button
         self.activitiesButton = customtkinter.CTkButton(master=self.dailiesFrame, text="Configure Dailies", fg_color=["#3B8ED0", "#1F6AA5"], width=120, command=self.open_activitywindow)
         self.activitiesButton.place(x=30, y=50)
+
         # Shop button
         self.dailiesShopButton = customtkinter.CTkButton(master=self.dailiesFrame, text="Store Options", fg_color=["#3B8ED0", "#1F6AA5"], width=120, command=self.open_shopwindow)
         self.dailiesShopButton.place(x=30, y=90)
+
         # Advanced button
         self.advancedButton = customtkinter.CTkButton(master=self.dailiesFrame, text="Advanced Options", fg_color=["#3B8ED0", "#1F6AA5"], width=120, command=self.open_advancedwindow)
         self.advancedButton.place(x=30, y=130)
@@ -77,9 +80,11 @@ class App(customtkinter.CTk):
         # Activities button
         self.arenaButton = customtkinter.CTkButton(master=self.arenaFrame, text="Run Activity", command=lambda: threading.Thread(target=activityManager).start())
         self.arenaButton.place(x=20, y=15)
+
         # Activities Dropdown
         self.activityFormationDropdown = customtkinter.CTkComboBox(master=self.arenaFrame, values=["Arena of Heroes", "Arcane Labyrinth", "Fight of Fates", "Battle of Blood", "Heroes of Esperia"], width=160)
         self.activityFormationDropdown.place(x=10, y=55)
+
         # Activities Entry
         self.pvpLabel = customtkinter.CTkLabel(master=self.arenaFrame, text='How many battles', fg_color=("gray86", "gray17"))
         self.pvpLabel.place(x=10, y=90)
@@ -94,20 +99,24 @@ class App(customtkinter.CTk):
         # Push Button
         self.pushButton = customtkinter.CTkButton(master=self.pushFrame, text="Auto Push", command=lambda: threading.Thread(target=push).start())
         self.pushButton.place(x=20, y=10)
+
         # Push Entry
         self.pushLocationDropdown = customtkinter.CTkComboBox(master=self.pushFrame,  values=["Campaign"], width=160)
         self.pushLocationDropdown.place(x=10, y=50)
+
         # Push Formation
         self.pushLabel = customtkinter.CTkLabel(master=self.pushFrame, text='Which formation?', fg_color=("gray86", "gray17"))
         self.pushLabel.place(x=10, y=80)
         self.pushFormationDropdown = customtkinter.CTkComboBox(master=self.pushFrame, values=["1st", "2nd", "3rd", "4th", "5th"], width=80)
         self.pushFormationDropdown.set(config.get('PUSH', 'formation'))
         self.pushFormationDropdown.place(x=10, y=110)
+
         # Push Artifacts y/n
         self.useArtifactsLabel = customtkinter.CTkLabel(master=self.pushFrame, text='Copy Artifacts', fg_color=("gray86", "gray17"))
         self.useArtifactsLabel.place(x=10, y=145)
         self.useArtifactsCheckbox = customtkinter.CTkCheckBox(master=self.pushFrame, text=None, onvalue=True, offvalue=False, command=self.updateArtifacts)
         self.useArtifactsCheckbox.place(x=150, y=145)
+        
         # Select useArtifacts button if enabled
         if config.getboolean('PUSH', 'useartifacts'):
             self.useArtifactsCheckbox.select()
@@ -415,6 +424,19 @@ class activityWindow(customtkinter.CTkToplevel):
         self.useBagConsumablesCheckbox = customtkinter.CTkCheckBox(master=self.MiscFrame, text=None, onvalue=True, offvalue=False, command=self.activityUpdate)
         self.useBagConsumablesCheckbox.place(x=200, y=40)
 
+        # Delayed start
+        self.delayedStartLabel = customtkinter.CTkLabel(master=self.MiscFrame, text='Delay start by x minutes', fg_color=("gray86", "gray17"))
+        self.delayedStartLabel.place(x=10, y=70)
+        self.delayedStartEntry = customtkinter.CTkEntry(master=self.MiscFrame, height=20, width=25)
+        self.delayedStartEntry.insert('end', config.get('DAILIES', 'delayedstart'))
+        self.delayedStartEntry.place(x=200, y=70)
+
+        # Hibernate system
+        self.hibernateLabel = customtkinter.CTkLabel(master=self.MiscFrame, text='Hibernate system when done', fg_color=("gray86", "gray17"))
+        self.hibernateLabel.place(x=10, y=100)
+        self.hibernateCheckbox = customtkinter.CTkCheckBox(master=self.MiscFrame, text=None, onvalue=True, offvalue=False, command=self.activityUpdate)
+        self.hibernateCheckbox.place(x=200, y=100)
+
         # Save button
         self.activitySaveButton = customtkinter.CTkButton(master=self, text="Save", fg_color=["#3B8ED0", "#1F6AA5"], width=120, command=self.activitySave)
         self.activitySaveButton.place(x=320, y=520)
@@ -423,7 +445,7 @@ class activityWindow(customtkinter.CTkToplevel):
                          'fountainOfTime', 'kingsTower', 'collectInn', 'guildHunt', 'storePurchases', 'twistedRealm',
                          'collectQuests', 'collectMerchants', 'fightOfFates', 'battleOfBlood', 'circusTour', 'dispatchDust',
                          'dispatchDiamonds', 'dispatchShards', 'dispatchJuice', 'runLab', 'battleArena', 'tsCollect',
-                         'useBagConsumables', 'heroesOfEsperia', 'dispatchSoloBounties', 'dispatchTeamBounties']
+                         'useBagConsumables', 'heroesOfEsperia', 'dispatchSoloBounties', 'dispatchTeamBounties', 'hibernate']
         for activity in activityBoxes:
             if activity[0:8] == 'dispatch':
                 if config.getboolean('BOUNTIES', activity):
@@ -443,7 +465,7 @@ class activityWindow(customtkinter.CTkToplevel):
                          'fountainOfTime', 'kingsTower', 'collectInn', 'guildHunt', 'storePurchases', 'twistedRealm',
                          'collectQuests', 'collectMerchants', 'fightOfFates', 'battleOfBlood', 'circusTour', 'dispatchDust',
                          'dispatchDiamonds', 'dispatchShards', 'dispatchJuice', 'runLab', 'battleArena', 'tsCollect',
-                         'useBagConsumables', 'heroesOfEsperia', 'dispatchSoloBounties', 'dispatchTeamBounties']
+                         'useBagConsumables', 'heroesOfEsperia', 'dispatchSoloBounties', 'dispatchTeamBounties', 'hibernate']
         for activity in activityBoxes:
             if activity[0:8] == 'dispatch':
                 if self.__getattribute__(activity + 'Checkbox').get() == 1:
@@ -480,6 +502,8 @@ class activityWindow(customtkinter.CTkToplevel):
             config.set('DAILIES', 'fastrewards', self.fastrewardsEntry.get())
         if self.shoprefreshEntry.get() != config.get('DAILIES', 'shoprefreshes'):
             config.set('DAILIES', 'shoprefreshes', self.shoprefreshEntry.get())
+        if self.delayedStartEntry.get() != config.get('DAILIES', 'delayedstart'):
+            config.set('DAILIES', 'delayedstart', self.delayedStartEntry.get() or "0")
 
     def activitySave(self):
         self.activityUpdate()
@@ -797,6 +821,7 @@ def dailiesButton():
     return
 
 def dailies():
+    delayed_start(config.getint('DAILIES', 'delayedstart'))
     connect_device()
 
     # Count as started dailies
@@ -850,6 +875,12 @@ def dailies():
     if config.getboolean('DAILIES', 'usebagconsumables'):
         useBagConsumables()
     printGreen('Dailies done!')
+
+    if config.getboolean('DAILIES', 'hibernate'):
+        printWarning('Hibernating system in 1 minute...')
+        time.sleep(60)
+        os.system("shutdown /h")
+
     return
 
 def push():

@@ -591,7 +591,7 @@ def shopPurchases(shoprefreshes,skipQuick=0):
         recover()
 
 def shopPurchases_quick(shoprefreshes):
-    printBlue('Attempting store quick-purchases (Refreshes: ' + str(shoprefreshes) + ')')
+    printBlue('Attempting store quickbuys (Refreshes: ' + str(shoprefreshes) + ')')
     counter = 0
     confirmLocation('ranhorn')
     wait(2)
