@@ -447,7 +447,6 @@ def pushCampaign(formation=3, duration=1):
 def configureBattleFormation(formation):
     artifacts = None
     counter = 0
-    print(config.getboolean('ADVANCED', 'popularformations'))
     if config.getboolean('ADVANCED', 'ignoreformations') is True:
         printWarning('ignoreformations enabled, skipping formation selection')
         click('buttons/autobattle', suppress=True, retry=3, region=boundaries['autobattle'])  # So we don't hit it in the background while autobattle is active
@@ -455,7 +454,6 @@ def configureBattleFormation(formation):
         return
     elif isVisible('buttons/formations', region=boundaries['formations']):
         click('buttons/formations', seconds=3, retry=3, region=boundaries['formations'])
-        print(config.getboolean('ADVANCED', 'popularformations'))
         if config.getboolean('ADVANCED', 'popularformations'): # Use popular formations tab
             clickXY(800, 1650, seconds=2)  # Change to 'Popular' tab
         clickXY(850, 425 + (formation * 175), seconds=2)
