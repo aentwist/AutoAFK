@@ -209,8 +209,8 @@ class activityWindow(customtkinter.CTkToplevel):
         # Activity Frame
         self.activityFrame = customtkinter.CTkFrame(master=self, width=235, height=500)
         self.activityFrame.place(x=10, y=10)
-        self.label = customtkinter.CTkLabel(master=self.activityFrame, text="Activities:", font=("Arial", 15, 'bold', 'underline'))
-        self.label.place(x=20, y=5)
+        self.label = customtkinter.CTkLabel(master=self.activityFrame, text="Activities:", font=("Arial", 15, 'bold'))
+        self.label.place(x=10, y=5)
 
         # Campaign Screen
         # AFK Rewards Collect
@@ -315,7 +315,7 @@ class activityWindow(customtkinter.CTkToplevel):
         # Arena Battles
         self.arenaBattlesLabel = customtkinter.CTkLabel(master=self.ArenaFrame, text='Number of Battles', fg_color=("gray86", "gray17"))
         self.arenaBattlesLabel.place(x=40, y=70)
-        self.arenaBattlesEntry = customtkinter.CTkEntry(master=self.ArenaFrame, height=20, width=30)
+        self.arenaBattlesEntry = customtkinter.CTkEntry(master=self.ArenaFrame, height=20, width=25)
         self.arenaBattlesEntry.insert('end', config.get('ARENA', 'arenabattles'))
         self.arenaBattlesEntry.place(x=198, y=70)
         # Arena Opponent
@@ -524,12 +524,12 @@ class shopWindow(customtkinter.CTkToplevel):
         self.shopGoldFrame = customtkinter.CTkFrame(master=self, width=200, height=380)
         self.shopGoldFrame.place(x=10, y=10)
         self.label = customtkinter.CTkLabel(master=self.shopGoldFrame, text="Gold Purchases:", font=("Arial", 15, 'bold'))
-        self.label.place(x=20, y=5)
+        self.label.place(x=10, y=5)
         # Dim Frame
         self.shopDiamondFrame = customtkinter.CTkFrame(master=self, width=200, height=380)
         self.shopDiamondFrame.place(x=220, y=10)
         self.label = customtkinter.CTkLabel(master=self.shopDiamondFrame, text="Diamond Purchases:", font=("Arial", 15, 'bold'))
-        self.label.place(x=20, y=5)
+        self.label.place(x=10, y=5)
 
         ## Gold Shop
 
@@ -632,58 +632,65 @@ class shopWindow(customtkinter.CTkToplevel):
 class advancedWindow(customtkinter.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.geometry("250x290")
+        self.geometry("350x310")
         self.title('Advanced Options')
         self.attributes("-topmost", True)
 
         # Activity Frame
-        self.advancedFrame = customtkinter.CTkFrame(master=self, width=230, height=230)
+        self.advancedFrame = customtkinter.CTkFrame(master=self, width=330, height=250)
         self.advancedFrame.place(x=10, y=10)
         self.label = customtkinter.CTkLabel(master=self.advancedFrame, text="Advanced Options:", font=("Arial", 15, 'bold'))
-        self.label.place(x=20, y=5)
+        self.label.place(x=10, y=5)
 
         # Port Entry
         self.portLabel = customtkinter.CTkLabel(master=self.advancedFrame, text='Port:', fg_color=("gray86", "gray17"))
         self.portLabel.place(x=10, y=40)
-        self.portEntry = customtkinter.CTkEntry(master=self.advancedFrame, height=25, width=60)
+        self.portEntry = customtkinter.CTkEntry(master=self.advancedFrame, height=25, width=45)
         self.portEntry.insert('end', config.get('ADVANCED', 'port'))
-        self.portEntry.place(x=45, y=40)
+        self.portEntry.place(x=275, y=40)
 
         # Loading.. Entry
         self.delayLabel = customtkinter.CTkLabel(master=self.advancedFrame, text='Delay multiplier:', fg_color=("gray86", "gray17"))
         self.delayLabel.place(x=10, y=70)
-        self.delayEntry = customtkinter.CTkEntry(master=self.advancedFrame, height=25, width=30)
+        self.delayEntry = customtkinter.CTkEntry(master=self.advancedFrame, height=25, width=45)
         self.delayEntry.insert('end', config.get('ADVANCED', 'loadingMuliplier'))
-        self.delayEntry.place(x=110, y=70)
+        self.delayEntry.place(x=275, y=70)
 
         # Victory Check Duration Entry
         self.victoryCheckLabel = customtkinter.CTkLabel(master=self.advancedFrame, text='Victory Check Frequency:', fg_color=("gray86", "gray17"))
         self.victoryCheckLabel.place(x=10, y=100)
-        self.victoryCheckEntry = customtkinter.CTkEntry(master=self.advancedFrame, height=25, width=30)
+        self.victoryCheckEntry = customtkinter.CTkEntry(master=self.advancedFrame, height=25, width=45)
         self.victoryCheckEntry.insert('end', config.get('PUSH', 'victorycheck'))
-        self.victoryCheckEntry.place(x=160, y=100)
+        self.victoryCheckEntry.place(x=275, y=100)
 
         # Victory check suppress non-victory
         self.supressLabel = customtkinter.CTkLabel(master=self.advancedFrame, text='Suppress victory check spam?', fg_color=("gray86", "gray17"))
         self.supressLabel.place(x=10, y=130)
         self.supressCheckbox = customtkinter.CTkCheckBox(master=self.advancedFrame, text=None, onvalue=True, offvalue=False)
-        self.supressCheckbox.place(x=190, y=130)
+        self.supressCheckbox.place(x=295, y=130)
 
         # Use popular formations
         self.popularFormationsLabel = customtkinter.CTkLabel(master=self.advancedFrame, text='Use popular formations', fg_color=("gray86", "gray17"))
         self.popularFormationsLabel.place(x=10, y=160)
         self.popularFormationsCheckbox = customtkinter.CTkCheckBox(master=self.advancedFrame, text=None, onvalue=True, offvalue=False)
-        self.popularFormationsCheckbox.place(x=190, y=160)
+        self.popularFormationsCheckbox.place(x=295, y=160)
 
         # Debug Mode
         self.debugLabel = customtkinter.CTkLabel(master=self.advancedFrame, text='Debug Mode', fg_color=("gray86", "gray17"))
         self.debugLabel.place(x=10, y=190)
         self.debugCheckbox = customtkinter.CTkCheckBox(master=self.advancedFrame, text=None, onvalue=True, offvalue=False)
-        self.debugCheckbox.place(x=190, y=190)
+        self.debugCheckbox.place(x=295, y=190)
+
+        # Emulator path
+        self.emulatorPathLabel = customtkinter.CTkLabel(master=self.advancedFrame, text='Emulator path (optional):', fg_color=("gray86", "gray17"))
+        self.emulatorPathLabel.place(x=10, y=220)
+        self.emulatorPathEntry = customtkinter.CTkEntry(master=self.advancedFrame, height=25, width=140)
+        self.emulatorPathEntry.insert('end', config.get('ADVANCED', 'emulatorpath'))
+        self.emulatorPathEntry.place(x=180, y=220)
 
         # Save button
         self.advanceSaveButton = customtkinter.CTkButton(master=self, text="Save", fg_color=["#3B8ED0", "#1F6AA5"], width=120, command=self.advancedSaveButton)
-        self.advanceSaveButton.place(x=60, y=250)
+        self.advanceSaveButton.place(x=110, y=270)
 
         self.advancedLoadSettings()
 
@@ -716,6 +723,8 @@ class advancedWindow(customtkinter.CTkToplevel):
             config.set('ADVANCED', 'port', self.portEntry.get())
         if self.delayEntry.get() != config.get('ADVANCED', 'loadingMuliplier'):
             config.set('ADVANCED', 'loadingMuliplier', self.delayEntry.get())
+        if self.emulatorPathEntry.get() != config.get('ADVANCED', 'emulatorpath'):
+            config.set('ADVANCED', 'emulatorpath', self.emulatorPathEntry.get())
         if self.victoryCheckEntry.get() != config.get('PUSH', 'victorycheck'):
             config.set('PUSH', 'victorycheck', self.victoryCheckEntry.get())
 

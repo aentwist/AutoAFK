@@ -13,6 +13,7 @@ from PIL import Image
 from shutil import which
 from platform import system
 import scrcpy
+import psutil
 
 # Configs/settings
 config = configparser.ConfigParser()
@@ -36,6 +37,16 @@ def connect_device():
     global connected  # So we don't reconnect with every new activity in the same session
     global config 
     config.read(settings) # Load settings
+
+    # Check if emulator process is already running and try to run it if not
+    if config.has_option('ADVANCED', 'emulatorpath') and not is_process_running(config.get('ADVANCED', 'emulatorpath').rsplit('\\', 1)[-1]):
+        if config.get('ADVANCED', 'emulatorpath'):
+            # Check if the file exists
+            if os.path.exists(config.get('ADVANCED', 'emulatorpath')):
+                # Run the executable file
+                printGreen('Starting emulator...')
+                Popen(config.get('ADVANCED', 'emulatorpath'), shell=False)
+                wait(5)
 
     printGreen('Attempting to connect..')
 
@@ -579,3 +590,10 @@ def delayed_start(delay_minutes=0):
 
         # Update current time
         current_time = datetime.datetime.now()
+
+# Check if a process with a given name is currently running
+def is_process_running(process_name):
+    for proc in psutil.process_iter(['name']):
+        if proc.info['name'] == process_name:
+            return True
+    return False
