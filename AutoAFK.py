@@ -682,11 +682,11 @@ class advancedWindow(customtkinter.CTkToplevel):
         self.debugCheckbox.place(x=295, y=190)
 
         # Emulator path
-        self.emulatorPathLabel = customtkinter.CTkLabel(master=self.advancedFrame, text='Emulator path (optional):', fg_color=("gray86", "gray17"))
+        self.emulatorPathLabel = customtkinter.CTkLabel(master=self.advancedFrame, text='Emulator executable path (optional):', fg_color=("gray86", "gray17"))
         self.emulatorPathLabel.place(x=10, y=220)
-        self.emulatorPathEntry = customtkinter.CTkEntry(master=self.advancedFrame, height=25, width=140)
+        self.emulatorPathEntry = customtkinter.CTkEntry(master=self.advancedFrame, height=25, width=100)
         self.emulatorPathEntry.insert('end', config.get('ADVANCED', 'emulatorpath'))
-        self.emulatorPathEntry.place(x=180, y=220)
+        self.emulatorPathEntry.place(x=220, y=220)
 
         # Save button
         self.advanceSaveButton = customtkinter.CTkButton(master=self, text="Save", fg_color=["#3B8ED0", "#1F6AA5"], width=120, command=self.advancedSaveButton)
