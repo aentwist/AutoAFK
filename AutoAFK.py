@@ -34,7 +34,7 @@ else:
     settings = os.path.join(cwd, 'settings.ini')
 config.read(settings)
 
-version = "0.16.6"
+version = "0.17"
 
 repo_releases = requests.get('https://api.github.com/repos/Hammanek/AutoAFK/releases/latest')
 json = repo_releases.json() if repo_releases and repo_releases.status_code == 200 else None
