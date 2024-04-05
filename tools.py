@@ -14,6 +14,9 @@ from shutil import which
 from platform import system
 import scrcpy
 import psutil
+import win32gui
+import win32con
+from plyer import notification
 
 # Configs/settings
 config = configparser.ConfigParser()
@@ -35,7 +38,8 @@ def connect_device():
     global device
     global connect_counter
     global connected  # So we don't reconnect with every new activity in the same session
-    global config 
+    global config
+    was_running = False
     config.read(settings) # Load settings
 
     # Check if emulator process is already running and try to run it if not
@@ -46,7 +50,10 @@ def connect_device():
                 # Run the executable file
                 printGreen('Starting emulator...')
                 Popen(config.get('ADVANCED', 'emulatorpath'), shell=False)
+                minimize_window()
                 wait(5)
+    else: 
+        was_running = True
 
     printGreen('Attempting to connect..')
 
@@ -80,6 +87,8 @@ def connect_device():
         else:
             if device is not None:
                 connected = True
+                if not was_running:
+                    minimize_window()
             break
 
     # Break after 3 retries
@@ -113,7 +122,6 @@ def connect_device():
         afkRunningCheck()
         waitUntilGameActive()
         expandMenus()
-        print('')
 
 # This function manages the ADB connection to Bluestacks.
 # First it restarts ADB then checks for a port in settings.ini, after that we check for existing connected ADB devices
@@ -597,3 +605,15 @@ def is_process_running(process_name):
         if proc.info['name'] == process_name:
             return True
     return False
+
+# Minimize window
+def minimize_window():
+    count = 0
+    while count < 50:  # Perform 50 checks
+        hwnd = win32gui.GetForegroundWindow()
+        title = win32gui.GetWindowText(hwnd)
+        if "MuMu" in title or "Bluestacks" in title:
+            win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
+            break
+        count += 1
+        time.sleep(0.2)  # Sleep for 200 milliseconds

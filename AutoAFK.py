@@ -8,6 +8,7 @@ import os
 from datetime import datetime, timezone
 import argparse
 import requests
+from plyer import notification
 
 currenttime = datetime.now()
 currenttimeutc = datetime.now(timezone.utc)
@@ -805,7 +806,6 @@ def activityManager():
         handleFightOfFates(config.getint('ACTIVITY', 'activitybattles'))
         buttonState('normal')
         print('')
-        return
 
     if app.activityFormationDropdown.get() == "Battle of Blood":
         buttonState('disabled')
@@ -813,7 +813,6 @@ def activityManager():
         handleBattleofBlood(config.getint('ACTIVITY', 'activitybattles'))
         buttonState('normal')
         print('')
-        return
 
     if app.activityFormationDropdown.get() == "Arena of Heroes":
         buttonState('disabled')
@@ -821,7 +820,6 @@ def activityManager():
         handleArenaOfHeroes(config.getint('ACTIVITY', 'activitybattles'), config.getint('ARENA', 'arenaopponent'))
         buttonState('normal')
         print('')
-        return
 
     if app.activityFormationDropdown.get() == "Arcane Labyrinth":
         buttonState('disabled')
@@ -829,7 +827,6 @@ def activityManager():
         handleLab()
         buttonState('normal')
         print('')
-        return
 
     if app.activityFormationDropdown.get() == "Heroes of Esperia":
         buttonState('disabled')
@@ -837,9 +834,12 @@ def activityManager():
         handleHeroesofEsperia(config.getint('ACTIVITY', 'activitybattles'), config.getint('ARENA', 'arenaopponent'))
         buttonState('normal')
         print('')
-        return
+
+    desktopNotification('Activity done.')
+    return
 
 def dailiesButton():
+
     buttonState('disabled')
     dailies()
     print('')
@@ -847,6 +847,8 @@ def dailiesButton():
     return
 
 def dailies():
+    desktopNotification('Dailies done!')
+    sys.exit()
     delayed_start(config.getint('DAILIES', 'delayedstart'))
     connect_device()
 
@@ -901,6 +903,7 @@ def dailies():
     if config.getboolean('DAILIES', 'usebagconsumables'):
         useBagConsumables()
     printGreen('Dailies done!')
+    desktopNotification('Dailies done!')
 
     if config.getboolean('DAILIES', 'hibernate'):
         printWarning('Hibernating system in 1 minute...')
@@ -929,6 +932,15 @@ def push():
         updateSettings()
         while 1:
             towerPusher.pushTower(tower=app.pushLocationDropdown.get(), formation=formation, duration=int(config.get('PUSH', 'victoryCheck')))
+
+# Windows notification
+def desktopNotification(msg):
+    notification.notify(
+        title='AutoAFK ' + version,
+        message=msg,
+        app_icon="img/auto.ico",  # If you want to display an icon, provide the path here
+        timeout=5,  # Duration the notification should be displayed (in seconds)
+    )
 
 class IORedirector(object):
     def __init__(self, text_widget):
