@@ -847,8 +847,6 @@ def dailiesButton():
     return
 
 def dailies():
-    desktopNotification('Dailies done!')
-    sys.exit()
     delayed_start(config.getint('DAILIES', 'delayedstart'))
     connect_device()
 
