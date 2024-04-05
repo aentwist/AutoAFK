@@ -963,8 +963,12 @@ class STDOutRedirector(IORedirector):
         else:
             self.text_space.insert('end', string)
         self.text_space.see('end')
+
     def flush(self):
-        sys.stdout.flush()
+        try:
+            sys.stdout.flush()
+        except Exception as e:
+            pass
 
 if __name__ == "__main__":
     app = App()
