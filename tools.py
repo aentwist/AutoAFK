@@ -202,9 +202,6 @@ def portScan():
     else:
         printError('No ports found!')
 
-def closeADB():
-    adb.kill
-
 # Expands the left and right button menus
 def expandMenus():
     while isVisible('buttons/downarrow', 0.8, suppress=True):

@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 import argparse
 import requests
 from plyer import notification
+import subprocess
 
 currenttime = datetime.now()
 currenttimeutc = datetime.now(timezone.utc)
@@ -121,14 +122,6 @@ class App(customtkinter.CTk):
         # Select useArtifacts button if enabled
         if config.getboolean('PUSH', 'useartifacts'):
             self.useArtifactsCheckbox.select()
-
-        # Quit button
-        self.quitButton = customtkinter.CTkButton(master=self, text="Close", fg_color=["#B60003", "#C03335"], width=180, command=lambda: threading.Thread(target=cleanExit).start())
-        #self.quitButton.place(x=10, y=550)
-
-        def cleanExit():
-            closeADB()
-            self.destroy()
 
         # Textbox Frame
         self.textbox = customtkinter.CTkTextbox(master=self, width=580, height=500)
@@ -968,6 +961,7 @@ class STDOutRedirector(IORedirector):
         try:
             sys.stdout.flush()
         except Exception as e:
+            subprocess.run(["adb", "kill-server"], check=True) # Program is exitting
             pass
 
 if __name__ == "__main__":
