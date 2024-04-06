@@ -52,7 +52,8 @@ def connect_device():
                 printGreen('Starting emulator...')
                 Popen(config.get('ADVANCED', 'emulatorpath'), shell=False)
                 minimize_window()
-                wait(5)
+                wait(1)
+                minimize_window()
     else: 
         was_running = True
 
@@ -607,7 +608,7 @@ def is_process_running(process_name):
 # Minimize window
 def minimize_window():
     count = 0
-    while count < 50:  # Perform 50 checks
+    while count < 25:
         hwnd = win32gui.GetForegroundWindow()
         title = win32gui.GetWindowText(hwnd)
         if "MuMu" in title or "Bluestacks" in title:

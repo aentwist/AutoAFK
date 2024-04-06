@@ -962,7 +962,7 @@ class STDOutRedirector(IORedirector):
         try:
             sys.stdout.flush()
         except Exception as e:
-            subprocess.run(["adb", "kill-server"], check=True) # Program is exitting
+            subprocess.run(["adb", "kill-server"], check=True) # Program is exitting => kill adb
             pass
 
 if __name__ == "__main__":
