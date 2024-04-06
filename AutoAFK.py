@@ -49,6 +49,7 @@ else:
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
+        hide_console()
 
         # configure window
         self.title("AutoAFK " + version)

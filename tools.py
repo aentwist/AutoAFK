@@ -17,6 +17,7 @@ import psutil
 import win32gui
 import win32con
 from plyer import notification
+import ctypes
 
 # Configs/settings
 config = configparser.ConfigParser()
@@ -614,3 +615,11 @@ def minimize_window():
             break
         count += 1
         time.sleep(0.2)  # Sleep for 200 milliseconds
+
+def hide_console():
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    user32 = ctypes.WinDLL('user32', use_last_error=True)
+    SW_HIDE = 0
+    hWnd = kernel32.GetConsoleWindow()
+    if hWnd:
+        user32.ShowWindow(hWnd, SW_HIDE)
