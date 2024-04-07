@@ -1029,7 +1029,7 @@ def handleLab():
             clickXY(700, 1250, seconds=6) # Confirm
             clickXY(550, 1600, seconds=3) # Clear Debuff
             # TODO Check Dismal Floor 1 text
-            printGreen('    Sweeping to 3rd Floor')
+            printGreen('    Sweeping to 2nd Floor')
             clickXY(950, 1600, seconds=2) # Level Sweep
             clickXY(550, 1550, seconds=8) # Confirm, long wait for animations
             clickXY(550, 1600, seconds=2) # Clear Resources Exceeded message

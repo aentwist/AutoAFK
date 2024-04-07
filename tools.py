@@ -553,20 +553,20 @@ def confirmLocation(location, change=True, bool=False, region=(0,0, 1080, 1920))
         return False
 
 # This function will cycle through known buttons to try and return us to the Campaign screen so we can start from a known location
-# It will try 10 times and if we haven't gotten back in that time we exit as we are lost
+# It will try 8 times and if we haven't gotten back in that time we exit as we are lost
 def recover():
     recoverCounter = 0
     while not isVisible('buttons/campaign_selected'):
         # printPurple('recovery: ' + str(recoverCounter))
+        clickXY(420, 50) # Neutral location for closing reward pop ups etc, should never be an in game button here
         click('buttons/back', suppress=True, seconds=0.5, region=(0, 1500, 250, 419))
         click('buttons/exitmenu', suppress=True, seconds=0.5, region=(700, 0, 379, 500))
         click('buttons/confirm_small', suppress=True, seconds=0.5, region=(200, 750, 600, 649))
         click('buttons/confirm_stageexit', suppress=True, seconds=0.5, region=(200, 750, 600, 649))
         click('buttons/exit', suppress=True, seconds=0.5, region=(578, 1250, 290, 88))
         click('buttons/campaign_unselected', suppress=True, seconds=0.5, region=(424, 1750, 232, 170))
-        clickXY(420, 50) # Neutral location for closing reward pop ups etc, should never be an in game button here
         recoverCounter += 1
-        if recoverCounter > 10:
+        if recoverCounter > 8:
             break
     if confirmLocation('campaign', bool=True):
         clickXY(550, 1900) # Click in case we found Campaign in the background (basically if a campaign attempt fails)
@@ -574,6 +574,10 @@ def recover():
         return True
     else:
         printError('Recovery failed, exiting')
+        if config.getboolean('ADVANCED', 'debug'):
+            if not os.path.exists('debug'):
+                os.makedirs('debug')
+                save_scrcpy_screenshot('debug/recovery_failed_' + str(time.time()))
         exit(0)
 
 # Delay start so it starts after reset
