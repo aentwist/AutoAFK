@@ -134,6 +134,7 @@ class App(customtkinter.CTk):
         self.textbox.tag_config('blue', foreground='cyan')
         self.textbox.tag_config('purple', foreground='#af5ac9')
         self.textbox.tag_config('yellow', foreground='yellow')
+        self.textbox.tag_config('orange', foreground='orange')
         self.textbox.insert('end', 'Welcome to AutoAFK!\n', 'green')
         #self.textbox.insert('end', 'Github: ', 'purple')
         #self.textbox.insert('end',  'Github.com/Fortigate/AutoAFK/\n')
@@ -152,7 +153,7 @@ class App(customtkinter.CTk):
         # Welcome message
         welcome_message = requests.get('https://afk.hamman.eu/autoafk/welcome.txt')
         if welcome_message.text:
-            self.textbox.insert('end', welcome_message.text + '\n\n', 'white')
+            self.textbox.insert('end', welcome_message.text + '\n\n', 'yellow')
 
         if (args['config']) != 'settings.ini':
             self.textbox.insert('end', (args['config']) + ' loaded\n\n', 'yellow')
