@@ -898,6 +898,9 @@ def dailies():
     printGreen('Dailies done!')
     desktopNotification('Dailies done!')
 
+    if config.has_option('ADVANCED', 'afkjourneycmd'):
+        afkjourney()
+
     if config.getboolean('DAILIES', 'hibernate'):
         printWarning('Hibernating system in 1 minute...')
         time.sleep(60)

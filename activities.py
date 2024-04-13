@@ -1505,3 +1505,14 @@ def handleHeroesofEsperia(count=3, opponent=4):
     else:
         printError('Heroes of Esperia not found, attempting to recover')
         recover()
+        
+def afkjourney():
+    #if os.path.exists(config.get('ADVANCED', 'afkjourneycmd')):
+        print('')
+        printBlue('Attempting to run AFK Journey dailies')
+        process = Popen(config.get('ADVANCED', 'afkjourneycmd'), stdout=PIPE, text=True)
+        for line in process.stdout:
+            if line.strip():  # Check if the line is not empty
+                print(line, end='')
+        process.wait()
+        printGreen('AFK Journey dailies done!')  
