@@ -2,6 +2,7 @@ from math import ceil
 from tools import *
 from AutoAFK import printGreen, printError, printWarning, printBlue, printPurple, settings
 import datetime
+import shlex
 
 d = datetime.datetime.now()
 
@@ -419,30 +420,27 @@ class towerPusher():
                 towerPusher.towerOpen = True
 
 def pushCampaign(formation=3, duration=1):
-    # Below we open campaign, load the selected formation and start autobattle
     if (isVisible('buttons/begin', 0.7, retry=3, click=True)):
-        # Check for a second Begin in the case of a multibattle
-        click('buttons/begin_plain', 0.7, seconds=2, retry=3, suppress=True, region=boundaries['multiBegin'])
-    # Simple check for Auto Battle button
-    if isVisible('buttons/autobattle', 0.95, retry=3, seconds=2, region=boundaries['autobattle']):  # higher confidence so we don't find it in the background
-        configureBattleFormation(formation)
-    wait((duration * 60) - 30) # Sleep for the wait duration
-    clickXY(550, 1750) # Click to prompt the AutoBattle popup
-    if isVisible('labels/autobattle', region=boundaries['autobattleLabel']): # Make sure the popup is visible (else we've crashed and quit)
-        if isVisible('labels/autobattle_0', region=boundaries['autobattle0']): # If it's 0 continue
-            if config.getboolean('PUSH', 'suppressSpam') is False:
-                printWarning('No victory found, checking again in ' + str(config.get('PUSH', 'victoryCheck') + ' minutes.'))
-            click('buttons/cancel', retry=3, suppress=True, region=boundaries['cancelAB'])
-        else: # If it's not 0 we have passed a stage
-            printGreen('Victory found! Loading the ' + str(config.get('PUSH', 'formation') + ' formation for the current stage..'))
-            click('buttons/exit', suppress=True, retry=3, region=boundaries['exitAB'])
-            click('buttons/pause', confidence=0.8, retry=3, suppress=True, region=boundaries['pauseBattle'])  # 3 retries as ulting heroes can cover the button
-            click('buttons/exitbattle', suppress=True, retry=3, region=boundaries['exitBattle'])
-            click('labels/taptocontinue', confidence=0.8, suppress=True, grayscale=True, region=boundaries['taptocontinue'])
+        return
+    
+    if isVisible('buttons/autobattle', 0.95, retry=3, seconds=2, region=boundaries['autobattle']) and not isVisible('labels/autobattle'):
+            configureBattleFormation(formation)
     else:
-        # If we click and the AutoBattle Label isn't visible we're lost somewhere so we exit
-        printError('AutoBattle screen not found, trying to recover..')
-        recover()
+        clickXY(550, 1750) # Click to prompt the AutoBattle popup
+        if isVisible('labels/autobattle'):
+            if isVisible('labels/autobattle_0', region=boundaries['autobattle0']): # If it's 0 continue
+                if config.getboolean('PUSH', 'suppressSpam') is False:
+                    printWarning('No victory found, checking again in ' + str(config.get('PUSH', 'victoryCheck') + ' minutes.'))
+                click('buttons/cancel', retry=3, suppress=True, region=boundaries['cancelAB'])
+                wait((duration * 60) - 30) # Sleep for the wait duration
+            else: # If it's not 0 we have passed a stage
+                printGreen('Victory found! Loading the ' + str(config.get('PUSH', 'formation') + ' formation for the current stage..'))
+                click('buttons/exit', suppress=True, retry=3, region=boundaries['exitAB'])
+                click('buttons/pause', confidence=0.8, retry=3, suppress=True, region=boundaries['pauseBattle'])  # 3 retries as ulting heroes can cover the button
+                click('buttons/exitbattle', suppress=True, retry=3, region=boundaries['exitBattle'])
+                click('labels/taptocontinue', confidence=0.8, suppress=True, grayscale=True, region=boundaries['taptocontinue'])
+        else:
+            recover()
 
 def configureBattleFormation(formation):
     artifacts = None
@@ -1507,10 +1505,19 @@ def handleHeroesofEsperia(count=3, opponent=4):
         recover()
         
 def afkjourney():
-    #if os.path.exists(config.get('ADVANCED', 'afkjourneycmd')):
+    afkjourney_cmd = config.get('ADVANCED', 'afkjourney_cmd')
+
+    # Split the string by spaces
+    cmd_parts = shlex.split(afkjourney_cmd)
+
+    # Extract the file path
+    file_path = cmd_parts[2]
+
+    # Check if the file exists
+    if os.path.exists(file_path):
         print('')
         printBlue('Attempting to run AFK Journey dailies')
-        process = Popen(config.get('ADVANCED', 'afkjourneycmd'), stdout=PIPE, text=True)
+        process = Popen(config.get('ADVANCED', 'afkjourney_cmd'), stdout=PIPE, text=True)
         for line in process.stdout:
             if line.strip():  # Check if the line is not empty
                 print(line, end='')

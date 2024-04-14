@@ -554,7 +554,7 @@ def confirmLocation(location, change=True, bool=False, region=(0,0, 1080, 1920))
 
 # This function will cycle through known buttons to try and return us to the Campaign screen so we can start from a known location
 # It will try 8 times and if we haven't gotten back in that time we exit as we are lost
-def recover():
+def recover(silent=False):
     recoverCounter = 0
     while not isVisible('buttons/campaign_selected'):
         # printPurple('recovery: ' + str(recoverCounter))
@@ -570,10 +570,10 @@ def recover():
             break
     if confirmLocation('campaign', bool=True):
         clickXY(550, 1900) # Click in case we found Campaign in the background (basically if a campaign attempt fails)
-        printGreen('Recovered succesfully')
+        if not silent: printGreen('Recovered succesfully')
         return True
     else:
-        printError('Recovery failed, exiting')
+        if not silent: printError('Recovery failed, exiting')
         if config.getboolean('ADVANCED', 'debug'):
             if not os.path.exists('debug'):
                 os.makedirs('debug')

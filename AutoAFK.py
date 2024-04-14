@@ -898,7 +898,7 @@ def dailies():
     printGreen('Dailies done!')
     desktopNotification('Dailies done!')
 
-    if config.has_option('ADVANCED', 'afkjourneycmd'):
+    if config.getboolean('ADVANCED', 'enable_afkjourney'):
         afkjourney()
 
     if config.getboolean('DAILIES', 'hibernate'):
