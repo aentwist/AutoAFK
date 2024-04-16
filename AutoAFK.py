@@ -1,5 +1,6 @@
 from activities import *
 from tools import *
+from telegram import *
 import customtkinter
 import threading
 import sys
@@ -844,6 +845,8 @@ def dailiesButton():
 def dailies():
     delayed_start(config.getint('DAILIES', 'delayedstart'))
     connect_device()
+    afkjourney()
+    return
 
     # Count as started dailies
     count_api = 'https://api.api-ninjas.com/v1/counter?id=AutoAFK-' + version + '-run&hit=true'
@@ -1015,4 +1018,8 @@ def printPurple(text):
         print(text)
     else:
         print('PUR' + text)
+    writeToLog(text)
+
+def printInfo(text):
+    print(text,end='')
     writeToLog(text)

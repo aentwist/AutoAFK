@@ -1,6 +1,6 @@
 from math import ceil
 from tools import *
-from AutoAFK import printGreen, printError, printWarning, printBlue, printPurple, settings
+from AutoAFK import printGreen, printError, printWarning, printBlue, printPurple, printInfo, settings
 import datetime
 import shlex
 
@@ -1520,6 +1520,6 @@ def afkjourney():
         process = Popen(config.get('ADVANCED', 'afkjourney_cmd'), stdout=PIPE, text=True)
         for line in process.stdout:
             if line.strip():  # Check if the line is not empty
-                print(line, end='')
+                printInfo(line)
         process.wait()
         printGreen('AFK Journey dailies done!')  

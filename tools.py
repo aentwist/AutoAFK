@@ -2,7 +2,6 @@
 import io
 import random
 import os
-
 import numpy as np
 from ppadb.client import Client
 from AutoAFK import printGreen, printError, printWarning, printBlue, printPurple, settings, args
