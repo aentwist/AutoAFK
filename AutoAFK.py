@@ -845,8 +845,6 @@ def dailiesButton():
 def dailies():
     delayed_start(config.getint('DAILIES', 'delayedstart'))
     connect_device()
-    afkjourney()
-    return
 
     # Count as started dailies
     count_api = 'https://api.api-ninjas.com/v1/counter?id=AutoAFK-' + version + '-run&hit=true'

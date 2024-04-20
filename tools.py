@@ -238,7 +238,7 @@ def waitUntilGameActive():
         timeoutcounter += 1
         if isVisible('buttons/campaign_selected'):
             loadingcounter += 1
-        if timeoutcounter > 30: # Long so patching etc doesn't lead to timeout
+        if timeoutcounter > 60: # Long so patching etc doesn't lead to timeout
             printError('Timed out while loading!')
             sys.exit(1)
     printGreen('Game Loaded!')
