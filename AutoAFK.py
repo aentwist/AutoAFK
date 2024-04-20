@@ -6,6 +6,7 @@ import threading
 import sys
 import configparser
 import os
+import time
 from datetime import datetime, timezone
 import argparse
 import requests
@@ -54,7 +55,7 @@ class App(customtkinter.CTk):
 
         # configure window
         self.title("AutoAFK " + version)
-        self.geometry(f"{800}x{540}")
+        self.geometry(f"{800}x{560}")
         self.wm_iconbitmap(os.path.join(cwd, 'img', 'auto.ico'))
 
         # Dailies Frame
@@ -62,7 +63,7 @@ class App(customtkinter.CTk):
         self.dailiesFrame.place(x=10, y=20)
 
         # Dailies button
-        self.dailiesButton = customtkinter.CTkButton(master=self.dailiesFrame, text="Run Dailies", command=lambda: threading.Thread(target=dailiesButton).start())
+        self.dailiesButton = customtkinter.CTkButton(master=self.dailiesFrame, text="Run Dailies", command=start_dailies_thread)
         self.dailiesButton.place(x=20, y=10)
 
         # Activities button
@@ -82,7 +83,7 @@ class App(customtkinter.CTk):
         self.arenaFrame.place(x=10, y=200)
 
         # Activities button
-        self.arenaButton = customtkinter.CTkButton(master=self.arenaFrame, text="Run Activity", command=lambda: threading.Thread(target=activityManager).start())
+        self.arenaButton = customtkinter.CTkButton(master=self.arenaFrame, text="Run Activity", command=start_activity_thread)
         self.arenaButton.place(x=20, y=15)
 
         # Activities Dropdown
@@ -101,7 +102,7 @@ class App(customtkinter.CTk):
         self.pushFrame.place(x=10, y=340)
 
         # Push Button
-        self.pushButton = customtkinter.CTkButton(master=self.pushFrame, text="Auto Push", command=lambda: threading.Thread(target=push).start())
+        self.pushButton = customtkinter.CTkButton(master=self.pushFrame, text="Auto Push", command=start_push_thread)
         self.pushButton.place(x=20, y=10)
 
         # Push Entry
@@ -124,6 +125,36 @@ class App(customtkinter.CTk):
         # Select useArtifacts button if enabled
         if config.getboolean('PUSH', 'useartifacts'):
             self.useArtifactsCheckbox.select()
+
+        # pause/resume buttom
+        self.pauseButton = customtkinter.CTkButton(master=self, text="Pause", fg_color="#FF4500", width=85,
+                                                   command=pause_all_thread, state="disabled")
+        self.pauseButton.place(x=10, y=530)
+
+        # Quit button
+        self.quitButton = customtkinter.CTkButton(master=self, text="Stop", fg_color=["#B60003", "#C03335"],
+                                                  width=85, command=stop_all_threads, state="disabled")
+        self.quitButton.place(x=110, y=530)
+
+        # Variables to track the running status of each thread
+        self.dailies_thread_running = False
+        self.activity_thread_running = False
+        self.push_thread_running = False
+
+        # Thread objects
+        self.dailies_thread = None
+        self.activity_thread = None
+        self.push_thread = None
+
+        # Event flags for stopping threads
+        self.dailies_stop_event = threading.Event()
+        self.activity_stop_event = threading.Event()
+        self.push_stop_event = threading.Event()
+
+        # Event flags for pausing threads
+        self.dailies_pause_event = threading.Event()
+        self.activity_pause_event = threading.Event()
+        self.push_pause_event = threading.Event()
 
         # Textbox Frame
         self.textbox = customtkinter.CTkTextbox(master=self, width=580, height=500)
@@ -790,6 +821,73 @@ def buttonState(state):
     app.dailiesButton.configure(state=state)
     app.arenaButton.configure(state=state)
     app.pushButton.configure(state=state)
+    if state == 'normal':
+        app.pauseButton.configure(state='disabled')
+        app.quitButton.configure(state='disabled')
+
+def stopButtonState(state):
+    app.pauseButton.configure(state=state)
+    app.quitButton.configure(state=state)
+# Function to start the dailies thread
+def start_dailies_thread():
+    if not app.dailies_thread_running:
+        app.dailies_thread_running = True
+        app.dailies_stop_event.clear()  # Clear the stop event flag
+        app.dailies_pause_event.clear()  # Clear the pause event flag
+        app.dailies_thread = threading.Thread(target=dailiesButton)
+        app.dailies_thread.start()
+
+# Function to start the activity thread
+def start_activity_thread():
+    if not app.activity_thread_running:
+        app.activity_thread_running = True
+        app.activity_stop_event.clear()  # Clear the stop event flag
+        app.activity_pause_event.clear()  # Clear the pause event flag
+        app.activity_thread = threading.Thread(target=activityManager)
+        app.activity_thread.start()
+
+# Function to start the push thread
+def start_push_thread():
+    if not app.push_thread_running:
+        app.push_thread_running = True
+        app.push_stop_event.clear()  # Clear the stop event flag
+        app.push_pause_event.clear()  # Clear the pause event flag
+        app.push_thread = threading.Thread(target=push)
+        app.push_thread.start()
+
+# Function to stop all threads
+def stop_all_threads():
+    printWarning("Stop pressed, stopping after current defined action")
+    app.dailies_thread_running = False
+    app.activity_thread_running = False
+    app.push_thread_running = False
+
+    app.dailies_stop_event.set()
+    app.activity_stop_event.set()
+    app.push_stop_event.set()
+    # Set stop event flags to signal the threads to stop
+
+def pause_all_thread():
+    printWarning("Pause pressed, pausing after current defined action")
+    app.dailies_pause_event.set()
+    app.activity_pause_event.set()
+    app.push_pause_event.set()
+    app.pauseButton.configure(text="Resume", command=resume_all_thread, fg_color="green")  # Change button text and command
+    app.quitButton.configure(state='disabled')
+
+def resume_all_thread():
+    app.dailies_pause_event.clear()  # Clear the pause event flag
+    app.activity_pause_event.clear()
+    app.push_pause_event.clear()
+    app.pauseButton.configure(text="Pause", command=pause_all_thread, fg_color="#FF4500")
+    app.quitButton.configure(state='normal')
+
+def pauseOrStopEventCheck(pauseevent, stopevent, timer=5):
+    while pauseevent.is_set():
+        printWarning(fr'Pause detected! Checking resume in {timer} seconds')
+        time.sleep(timer)  # Sleep to reduce CPU usage while paused
+    if stopevent.is_set():
+        return True
 
 def activityManager():
     if app.pvpEntry.get() != config.get('ACTIVITY', 'activitybattles'):
@@ -813,7 +911,8 @@ def activityManager():
     if app.activityFormationDropdown.get() == "Arena of Heroes":
         buttonState('disabled')
         connect_device()
-        handleArenaOfHeroes(config.getint('ACTIVITY', 'activitybattles'), config.getint('ARENA', 'arenaopponent'))
+        stopButtonState('normal')
+        handleArenaOfHeroes(config.getint('ACTIVITY', 'activitybattles'), config.getint('ARENA', 'arenaopponent'), app)
         buttonState('normal')
         print('')
 
@@ -846,68 +945,115 @@ def dailies():
     delayed_start(config.getint('DAILIES', 'delayedstart'))
     connect_device()
     afkjourney()
-    return
+    #return not sure what the new return here was fine, but it's blocking the rest of the code -FOB
 
     # Count as started dailies
     count_api = 'https://api.api-ninjas.com/v1/counter?id=AutoAFK-' + version + '-run&hit=true'
     hit = requests.get(count_api, headers={'X-Api-Key': 'Nc9+gX2u0w/F5smHLYOrdg==3Mh0tPQWWux2OZsA'})
+    stopButtonState('normal')
+    while app.dailies_thread_running:
+        if config.getboolean('DAILIES', 'collectrewards'):
+            collectAFKRewards()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'collectmail'):
+            collectMail()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'companionpoints'):
+            collectCompanionPoints(config.getboolean('DAILIES', 'lendmercs'))
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getint('DAILIES', 'fastrewards') > 0:
+            collectFastRewards(config.getint('DAILIES', 'fastrewards'))
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'attemptcampaign'):
+            attemptCampaign()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('BOUNTIES', 'dispatchsolobounties') or config.getboolean('BOUNTIES', 'dispatchteambounties'):
+            handleBounties()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('ARENA', 'battlearena'):
+            handleArenaOfHeroes(config.getint('ARENA', 'arenabattles'), config.getint('ARENA', 'arenaopponent'), app)
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('ARENA', 'tscollect'):
+            collectTSRewards()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('ARENA', 'gladiatorcollect'):
+            collectGladiatorCoins()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'fountainoftime'):
+            collectFountainOfTime()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'kingstower'):
+            handleKingsTower()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'collectinn'):
+            collectInnGifts()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'guildhunt'):
+            handleGuildHunts()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'storepurchases'):
+            shopPurchases(config.getint('DAILIES', 'shoprefreshes'))
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'twistedrealm'):
+            handleTwistedRealm()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('EVENTS', 'fightoffates'):
+            handleFightOfFates()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('EVENTS', 'battleofblood'):
+            handleBattleofBlood()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('EVENTS', 'circusTour'):
+            handleCircusTour()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'runLab'):
+            handleLab()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('EVENTS', 'heroesofesperia'):
+            handleHeroesofEsperia(3, 4)
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'collectquests'):
+            collectQuests()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'collectmerchants'):
+            clearMerchant()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        if config.getboolean('DAILIES', 'usebagconsumables'):
+            useBagConsumables()
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+        printGreen('Dailies done!')
+        desktopNotification('Dailies done!')
+        if config.getboolean('ADVANCED', 'enable_afkjourney'):
+            afkjourney()
 
-    if config.getboolean('DAILIES', 'collectrewards'):
-        collectAFKRewards()
-    if config.getboolean('DAILIES', 'collectmail'):
-        collectMail()
-    if config.getboolean('DAILIES', 'companionpoints'):
-        collectCompanionPoints(config.getboolean('DAILIES', 'lendmercs'))
-    if config.getint('DAILIES', 'fastrewards') > 0:
-        collectFastRewards(config.getint('DAILIES', 'fastrewards'))
-    if config.getboolean('DAILIES', 'attemptcampaign'):
-        attemptCampaign()
-    if config.getboolean('BOUNTIES', 'dispatchsolobounties') or config.getboolean('BOUNTIES', 'dispatchteambounties'):
-        handleBounties()
-    if config.getboolean('ARENA', 'battlearena'):
-        handleArenaOfHeroes(config.getint('ARENA', 'arenabattles'), config.getint('ARENA', 'arenaopponent'))
-    if config.getboolean('ARENA', 'tscollect'):
-        collectTSRewards()
-    if config.getboolean('ARENA', 'gladiatorcollect'):
-        collectGladiatorCoins()
-    if config.getboolean('DAILIES', 'fountainoftime'):
-        collectFountainOfTime()
-    if config.getboolean('DAILIES', 'kingstower'):
-        handleKingsTower()
-    if config.getboolean('DAILIES', 'collectinn'):
-        collectInnGifts()
-    if config.getboolean('DAILIES', 'guildhunt'):
-        handleGuildHunts()
-    if config.getboolean('DAILIES', 'storepurchases'):
-        shopPurchases(config.getint('DAILIES', 'shoprefreshes'))
-    if config.getboolean('DAILIES', 'twistedrealm'):
-        handleTwistedRealm()
-    if config.getboolean('EVENTS', 'fightoffates'):
-        handleFightOfFates()
-    if config.getboolean('EVENTS', 'battleofblood'):
-        handleBattleofBlood()
-    if config.getboolean('EVENTS', 'circusTour'):
-        handleCircusTour()
-    if config.getboolean('DAILIES', 'runLab'):
-        handleLab()
-    if config.getboolean('EVENTS', 'heroesofesperia'):
-        handleHeroesofEsperia(3, 4)
-    if config.getboolean('DAILIES', 'collectquests'):
-        collectQuests()
-    if config.getboolean('DAILIES', 'collectmerchants'):
-        clearMerchant()
-    if config.getboolean('DAILIES', 'usebagconsumables'):
-        useBagConsumables()
-    printGreen('Dailies done!')
-    desktopNotification('Dailies done!')
-
-    if config.getboolean('ADVANCED', 'enable_afkjourney'):
-        afkjourney()
-
-    if config.getboolean('DAILIES', 'hibernate'):
-        printWarning('Hibernating system in 1 minute...')
-        time.sleep(60)
-        os.system("shutdown /h")
+        if config.getboolean('DAILIES', 'hibernate'):
+            printWarning('Hibernating system in 1 minute...')
+            time.sleep(60)
+            os.system("shutdown /h")
+        break
 
     return
 
@@ -915,22 +1061,22 @@ def push():
     connect_device()
     buttonState('disabled')
     formation = int(str(app.pushFormationDropdown.get())[0:1]) # to str first so we can take first character, then int
-
+    stopButtonState('normal')
     if app.pushLocationDropdown.get() == 'Campaign':
         printBlue('Auto-Pushing Campaign using the ' + str(app.pushFormationDropdown.get()) + ' formation')
         confirmLocation('campaign', region=boundaries['campaignSelect'])
         if str(app.pushFormationDropdown.get()) != config.get('PUSH', 'formation'):
             config.set('PUSH', 'formation', app.pushFormationDropdown.get())
         updateSettings()
-        while 1:
-            pushCampaign(formation=formation, duration=int(config.get('PUSH', 'victoryCheck')))
+        pushCampaign(formation=formation, duration=int(config.get('PUSH', 'victoryCheck')), app=app)
     else:
         printBlue('Auto-Pushing ' + str(app.pushLocationDropdown.get()) + ' using using the ' + str(app.pushFormationDropdown.get()) + ' formation')
         if str(app.pushFormationDropdown.get()) != config.get('PUSH', 'formation'):
             config.set('PUSH', 'formation', app.pushFormationDropdown.get())
         updateSettings()
-        while 1:
-            towerPusher.pushTower(tower=app.pushLocationDropdown.get(), formation=formation, duration=int(config.get('PUSH', 'victoryCheck')))
+        towerPusher.pushTower(tower=app.pushLocationDropdown.get(), formation=formation, duration=int(config.get('PUSH', 'victoryCheck')), app=app)
+    printGreen('Auto Push stopped!')
+    buttonState('normal')
 
 # Windows notification
 def desktopNotification(msg):

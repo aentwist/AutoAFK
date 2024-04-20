@@ -1,8 +1,9 @@
 from math import ceil
 from tools import *
-from AutoAFK import printGreen, printError, printWarning, printBlue, printPurple, printInfo, settings
+from AutoAFK import printGreen, printError, printWarning, printBlue, printPurple, printInfo, settings, pauseOrStopEventCheck
 import datetime
 import shlex
+import time
 
 d = datetime.datetime.now()
 
@@ -228,7 +229,7 @@ def dispatcher(dispatches):
                 break # Once resource is found and actions taken move onto the next button to save unnecessary checks
 
 
-def handleArenaOfHeroes(count, opponent):
+def handleArenaOfHeroes(count, opponent, app):
     counter = 0
     printBlue('Battling Arena of Heroes ' + str(count) + ' times')
     confirmLocation('darkforest', region=boundaries['darkforestSelect'])
@@ -251,6 +252,10 @@ def handleArenaOfHeroes(count, opponent):
                 printError('    Battle #' + str(counter + 1) + ' Defeat!')
             clickXY(600, 550)  # Back to opponent selection
             counter = counter+1
+            if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
+                break  # Exit the loop if stop event is set
+            if pauseOrStopEventCheck(app.activity_pause_event, app.activity_stop_event):
+                break  # Exit the loop if stop event is set
         click('buttons/exitmenu', region=boundaries['exitAoH'])
         click('buttons/back', retry=3, region=boundaries['backMenu'])
         click('buttons/back', retry=3, region=boundaries['backMenu'])
@@ -367,80 +372,87 @@ class towerPusher():
     towerOpen = False # for defining if we need to open tower or not
 
     # Loads selected formation, enables auto-battle and periodically checks for victory
-    def pushTower(tower, formation=3, duration=1):
-
-        # Open tower is needed then set it to enabled
-        if towerPusher.towerOpen is False:
-            openTower(tower)
-            towerPusher.towerOpen = True
-
-        # Two checks, one for the Challenge button in the tower screen and one for the AutoBattle button on the hero selection screen
-        # Both checks we check for two positives in a row so they aren't detected in the background while AutoBattle is running
-        # If found we run configureBattleFormation() to configure the formation and enable auto battle
-        challengetimer = 0
-        autobattletimer = 0
-        # Challenge button
-        while isVisible('buttons/challenge_plain', confidence=0.8, retry=3, seconds=2, region=boundaries['challengeTower']):
-            challengetimer += 1
-            if challengetimer >= 2:
-                click('buttons/challenge_plain', confidence=0.8, retry=3, seconds=3, region=boundaries['challengeTower'])
-                configureBattleFormation(formation)
-                challengetimer = 0
-        # Autobattle button
-        while isVisible('buttons/autobattle', 0.92, retry=3, seconds=2, region=boundaries['autobattle']):  # higher confidence so we don't find it in the background
-            autobattletimer += 1
-            if autobattletimer >= 2:
-                configureBattleFormation(formation)
-                autobattletimer = 0
-
-        # We wait for the given duration (minus some time for configuring teams) then clickXY() to prompt the AutoBattle notice and check for victory
-        wait((duration * 60)-30)
-        clickXY(550, 1750)
-
-        # Make sure the AutoBattle notice screen is visible
-        if isVisible('labels/autobattle', retry=2, region=boundaries['autobattleLabel']): # Make sure the popup is visible
-            # If it's 0 assume we haven't passed (not that bold an assumption..)
-            if isVisible('labels/autobattle_0', retry=3, region=boundaries['autobattle0']):
-                if config.getboolean('PUSH', 'suppressspam') is False:
-                    printWarning('No victory found, checking again in ' + str(config.get('PUSH', 'victoryCheck') + ' minutes.'))
-                click('buttons/cancel', retry=3, suppress=True, region=boundaries['cancelAB'])
-            else: # If we don't see 0 we assume victory. We exit the battle, clear victory screen and clear time limited rewards screen
-                printGreen('Victory found! Loading the ' + str(config.get('PUSH', 'formation') + ' formation for the current stage..'))
-                click('buttons/exit', retry=3, suppress=True, region=boundaries['exitAB'])
-                click('buttons/pause', 0.8, retry=3, suppress=True, region=boundaries['pauseBattle'])  # 3 retries as ulting heroes can cover the button
-                click('buttons/exitbattle', retry=2, suppress=True, region=boundaries['exitBattle'])
-                click('labels/taptocontinue', retry=2, confidence=0.8, suppress=True, grayscale=True, region=boundaries['taptocontinue'])
-                wait(3)
-                clickXY(550, 1750) # To clear the Limited Rewards pop up every 20 stages
-        else: # If after clicking we don't get the Auto Battle notice pop up something has gone wrong so we recover() and load pushTower() again
-            printWarning('AutoBattle screen not found, reloading auto-push..')
-            if recover() is True:
-                towerPusher.towerOpen = False
+    def pushTower(tower, formation=3, duration=1, app=None):
+        while app.push_thread_running:
+            # Open tower is needed then set it to enabled
+            if towerPusher.towerOpen is False:
                 openTower(tower)
                 towerPusher.towerOpen = True
 
-def pushCampaign(formation=3, duration=1):
-    if (isVisible('buttons/begin', 0.7, retry=3, click=True)):
-        return
-    
-    if isVisible('buttons/autobattle', 0.95, retry=3, seconds=2, region=boundaries['autobattle']) and not isVisible('labels/autobattle'):
-            configureBattleFormation(formation)
-    else:
-        clickXY(550, 1750) # Click to prompt the AutoBattle popup
-        if isVisible('labels/autobattle'):
-            if isVisible('labels/autobattle_0', region=boundaries['autobattle0']): # If it's 0 continue
-                if config.getboolean('PUSH', 'suppressSpam') is False:
-                    printWarning('No victory found, checking again in ' + str(config.get('PUSH', 'victoryCheck') + ' minutes.'))
-                click('buttons/cancel', retry=3, suppress=True, region=boundaries['cancelAB'])
-                wait((duration * 60) - 30) # Sleep for the wait duration
-            else: # If it's not 0 we have passed a stage
-                printGreen('Victory found! Loading the ' + str(config.get('PUSH', 'formation') + ' formation for the current stage..'))
-                click('buttons/exit', suppress=True, retry=3, region=boundaries['exitAB'])
-                click('buttons/pause', confidence=0.8, retry=3, suppress=True, region=boundaries['pauseBattle'])  # 3 retries as ulting heroes can cover the button
-                click('buttons/exitbattle', suppress=True, retry=3, region=boundaries['exitBattle'])
-                click('labels/taptocontinue', confidence=0.8, suppress=True, grayscale=True, region=boundaries['taptocontinue'])
+            # Two checks, one for the Challenge button in the tower screen and one for the AutoBattle button on the hero selection screen
+            # Both checks we check for two positives in a row so they aren't detected in the background while AutoBattle is running
+            # If found we run configureBattleFormation() to configure the formation and enable auto battle
+            challengetimer = 0
+            autobattletimer = 0
+            # Challenge button
+            while isVisible('buttons/challenge_plain', confidence=0.8, retry=3, seconds=2, region=boundaries['challengeTower']):
+                challengetimer += 1
+                if challengetimer >= 2:
+                    click('buttons/challenge_plain', confidence=0.8, retry=3, seconds=3, region=boundaries['challengeTower'])
+                    configureBattleFormation(formation)
+                    challengetimer = 0
+            # Autobattle button
+            while isVisible('buttons/autobattle', 0.92, retry=3, seconds=2, region=boundaries['autobattle']):  # higher confidence so we don't find it in the background
+                autobattletimer += 1
+                if autobattletimer >= 2:
+                    configureBattleFormation(formation)
+                    autobattletimer = 0
+
+            # We wait for the given duration (minus some time for configuring teams) then clickXY() to prompt the AutoBattle notice and check for victory
+            wait((duration * 60)-30)
+            clickXY(550, 1750)
+
+            if pauseOrStopEventCheck(app.push_pause_event, app.push_stop_event):
+                towerPusher.towerOpen = False
+                break
+
+            # Make sure the AutoBattle notice screen is visible
+            if isVisible('labels/autobattle', retry=2, region=boundaries['autobattleLabel']): # Make sure the popup is visible
+                # If it's 0 assume we haven't passed (not that bold an assumption..)
+                if isVisible('labels/autobattle_0', retry=3, region=boundaries['autobattle0']):
+                    if config.getboolean('PUSH', 'suppressspam') is False:
+                        printWarning('No victory found, checking again in ' + str(config.get('PUSH', 'victoryCheck') + ' minutes.'))
+                    click('buttons/cancel', retry=3, suppress=True, region=boundaries['cancelAB'])
+                else: # If we don't see 0 we assume victory. We exit the battle, clear victory screen and clear time limited rewards screen
+                    printGreen('Victory found! Loading the ' + str(config.get('PUSH', 'formation') + ' formation for the current stage..'))
+                    click('buttons/exit', retry=3, suppress=True, region=boundaries['exitAB'])
+                    click('buttons/pause', 0.8, retry=3, suppress=True, region=boundaries['pauseBattle'])  # 3 retries as ulting heroes can cover the button
+                    click('buttons/exitbattle', retry=2, suppress=True, region=boundaries['exitBattle'])
+                    click('labels/taptocontinue', retry=2, confidence=0.8, suppress=True, grayscale=True, region=boundaries['taptocontinue'])
+                    wait(3)
+                    clickXY(550, 1750) # To clear the Limited Rewards pop up every 20 stages
+            else: # If after clicking we don't get the Auto Battle notice pop up something has gone wrong so we recover() and load pushTower() again
+                printWarning('AutoBattle screen not found, reloading auto-push..')
+                if recover() is True:
+                    towerPusher.towerOpen = False
+                    openTower(tower)
+                    towerPusher.towerOpen = True
+
+def pushCampaign(formation=3, duration=1,app=None):
+    while app.push_thread_running:
+        if (isVisible('buttons/begin', 0.7, retry=3, click=True)):
+            continue
+
+        if isVisible('buttons/autobattle', 0.95, retry=3, seconds=2, region=boundaries['autobattle']) and not isVisible('labels/autobattle'):
+                configureBattleFormation(formation)
         else:
-            recover()
+            clickXY(550, 1750) # Click to prompt the AutoBattle popup
+            if pauseOrStopEventCheck(app.push_pause_event, app.push_stop_event):
+                break
+            if isVisible('labels/autobattle'):
+                if isVisible('labels/autobattle_0', region=boundaries['autobattle0']): # If it's 0 continue
+                    if config.getboolean('PUSH', 'suppressSpam') is False:
+                        printWarning('No victory found, checking again in ' + str(config.get('PUSH', 'victoryCheck') + ' minutes.'))
+                    click('buttons/cancel', retry=3, suppress=True, region=boundaries['cancelAB'])
+                    wait((duration * 60) - 30) # Sleep for the wait duration
+                else: # If it's not 0 we have passed a stage
+                    printGreen('Victory found! Loading the ' + str(config.get('PUSH', 'formation') + ' formation for the current stage..'))
+                    click('buttons/exit', suppress=True, retry=3, region=boundaries['exitAB'])
+                    click('buttons/pause', confidence=0.8, retry=3, suppress=True, region=boundaries['pauseBattle'])  # 3 retries as ulting heroes can cover the button
+                    click('buttons/exitbattle', suppress=True, retry=3, region=boundaries['exitBattle'])
+                    click('labels/taptocontinue', confidence=0.8, suppress=True, grayscale=True, region=boundaries['taptocontinue'])
+            else:
+                recover()
 
 def configureBattleFormation(formation):
     artifacts = None
