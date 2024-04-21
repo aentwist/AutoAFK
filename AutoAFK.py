@@ -55,7 +55,7 @@ class App(customtkinter.CTk):
 
         # configure window
         self.title("AutoAFK " + version)
-        self.geometry(f"{800}x{560}")
+        self.geometry(f"{800}x{540}")
         self.wm_iconbitmap(os.path.join(cwd, 'img', 'auto.ico'))
 
         # Dailies Frame
@@ -126,16 +126,6 @@ class App(customtkinter.CTk):
         if config.getboolean('PUSH', 'useartifacts'):
             self.useArtifactsCheckbox.select()
 
-        # pause/resume buttom
-        self.pauseButton = customtkinter.CTkButton(master=self, text="Pause", fg_color="#FF4500", width=85,
-                                                   command=pause_all_thread, state="disabled")
-        self.pauseButton.place(x=10, y=530)
-
-        # Quit button
-        self.quitButton = customtkinter.CTkButton(master=self, text="Stop", fg_color=["#B60003", "#C03335"],
-                                                  width=85, command=stop_all_threads, state="disabled")
-        self.quitButton.place(x=110, y=530)
-
         # Variables to track the running status of each thread
         self.dailies_thread_running = False
         self.activity_thread_running = False
@@ -175,6 +165,18 @@ class App(customtkinter.CTk):
         self.textbox.insert('end', 'Discord chats:\n', 'purple')
         self.textbox.insert('end', '• afk.hamman.eu/discord in #auto-afk\n', 'purple')
         self.textbox.insert('end', '• dsc.gg/floofpire in #auto-afk\n\n', 'purple')
+
+        # Pause/resume buttom
+        self.pauseButton = customtkinter.CTkButton(master=self, text="⏸️", bg_color="#3B3B3B", fg_color="#1F6AA5", 
+                                                   width=40, command=pause_all_thread, state="disabled", hover=False)
+        self.pauseButton.place(x=690, y=25)
+        self.pauseButton.place_forget()
+
+        # Quit button
+        self.quitButton = customtkinter.CTkButton(master=self, text="⏹️", bg_color="#3B3B3B", fg_color=["#B60003", "#C03335"],
+                                                  width=40, command=stop_all_threads, state="disabled", hover=False)
+        self.quitButton.place(x=735, y=25)
+        self.quitButton.place_forget()
 
         if latest_release.split(' ')[1] != version and latest_release.split(' ')[1] != 'retrieve!':
             if version.replace(".", "") < latest_release.split(' ')[1].replace(".", ""):
@@ -824,8 +826,16 @@ def buttonState(state):
     if state == 'normal':
         app.pauseButton.configure(state='disabled')
         app.quitButton.configure(state='disabled')
+        app.pauseButton.place_forget()
+        app.quitButton.place_forget()
 
 def stopButtonState(state):
+    if state == "normal":
+        app.pauseButton.place(x=690,y=25)
+        app.quitButton.place(x=735,y=25)
+        app.pauseButton.lift()
+        app.quitButton.lift()
+
     app.pauseButton.configure(state=state)
     app.quitButton.configure(state=state)
 # Function to start the dailies thread
@@ -1043,14 +1053,17 @@ def dailies():
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         printGreen('Dailies done!')
-        desktopNotification('Dailies done!')
+        
         if config.getboolean('ADVANCED', 'enable_afkjourney'):
             afkjourney()
+
+        desktopNotification('Dailies done!')
 
         if config.getboolean('DAILIES', 'hibernate'):
             printWarning('Hibernating system in 1 minute...')
             time.sleep(60)
             os.system("shutdown /h")
+            
         break
 
     return

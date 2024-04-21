@@ -818,6 +818,7 @@ def handleTwistedRealm():
             clickXY(70, 1800)
             clickXY(70, 1800)
             printError('    Challenge button not found, attempting to recover')
+            recover()
     else:
         printError('    Error opening Twisted Realm, attempting to recover')
         # TODO Add 'Calculating' confirmation to exit safely
