@@ -944,8 +944,6 @@ def dailiesButton():
 def dailies():
     delayed_start(config.getint('DAILIES', 'delayedstart'))
     connect_device()
-    afkjourney()
-    #return not sure what the new return here was fine, but it's blocking the rest of the code -FOB
 
     # Count as started dailies
     count_api = 'https://api.api-ninjas.com/v1/counter?id=AutoAFK-' + version + '-run&hit=true'
