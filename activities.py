@@ -400,11 +400,12 @@ class towerPusher():
 
             # We wait for the given duration (minus some time for configuring teams) then clickXY() to prompt the AutoBattle notice and check for victory
             wait((duration * 60)-30)
-            clickXY(550, 1750)
 
             if pauseOrStopEventCheck(app.push_pause_event, app.push_stop_event):
                 towerPusher.towerOpen = False
                 break
+
+            clickXY(550, 1750)
 
             # Make sure the AutoBattle notice screen is visible
             if isVisible('labels/autobattle', retry=2, region=boundaries['autobattleLabel']): # Make sure the popup is visible
@@ -436,9 +437,9 @@ def pushCampaign(formation=3, duration=1,app=None):
         if isVisible('buttons/autobattle', 0.95, retry=3, seconds=2, region=boundaries['autobattle']) and not isVisible('labels/autobattle'):
                 configureBattleFormation(formation)
         else:
-            clickXY(550, 1750) # Click to prompt the AutoBattle popup
             if pauseOrStopEventCheck(app.push_pause_event, app.push_stop_event):
                 break
+            clickXY(550, 1750) # Click to prompt the AutoBattle popup
             if isVisible('labels/autobattle'):
                 if isVisible('labels/autobattle_0', region=boundaries['autobattle0']): # If it's 0 continue
                     if config.getboolean('PUSH', 'suppressSpam') is False:
