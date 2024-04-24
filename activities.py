@@ -34,7 +34,7 @@ boundaries = {
     'taptocontinue': (374, 1772, 330, 62),
     'kingstowerLabel': (253, 0, 602, 100),
     'challengeTower': (356, 726, 364, 1024),
-    'heroclassselect': (5, 1620, 110, 120),
+    'heroclassselect': (5, 1620, 130, 120),
 
 
     'collectAfk': (590, 1322, 270, 82),
@@ -77,8 +77,9 @@ def collectAFKRewards():
         clickXY(550, 1800, seconds=1) # 3rd to be safe
         printGreen('    AFK Rewards collected!')
     else:
-        printError('AFK Rewards chests not found!')
+        printError('AFK Rewards chests not found, recovering and will try again')
         recover()
+        collectAFKRewards() # In case there was a popup to trial new hero
 
 def collectMail():
     printBlue('Attempting mail collection')
@@ -178,6 +179,14 @@ def handleBounties():
             click('buttons/collect_all', seconds=2, suppress=True)
             click('buttons/dispatch', confidence=0.8, suppress=True, grayscale=True)
             click('buttons/confirm', suppress=True)
+
+        if config.getboolean('BOUNTIES', 'dispatcheventbounties'):
+            if isVisible('labels/event_bounty', click=True):
+                click('buttons/collect_all', seconds=2, suppress=True)
+                while isVisible('buttons/dispatch_bounties', click=True) == True:
+                    clickXY(530, 1030, seconds=2)
+                    clickXY(120, 1500)
+                    click('buttons/dispatch', confidence=0.8, grayscale=True)
 
         click('buttons/back', region=boundaries['backMenu'])
         printGreen('    Bounties attempted successfully')
@@ -515,7 +524,7 @@ def collectInnGifts():
     printBlue('Attempting daily Inn gift collection')
     confirmLocation('ranhorn', region=boundaries['ranhornSelect'])
     wait()
-    clickXY(800, 410, seconds=4)
+    clickXY(500, 200, seconds=4)
     if isVisible('buttons/manage'):
         while checks < 3:
             if isVisible('buttons/inn_gift', confidence=0.75, click=True, region=boundaries['inngiftarea'], seconds=2):

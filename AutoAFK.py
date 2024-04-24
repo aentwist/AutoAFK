@@ -37,7 +37,7 @@ else:
     settings = os.path.join(cwd, 'settings.ini')
 config.read(settings)
 
-version = "0.17"
+version = "0.18"
 
 repo_releases = requests.get('https://api.github.com/repos/Hammanek/AutoAFK/releases/latest')
 json = repo_releases.json() if repo_releases and repo_releases.status_code == 200 else None
@@ -393,7 +393,7 @@ class activityWindow(customtkinter.CTkToplevel):
         self.heroesOfEsperiaCheckbox.place(x=200, y=130)
 
         # Bounties Frame
-        self.BountiesFrame = customtkinter.CTkFrame(master=self, width=235, height=280)
+        self.BountiesFrame = customtkinter.CTkFrame(master=self, width=235, height=310)
         self.BountiesFrame.place(x=500, y=10)
         self.label = customtkinter.CTkLabel(master=self.BountiesFrame, text="Bounties:", font=("Arial", 15, 'bold'))
         self.label.place(x=10, y=5)
@@ -442,9 +442,15 @@ class activityWindow(customtkinter.CTkToplevel):
         self.remainingEntry.insert('end', config.get('BOUNTIES', 'remaining'))
         self.remainingEntry.place(x=200, y=250)
 
+        # Enable event bounties
+        self.dispatchEventBountiesLabel = customtkinter.CTkLabel(master=self.BountiesFrame, text='Enable event bounties', fg_color=("gray86", "gray17"))
+        self.dispatchEventBountiesLabel.place(x=10, y=280)
+        self.dispatchEventBountiesCheckbox = customtkinter.CTkCheckBox(master=self.BountiesFrame, text=None, onvalue=True, offvalue=False, command=self.activityUpdate)
+        self.dispatchEventBountiesCheckbox.place(x=200, y=280)
+
         # Misc Frame
-        self.MiscFrame = customtkinter.CTkFrame(master=self, width=235, height=210)
-        self.MiscFrame.place(x=500, y=300)
+        self.MiscFrame = customtkinter.CTkFrame(master=self, width=235, height=180)
+        self.MiscFrame.place(x=500, y=330)
         self.label = customtkinter.CTkLabel(master=self.MiscFrame, text="Misc:", font=("Arial", 15, 'bold'))
         self.label.place(x=10, y=5)
 
@@ -475,7 +481,8 @@ class activityWindow(customtkinter.CTkToplevel):
                          'fountainOfTime', 'kingsTower', 'collectInn', 'guildHunt', 'storePurchases', 'twistedRealm',
                          'collectQuests', 'collectMerchants', 'fightOfFates', 'battleOfBlood', 'circusTour', 'dispatchDust',
                          'dispatchDiamonds', 'dispatchShards', 'dispatchJuice', 'runLab', 'battleArena', 'tsCollect',
-                         'useBagConsumables', 'heroesOfEsperia', 'dispatchSoloBounties', 'dispatchTeamBounties', 'hibernate']
+                         'useBagConsumables', 'heroesOfEsperia', 'dispatchSoloBounties', 'dispatchTeamBounties', 'hibernate',
+                         'dispatchEventBounties']
         for activity in activityBoxes:
             if activity[0:8] == 'dispatch':
                 if config.getboolean('BOUNTIES', activity):
@@ -495,7 +502,8 @@ class activityWindow(customtkinter.CTkToplevel):
                          'fountainOfTime', 'kingsTower', 'collectInn', 'guildHunt', 'storePurchases', 'twistedRealm',
                          'collectQuests', 'collectMerchants', 'fightOfFates', 'battleOfBlood', 'circusTour', 'dispatchDust',
                          'dispatchDiamonds', 'dispatchShards', 'dispatchJuice', 'runLab', 'battleArena', 'tsCollect',
-                         'useBagConsumables', 'heroesOfEsperia', 'dispatchSoloBounties', 'dispatchTeamBounties', 'hibernate']
+                         'useBagConsumables', 'heroesOfEsperia', 'dispatchSoloBounties', 'dispatchTeamBounties', 'hibernate',
+                         'dispatchEventBounties']
         for activity in activityBoxes:
             if activity[0:8] == 'dispatch':
                 if self.__getattribute__(activity + 'Checkbox').get() == 1:
@@ -867,7 +875,7 @@ def start_push_thread():
 
 # Function to stop all threads
 def stop_all_threads():
-    printWarning("Stop pressed, stopping after current defined action")
+    printWarning("Stop pressed, stopping after current action")
     app.dailies_thread_running = False
     app.activity_thread_running = False
     app.push_thread_running = False
@@ -878,7 +886,7 @@ def stop_all_threads():
     # Set stop event flags to signal the threads to stop
 
 def pause_all_thread():
-    printWarning("Pause pressed, pausing after current defined action")
+    printWarning("Pause pressed, pausing after current action")
     app.dailies_pause_event.set()
     app.activity_pause_event.set()
     app.push_pause_event.set()
@@ -958,8 +966,10 @@ def dailies():
     # Count as started dailies
     count_api = 'https://api.api-ninjas.com/v1/counter?id=AutoAFK-' + version + '-run&hit=true'
     hit = requests.get(count_api, headers={'X-Api-Key': 'Nc9+gX2u0w/F5smHLYOrdg==3Mh0tPQWWux2OZsA'})
+
     stopButtonState('normal')
-    while app.dailies_thread_running:
+
+    while app.dailies_thread_running or args['dailies']:
         if config.getboolean('DAILIES', 'collectrewards'):
             collectAFKRewards()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
@@ -980,7 +990,7 @@ def dailies():
             attemptCampaign()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
-        if config.getboolean('BOUNTIES', 'dispatchsolobounties') or config.getboolean('BOUNTIES', 'dispatchteambounties'):
+        if config.getboolean('BOUNTIES', 'dispatchsolobounties') or config.getboolean('BOUNTIES', 'dispatchteambounties') or config.getboolean('BOUNTIES', 'dispatcheventbounties'):
             handleBounties()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set

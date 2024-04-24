@@ -54,5 +54,13 @@ The following features will be added soon(tm)
 * Purchase selected Dimensional Gear
 * Documentation on how to full automate launching, loading and running the script for managing accounts via cron
 
+# AFK Journey automation integration
+Download bot here - https://github.com/Fortigate/AutoAFK2
+Use enable_afkjourney and afkjourney_cmd properties in settings.ini, see example use in files here.
+
+# Telegram integration
+Contact BotFather on Telegram, create your bot, get token and chat id.
+Uses chat_id and token properties in settings.ini.
+
 # I'm having an issue
 Note that the bot is currently in Beta and stability is still being worked into the functions. If you having issues please create an issue here or ask on the Discord server.
