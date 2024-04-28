@@ -900,7 +900,7 @@ def resume_all_thread():
     app.pauseButton.configure(text="Pause", command=pause_all_thread, fg_color="#FF4500")
     app.quitButton.configure(state='normal')
 
-def pauseOrStopEventCheck(pauseevent, stopevent, timer=5):
+def pauseOrStopEventCheck(pauseevent, stopevent, timer=30):
     while pauseevent.is_set():
         printWarning(fr'Pause detected! Checking resume in {timer} seconds')
         time.sleep(timer)  # Sleep to reduce CPU usage while paused
