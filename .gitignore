@@ -4,3 +4,4 @@ auto-py-to-exe.json
 auto-py-to-exe.lnk
 run.bat
 auto-py-to-exe_upx.json
+run_gui.bat

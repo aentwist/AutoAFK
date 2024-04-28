@@ -51,7 +51,7 @@ def connect_device():
                 printGreen('Starting emulator...')
                 Popen(config.get('ADVANCED', 'emulatorpath'), shell=False)
                 minimize_window()
-                wait(1)
+                wait(3)
                 minimize_window()
     else: 
         was_running = True

@@ -1528,6 +1528,7 @@ def handleHeroesofEsperia(count=3, opponent=4):
         recover()
         
 def afkjourney():
+    Popen(['adb', 'shell', 'am', 'force-stop', 'com.lilithgame.hgame.gp'])
     afkjourney_cmd = config.get('ADVANCED', 'afkjourney_cmd')
 
     # Split the string by spaces
