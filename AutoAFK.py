@@ -890,14 +890,14 @@ def pause_all_thread():
     app.dailies_pause_event.set()
     app.activity_pause_event.set()
     app.push_pause_event.set()
-    app.pauseButton.configure(text="Resume", command=resume_all_thread, fg_color="green")  # Change button text and command
+    app.pauseButton.configure(text="▶️", command=resume_all_thread, fg_color="green")  # Change button text and command
     app.quitButton.configure(state='disabled')
 
 def resume_all_thread():
     app.dailies_pause_event.clear()  # Clear the pause event flag
     app.activity_pause_event.clear()
     app.push_pause_event.clear()
-    app.pauseButton.configure(text="Pause", command=pause_all_thread, fg_color="#FF4500")
+    app.pauseButton.configure(text="⏸️", command=pause_all_thread, fg_color="#1F6AA5")
     app.quitButton.configure(state='normal')
 
 def pauseOrStopEventCheck(pauseevent, stopevent, timer=30):
