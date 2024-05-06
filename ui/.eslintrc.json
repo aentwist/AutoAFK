@@ -1,7 +1,8 @@
 {
+  "root": true,
   "env": {
     "browser": true,
-    "es6": true,
+    "es2020": true,
     "node": true
   },
   "extends": [
@@ -11,9 +12,12 @@
     "plugin:import/recommended",
     "plugin:import/electron",
     "plugin:import/typescript",
+    "plugin:react-hooks/recommended",
     "prettier"
   ],
+  "ignorePatterns": ["dist", ".eslintrc.cjs"],
   "parser": "@typescript-eslint/parser",
+  "plugins": ["react-refresh"],
 
   "rules": {
     "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
@@ -28,6 +32,10 @@
           "orderImportKind": "asc"
         }
       }
+    ],
+    "react-refresh/only-export-components": [
+      "warn",
+      { "allowConstantExport": true }
     ],
     "sort-imports": [
       "error",
