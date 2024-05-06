@@ -4,6 +4,7 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 lerna-debug.log*
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
@@ -60,9 +61,14 @@ typings/
 # dotenv environment variables file
 .env
 .env.test
+*.local
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
+
+# Build outputs
+dist
+dist-ssr
 
 # next.js build output
 .next
@@ -90,3 +96,14 @@ typings/
 
 # Electron-Forge
 out/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
