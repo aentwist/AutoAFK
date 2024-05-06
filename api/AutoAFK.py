@@ -51,12 +51,12 @@ else:
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
-        hide_console()
+        # hide_console()
 
         # configure window
         self.title("AutoAFK " + version)
         self.geometry(f"{800}x{540}")
-        self.wm_iconbitmap(os.path.join(cwd, 'img', 'auto.ico'))
+        # self.wm_iconbitmap(os.path.join(cwd, 'img', 'auto.ico'))
 
         # Dailies Frame
         self.dailiesFrame = customtkinter.CTkFrame(master=self, height=170, width=180)

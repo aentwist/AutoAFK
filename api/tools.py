@@ -13,8 +13,8 @@ from shutil import which
 from platform import system
 import scrcpy
 import psutil
-import win32gui
-import win32con
+# import win32gui
+# import win32con
 from plyer import notification
 import ctypes
 
@@ -88,8 +88,8 @@ def connect_device():
         else:
             if device is not None:
                 connected = True
-                if not was_running:
-                    minimize_window()
+                # if not was_running:
+                #     minimize_window()
             break
 
     # Break after 3 retries
@@ -132,7 +132,7 @@ def configureADB():
     config.read(settings)
 
     adbpath = os.path.join(cwd, 'adb.exe') # Locate adb.exe in working directory
-    if system() != 'Windows' or not os.path.exists(adbpath):
+    if not os.path.exists(adbpath) and system() != 'Windows':
         adbpath = which('adb') # If we're not on Windows or can't find adb.exe in the working directory we try and find it in the PATH
 
     # Restarting the ADB server solves 90% of issues with it
@@ -610,21 +610,21 @@ def is_process_running(process_name):
     return False
 
 # Minimize window
-def minimize_window():
-    count = 0
-    while count < 25:
-        hwnd = win32gui.GetForegroundWindow()
-        title = win32gui.GetWindowText(hwnd)
-        if "MuMu" in title or "Bluestacks" in title:
-            win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
-            break
-        count += 1
-        time.sleep(0.2)  # Sleep for 200 milliseconds
+# def minimize_window():
+#     count = 0
+#     while count < 25:
+#         hwnd = win32gui.GetForegroundWindow()
+#         title = win32gui.GetWindowText(hwnd)
+#         if "MuMu" in title or "Bluestacks" in title:
+#             win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
+#             break
+#         count += 1
+#         time.sleep(0.2)  # Sleep for 200 milliseconds
 
-def hide_console():
-    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-    user32 = ctypes.WinDLL('user32', use_last_error=True)
-    SW_HIDE = 0
-    hWnd = kernel32.GetConsoleWindow()
-    if hWnd:
-        user32.ShowWindow(hWnd, SW_HIDE)
+# def hide_console():
+#     kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+#     user32 = ctypes.WinDLL('user32', use_last_error=True)
+#     SW_HIDE = 0
+#     hWnd = kernel32.GetConsoleWindow()
+#     if hWnd:
+#         user32.ShowWindow(hWnd, SW_HIDE)
