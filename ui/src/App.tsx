@@ -28,10 +28,9 @@ export default function App() {
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
       </div>
-      <div>
+      <div className="flex flex-col items-center">
         test MUI component
         <Button variant="contained">hello</Button>
-        <br />
         test MDI icon
         <Icon path={mdiAccount} vertical />
       </div>
