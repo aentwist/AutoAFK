@@ -1,6 +1,9 @@
+import { mdiAccount } from "@mdi/js";
+import Icon from "@mdi/react";
+import { Button } from "@mui/material";
 import { useState } from "react";
 import reactLogo from "./assets/react.svg";
-// import viteLogo from '/vite.svg'
+// import viteLogo from '/vite.svg';
 import "./App.css";
 
 export default function App() {
@@ -24,6 +27,13 @@ export default function App() {
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
+      </div>
+      <div>
+        test MUI component
+        <Button variant="contained">hello</Button>
+        <br />
+        test MDI icon
+        <Icon path={mdiAccount} vertical />
       </div>
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
