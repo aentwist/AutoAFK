@@ -314,6 +314,7 @@ def useBagConsumables():
         printGreen('    Bag consumables used!')
     else:
         printError('    Bag not found, attempting to recover')
+        save_scrcpy_screenshot('issue_bag')
         recover()
 
 # TODO Get image for the fire debuff banner
@@ -823,6 +824,7 @@ def handleTwistedRealm():
             clickXY(70, 1800)
             clickXY(70, 1800)
             printGreen('    Twisted Realm attempted successfully')
+            recover(True)
             wait(2)  # wait before next task as loading ranhorn can be slow
         else:
             clickXY(70, 1800)
@@ -1259,6 +1261,7 @@ def handleLab():
             printGreen("    Manual Lab run complete!")
     else:
         printError("Can't find Lab screen! Exiting..")
+        recover()
 
 # Clears selected team and replaces it with top5 heroes, and 6th-10th for team2, selects pets from the first and second slots
 def configureLabTeams(team, pet=True):

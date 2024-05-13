@@ -573,10 +573,10 @@ def recover(silent=False):
         return True
     else:
         if not silent: printError('Recovery failed, exiting')
-        if config.getboolean('ADVANCED', 'debug'):
-            if not os.path.exists('debug'):
-                os.makedirs('debug')
-                save_scrcpy_screenshot('debug/recovery_failed_' + str(time.time()))
+        #if config.getboolean('ADVANCED', 'debug'):
+        if not os.path.exists('debug'):
+            os.makedirs('debug')
+            save_scrcpy_screenshot('debug/recovery_failed_' + str(time.time()))
         exit(0)
 
 # Delay start so it starts after reset
