@@ -557,10 +557,11 @@ def recover(silent=False):
     recoverCounter = 0
     while not isVisible('buttons/campaign_selected'):
         # printPurple('recovery: ' + str(recoverCounter))
-        clickXY(420, 50) # Neutral location for closing reward pop ups etc, should never be an in game button here
+        clickXY(300, 50) # Neutral location for closing reward pop ups etc, should never be an in game button here
         click('buttons/back', suppress=True, seconds=0.5, region=(0, 1500, 250, 419))
+        click('buttons/back_narrow', suppress=True, seconds=0.5, region=(0, 1500, 250, 419))
         click('buttons/exitmenu', suppress=True, seconds=0.5, region=(700, 0, 379, 500))
-        click('buttons/confirm_small', suppress=True, seconds=0.5) # region=(200, 750, 600, 649))
+        click('buttons/confirm_small', suppress=True, seconds=0.5)  #region=(200, 750, 600, 649))
         click('buttons/confirm_stageexit', suppress=True, seconds=0.5, region=(200, 750, 600, 649))
         click('buttons/exit', suppress=True, seconds=0.5, region=(578, 1250, 290, 88))
         click('buttons/campaign_unselected', suppress=True, seconds=0.5, region=(424, 1750, 232, 170))

@@ -814,8 +814,8 @@ def handleTwistedRealm():
         printGreen('    Twisted Realm found, battling')
         if isVisible('buttons/challenge_tr', retry=3, confidence=0.8):
             clickXY(550, 1850, seconds=2)
-            click('buttons/autobattle', retry=3)
-            if not (isVisible('labels/skipbattle_Active')):
+            click('buttons/autobattle', retry=3, seconds=2)
+            if isVisible('buttons/checkbox_blank'):
                 clickXY(300, 975)  # Activate Skip Battle Animations
             clickXY(700, 1300, seconds=6)
             clickXY(550, 1300)
@@ -824,8 +824,8 @@ def handleTwistedRealm():
             clickXY(70, 1800)
             clickXY(70, 1800)
             printGreen('    Twisted Realm attempted successfully')
+            wait(3)  # wait before next task as loading ranhorn can be slow
             recover(True)
-            wait(2)  # wait before next task as loading ranhorn can be slow
         else:
             clickXY(70, 1800)
             clickXY(70, 1800)
