@@ -1,5 +1,7 @@
-import { BrowserWindow, app } from "electron";
+import { BrowserWindow, app, ipcMain, shell } from "electron";
+import fs from "fs/promises";
 import path from "path";
+import type { RootState } from "./stores";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) {
@@ -27,12 +29,20 @@ const createWindow = () => {
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
 };
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on("ready", createWindow);
+app.on("ready", () => {
+  registerHandlers();
+  createWindow();
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
@@ -53,3 +63,23 @@ app.on("activate", () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+const statePath = path.join(app.getPath("userData"), "state.json");
+
+// Function signatures here should match those in preload.ts
+function registerHandlers(): void {
+  ipcMain.handle("save-state", async (_, state: RootState): Promise<void> => {
+    await fs.writeFile(statePath, JSON.stringify(state));
+  });
+
+  ipcMain.handle("load-state", async (): Promise<undefined | RootState> => {
+    let data: string;
+    try {
+      data = await fs.readFile(statePath, "utf8");
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+      throw err;
+    }
+    return JSON.parse(data);
+  });
+}

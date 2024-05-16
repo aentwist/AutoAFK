@@ -2,7 +2,7 @@
   "root": true,
   "env": {
     "browser": true,
-    "es2020": true,
+    "es2021": true,
     "node": true
   },
   "extends": [
@@ -20,6 +20,18 @@
   "plugins": ["react-refresh"],
 
   "rules": {
+    "@typescript-eslint/no-restricted-imports": [
+      2,
+      {
+        "paths": [
+          {
+            "name": "react-redux",
+            "importNames": ["useSelector", "useStore", "useDispatch"],
+            "message": "Please use pre-typed versions from `src/app/hooks.ts` instead."
+          }
+        ]
+      }
+    ],
     "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
     "import/newline-after-import": "error",
     "import/no-duplicates": "error",
@@ -44,5 +56,9 @@
         "allowSeparatedGroups": true
       }
     ]
-  }
+  },
+  "overrides": [
+    // { "files": ["*.{c,m,}{t,j}s", "*.{t,j}sx"] },
+    { "files": ["*{test,spec}.{t,j}s?(x)"], "env": { "jest": true } }
+  ]
 }
