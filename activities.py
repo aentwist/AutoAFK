@@ -314,7 +314,6 @@ def useBagConsumables():
         printGreen('    Bag consumables used!')
     else:
         printError('    Bag not found, attempting to recover')
-        save_scrcpy_screenshot('issue_bag')
         recover()
 
 # TODO Get image for the fire debuff banner
@@ -798,6 +797,7 @@ def clearMerchant():
             clickXY(70, 1810)
             clickXY(70, 1810)
         printGreen('    Merchant deals collected')
+        recover(True)
     else:
         printError('    Noble screen not found, attempting to recover')
         recover()
