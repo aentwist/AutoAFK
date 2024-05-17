@@ -1,0 +1,6 @@
+{
+  "[python]": {
+    "editor.defaultFormatter": "omnilib.ufmt",
+    "editor.formatOnSave": true
+  }
+}
