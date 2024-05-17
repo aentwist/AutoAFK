@@ -8,7 +8,7 @@ from typing import Any, Callable, Optional, Tuple, Union
 
 import cv2
 import numpy as np
-from adbutils import AdbConnection, AdbDevice, AdbError, Network, adb
+from adbutils import adb, AdbConnection, AdbDevice, AdbError, Network
 from av.codec import CodecContext
 from av.error import InvalidDataError
 

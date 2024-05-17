@@ -1,9 +1,11 @@
-import requests
-from textwrap import dedent
 import configparser
+from textwrap import dedent
+
+import requests
 
 config = configparser.ConfigParser()
-config.read('settings.ini')
+config.read("settings.ini")
+
 
 class Telegram(object):
 
@@ -23,15 +25,19 @@ class Telegram(object):
             },
         )
 
-if config.has_section('TELEGRAM') and config.getboolean('TELEGRAM', 'enable'):
+
+if config.has_section("TELEGRAM") and config.getboolean("TELEGRAM", "enable"):
 
     # Initialize the Telegram object
-    telegram = Telegram(chat_id=config.getint("TELEGRAM","chat_id"), token=config.get("TELEGRAM","token"))
+    telegram = Telegram(
+        chat_id=config.getint("TELEGRAM", "chat_id"),
+        token=config.get("TELEGRAM", "token"),
+    )
 
     # Custom print function that duplicates output to console and Telegram
     def print_and_send_to_telegram(*args, **kwargs):
         # Convert all arguments to strings and join them
-        message = ' '.join(map(str, args))
+        message = " ".join(map(str, args))
 
         # Print to console
         built_in_print(*args, **kwargs)
@@ -39,8 +45,8 @@ if config.has_section('TELEGRAM') and config.getboolean('TELEGRAM', 'enable'):
         # Check if message is empty
         if message.strip():
             # List of prefixes to check
-            prefixes = ['ERR', 'WAR', 'GRE', 'BLU', 'PUR']
-            
+            prefixes = ["ERR", "WAR", "GRE", "BLU", "PUR"]
+
             # Check if the message starts with any of the prefixes
             if any(message.startswith(prefix) for prefix in prefixes):
                 # Start from the fourth character
