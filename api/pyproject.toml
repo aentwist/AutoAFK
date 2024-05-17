@@ -1,0 +1,5 @@
+[tool.pip-tools]
+src_files = ["requirements.in", "dev-requirements.in"]
+# See https://github.com/jazzband/pip-tools/issues/2093
+# output_file = "requirements-lock.txt"
+output_file = "requirements.txt"
