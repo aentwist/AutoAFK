@@ -4,7 +4,7 @@ import random
 import os
 import numpy as np
 from ppadb.client import Client
-from AutoAFK import printGreen, printError, printWarning, printBlue, printPurple, settings, args
+from main import printGreen, printError, printWarning, printBlue, printPurple, settings, args
 from pyscreeze import locate
 from subprocess import Popen, PIPE
 import time, datetime, os, configparser, sys

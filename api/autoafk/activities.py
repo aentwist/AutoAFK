@@ -1,6 +1,6 @@
 from math import ceil
 from tools import *
-from AutoAFK import printGreen, printError, printWarning, printBlue, printPurple, printInfo, settings, pauseOrStopEventCheck
+from main import printGreen, printError, printWarning, printBlue, printPurple, printInfo, settings, pauseOrStopEventCheck
 import datetime
 import shlex
 import time
