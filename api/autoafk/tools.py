@@ -11,15 +11,8 @@ from subprocess import PIPE, Popen
 import numpy as np
 import psutil
 import scrcpy
-from main import (
-    args,
-    printBlue,
-    printError,
-    printGreen,
-    printPurple,
-    printWarning,
-    settings,
-)
+from logger import logger
+from main import args, settings
 from PIL import Image
 
 # import win32gui
@@ -27,6 +20,7 @@ from PIL import Image
 from plyer import notification
 from ppadb.client import Client
 from pyscreeze import locate
+
 
 # Configs/settings
 config = configparser.ConfigParser()
@@ -61,7 +55,7 @@ def connect_device():
             # Check if the file exists
             if os.path.exists(config.get("ADVANCED", "emulatorpath")):
                 # Run the executable file
-                printGreen("Starting emulator...")
+                logger.info("Starting emulator...")
                 Popen(config.get("ADVANCED", "emulatorpath"), shell=False)
                 minimize_window()
                 wait(3)
@@ -69,7 +63,7 @@ def connect_device():
     else:
         was_running = True
 
-    printGreen("Attempting to connect..")
+    logger.info("Attempting to connect..")
 
     if (
         connected is True
@@ -86,40 +80,40 @@ def connect_device():
             device.shell("echo Hello World!")  # Arbitrary test command
         except Exception as e:
             if str(e) == "ERROR: 'FAIL' 000edevice offline":
-                printError(
+                logger.error(
                     "PPADB Error: "
                     + str(e)
                     + ", retrying "
                     + str(connect_counter)
                     + "/3"
                 )
-                printBlue(
+                logger.info(
                     "Device present, but connection failed, this is usually a temporary error"
                 )
             elif str(e) == "'NoneType' object has no attribute 'shell'":
-                printError(
+                logger.error(
                     "PPADB Error: "
                     + str(e)
                     + ", retrying "
                     + str(connect_counter)
                     + "/3"
                 )
-                printBlue(
+                logger.info(
                     "This usually means the port is wrong as there is no device present"
                 )
             elif str(e) == "ERROR: 'FAIL' 0006closed":
-                printError(
+                logger.error(
                     "PPADB Error: "
                     + str(e)
                     + ", retrying "
                     + str(connect_counter)
                     + "/3"
                 )
-                printBlue(
+                logger.info(
                     "The selected port is not responding, is ADB enabled? Retrying.."
                 )
             else:
-                printError(
+                logger.error(
                     "PPADB Error: "
                     + str(e)
                     + ", retrying "
@@ -139,19 +133,19 @@ def connect_device():
 
     # Break after 3 retries
     if connect_counter >= 3:
-        printError(
+        logger.error(
             "No ADB device found, often due to ADB errors. Please try manually connecting your client. \nDebug lines:"
         )
-        print("Available devices:")
+        logger.info("Available devices:")
         if device != "":
             for device in adb.devices():
-                print("    " + device.serial)
-            print("Defined device")
-            print("    " + device.serial)
+                logger.info("    " + device.serial)
+            logger.info("Defined device")
+            logger.info("    " + device.serial)
         sys.exit(1)
 
     if connected is True:
-        printGreen("Device: " + str(device.serial) + " successfully connected!")
+        logger.info("Device: " + str(device.serial) + " successfully connected!")
 
         scrcpyClient = scrcpy.Client(device=device.serial)
         scrcpyClient.max_fps = max_fps
@@ -160,10 +154,10 @@ def connect_device():
         setattr(device, "srccpy", scrcpyClient)
 
         if config.getboolean("ADVANCED", "debug") is True:
-            print("\nDevice: " + device.serial)
-            print("scrcpy device: " + str(scrcpyClient))
-            print("Resolution: " + device.shell("wm size"))
-            print("DPI: " + device.shell("wm density"))
+            logger.debug("\nDevice: " + device.serial)
+            logger.debug("scrcpy device: " + str(scrcpyClient))
+            logger.debug("Resolution: " + device.shell("wm size"))
+            logger.debug("DPI: " + device.shell("wm density"))
             # save_scrcpy_screenshot('debug')
 
         resolutionCheck(
@@ -192,7 +186,7 @@ def configureADB():
         Popen([adbpath, "kill-server"], stdout=PIPE).communicate()[0]
         Popen([adbpath, "start-server"], stdout=PIPE).communicate()[0]
     else:
-        printWarning("ADB Restart disabled")
+        logger.warning("ADB Restart disabled")
 
     # First we check settings for a valid port and try that
     if config.getint("ADVANCED", "port") != 0:
@@ -200,16 +194,16 @@ def configureADB():
         if port == "":
             port == 0  # So we don't throw a NaN error if the field's blank
         if ":" in str(port):
-            printError(
+            logger.error(
                 "Port entered includes the : symbol, it should only be the last 4 or 5 digits not the full IP:Port address. Exiting.."
             )
             sys.exit(1)
         if int(port) == 5037:
-            printError(
+            logger.error(
                 "Port 5037 has been entered, this is the port of the ADB connection service not the emulator, check BlueStacks Settings - Preferences to get the ADB port number"
             )
             sys.exit(1)
-        printWarning(
+        logger.warning(
             "Port "
             + str(config.get("ADVANCED", "port"))
             + " found in settings.ini, using that"
@@ -236,7 +230,7 @@ def configureADB():
         return adb_device
 
     # If none of the above work we exit
-    printError("No device found! Exiting..")
+    logger.error("No device found! Exiting..")
     sys.exit(1)
 
 
@@ -248,7 +242,7 @@ def portScan():
             "adb"
         )  # If we're not on Windows or can't find adb.exe in the working directory we try and find it in the PATH
 
-    printWarning(
+    logger.warning(
         "No ADB devices found connected already, and no configured port in settings. Manually scanning for the port.."
     )
 
@@ -261,7 +255,7 @@ def portScan():
         stdout=PIPE,
     ).communicate()[0]
     if len(ports.decode().splitlines()) > 0:
-        printWarning(
+        logger.warning(
             str(len(ports.decode().splitlines())) + " ports found, trying them.."
         )
 
@@ -273,12 +267,12 @@ def portScan():
                     [adbpath, "connect", "127.0.0.1:" + str(port)], stdout=PIPE
                 ).communicate()[0]
                 if connectmessage.decode().split(" ")[0] == "failed":
-                    printError(connectmessage.decode().rstrip())
+                    logger.error(connectmessage.decode().rstrip())
                 elif connectmessage.decode().split(" ")[0] == "connected":
-                    printGreen(connectmessage.decode().rstrip())
+                    logger.info(connectmessage.decode().rstrip())
                     return port
     else:
-        printError("No ports found!")
+        logger.error("No ports found!")
 
 
 # Expands the left and right button menus
@@ -290,19 +284,19 @@ def expandMenus():
 # Checks if AFK Arena process is running, if not we launch it
 def afkRunningCheck():
     if args["test"]:
-        # printError('AFK Arena Test Server is not running, launching..')
+        # logger.error('AFK Arena Test Server is not running, launching..')
         device.shell("monkey -p  com.lilithgames.hgame.gp.id 1")
     elif not args["test"]:
-        # printError('AFK Arena is not running, launching..')
+        # logger.error('AFK Arena is not running, launching..')
         device.shell("monkey -p com.lilithgame.hgame.gp 1")
     if config.getboolean("ADVANCED", "debug") is True:
-        print("Game check passed\n")
+        logger.debug("Game check passed\n")
 
 
 # Confirms that the game has loaded by checking for the campaign_selected button. We press a few buttons to navigate back if needed
 # May also require a ClickXY over Campaign to clear Time Limited Deals that appear
 def waitUntilGameActive():
-    printWarning("Searching for Campaign screen..")
+    logger.warning("Searching for Campaign screen..")
     loadingcounter = 0
     timeoutcounter = 0
     if args["dailies"]:
@@ -325,9 +319,9 @@ def waitUntilGameActive():
         if isVisible("buttons/campaign_selected"):
             loadingcounter += 1
         if timeoutcounter > 60:  # Long so patching etc doesn't lead to timeout
-            printError("Timed out while loading!")
+            logger.error("Timed out while loading!")
             sys.exit(1)
-    printGreen("Game Loaded!")
+    logger.info("Game Loaded!")
 
 
 # Checks we are running 1920x1080 (or 1080x1920 if we're in landscape mode) and 240 DPI.
@@ -343,12 +337,12 @@ def resolutionCheck(device):
             not str(override_resolution[2]).strip() == "1920x1080"
             and not str(override_resolution[2]).strip() == "1080x1920"
         ):
-            printWarning(
+            logger.warning(
                 "Unsupported Override Resolution! ("
                 + str(override_resolution[2]).strip()
                 + "). Please change your resolution to 1920x1080"
             )
-            printWarning(
+            logger.warning(
                 "We will try and scale the image but non-16:9 formats will likely have issues with image detection"
             )
     else:
@@ -356,25 +350,25 @@ def resolutionCheck(device):
             not str(physical_resolution[2]).strip() == "1920x1080"
             and not str(physical_resolution[2]).strip() == "1080x1920"
         ):
-            printWarning(
+            logger.warning(
                 "Unsupported Physical Resolution! ("
                 + str(physical_resolution[2]).strip()
                 + "). Please change your resolution to 1920x1080"
             )
-            printWarning(
+            logger.warning(
                 "We will try and scale the image but non-16:9 formats will likely have issues with image detection"
             )
 
     if str(dpi[2]).strip() != "240":
-        printError(
+        logger.error(
             "Unsupported DPI! ("
             + str(dpi[2]).strip()
             + "). Please change your DPI to 240"
         )
-        printWarning("Continuining but this may cause errors with image detection")
+        logger.warning("Continuining but this may cause errors with image detection")
 
     if config.getboolean("ADVANCED", "debug") is True:
-        print("Resolution check passed")
+        logger.debug("Resolution check passed")
 
 
 # Returns the last frame from scrcpy, if the resolution isn't 1080 we scale it but this will only work in 16:9 resolutions
@@ -466,7 +460,9 @@ def isVisible(
         return True
     else:
         if suppress is not True and config.getboolean("ADVANCED", "debug"):
-            printWarning("Image:" + image + " not found on screen, saving screenshot.")
+            logger.warning(
+                "Image:" + image + " not found on screen, saving screenshot."
+            )
             if not os.path.exists("debug"):
                 os.makedirs("debug")
             save_scrcpy_screenshot(
@@ -536,7 +532,7 @@ def click(
                 wait(seconds)
                 return
             if suppress is not True:
-                printWarning(
+                logger.warning(
                     "Retrying "
                     + image
                     + " search: "
@@ -554,7 +550,9 @@ def click(
         wait(seconds)
     else:
         if suppress is not True and config.getboolean("ADVANCED", "debug"):
-            printWarning("Image:" + image + " not found on screen, saving screenshot.")
+            logger.warning(
+                "Image:" + image + " not found on screen, saving screenshot."
+            )
             if not os.path.exists("debug"):
                 os.makedirs("debug")
             save_scrcpy_screenshot(
@@ -634,7 +632,7 @@ def clickSecure(
                     )
                     secureCounter += 1
             if suppress is not True:
-                printWarning(
+                logger.warning(
                     "Retrying "
                     + image
                     + " search: "
@@ -663,7 +661,7 @@ def clickSecure(
             )
             secureCounter += 1
     else:
-        printError("printsecure failed")
+        logger.error("printsecure failed")
         wait()
 
 
@@ -687,7 +685,7 @@ def clickWhileVisible(
         break
 
     if counter > retry:
-        printError("clickWhileVisible failed")
+        logger.error("clickWhileVisible failed")
 
 
 # Checks the 5 locations we find arena battle buttons in and selects the based on choice parameter
@@ -734,7 +732,7 @@ def selectOpponent(choice, seconds=1, hoe=False):
     battleButtons.sort()  # sort results from top to bottom
 
     if len(battleButtons) == 0:
-        printError("No opponents found!")
+        logger.error("No opponents found!")
         return
 
     if choice > len(
@@ -839,7 +837,7 @@ def confirmLocation(location, change=True, bool=False, region=(0, 0, 1080, 1920)
 def recover(silent=False):
     recoverCounter = 0
     while not isVisible("buttons/campaign_selected"):
-        # printPurple('recovery: ' + str(recoverCounter))
+        # logger.info('recovery: ' + str(recoverCounter))
         clickXY(
             300, 50
         )  # Neutral location for closing reward pop ups etc, should never be an in game button here
@@ -875,11 +873,11 @@ def recover(silent=False):
             550, 1900
         )  # Click in case we found Campaign in the background (basically if a campaign attempt fails)
         if not silent:
-            printGreen("Recovered succesfully")
+            logger.info("Recovered succesfully")
         return True
     else:
         if not silent:
-            printError("Recovery failed, exiting")
+            logger.error("Recovery failed, exiting")
         # if config.getboolean('ADVANCED', 'debug'):
         if not os.path.exists("debug"):
             os.makedirs("debug")
@@ -902,7 +900,7 @@ def delayed_start(delay_minutes=0):
     while current_time < target_time:
         # Print message indicating remaining time
         remaining_time = target_time - current_time
-        printWarning(f"Script will start in {remaining_time.seconds // 60} minutes")
+        logger.warning(f"Script will start in {remaining_time.seconds // 60} minutes")
 
         # Sleep for a short duration (avoid tight loop)
         time.sleep(60)

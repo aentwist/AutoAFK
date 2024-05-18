@@ -34,13 +34,14 @@ if config.has_section("TELEGRAM") and config.getboolean("TELEGRAM", "enable"):
         token=config.get("TELEGRAM", "token"),
     )
 
+    # TODO: Remove
     # Custom print function that duplicates output to console and Telegram
-    def print_and_send_to_telegram(*args, **kwargs):
+    def log(*args, **kwargs):
         # Convert all arguments to strings and join them
         message = " ".join(map(str, args))
 
         # Print to console
-        built_in_print(*args, **kwargs)
+        log(*args, **kwargs)
 
         # Check if message is empty
         if message.strip():

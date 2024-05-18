@@ -12,7 +12,9 @@ from datetime import datetime, timezone
 
 import customtkinter
 import requests
+from logger import logger, setup_logging
 from plyer import notification
+
 
 currenttime = datetime.now()
 currenttimeutc = datetime.now(timezone.utc)
@@ -1614,7 +1616,7 @@ def headlessArgs():
         }
         for day, tower in towerdays.items():
             if currenttimeutc.isoweekday() == day:
-                printBlue(
+                logger.info(
                     "Auto-Pushing "
                     + str(tower)
                     + " using using the "
@@ -1624,7 +1626,7 @@ def headlessArgs():
                 while 1:
                     towerPusher.pushTower(tower, formation, duration)
     if args["tower"]:
-        print("ok")
+        logger.info("ok")
 
 
 def updateSettings():
@@ -1687,7 +1689,7 @@ def start_push_thread():
 
 # Function to stop all threads
 def stop_all_threads():
-    printWarning("Stop pressed, stopping after current action")
+    logger.warning("Stop pressed, stopping after current action")
     app.dailies_thread_running = False
     app.activity_thread_running = False
     app.push_thread_running = False
@@ -1699,7 +1701,7 @@ def stop_all_threads():
 
 
 def pause_all_thread():
-    printWarning("Pause pressed, pausing after current action")
+    logger.warning("Pause pressed, pausing after current action")
     app.dailies_pause_event.set()
     app.activity_pause_event.set()
     app.push_pause_event.set()
@@ -1719,7 +1721,7 @@ def resume_all_thread():
 
 def pauseOrStopEventCheck(pauseevent, stopevent, timer=30):
     while pauseevent.is_set():
-        printWarning(rf"Pause detected! Checking resume in {timer} seconds")
+        logger.warning(rf"Pause detected! Checking resume in {timer} seconds")
         time.sleep(timer)  # Sleep to reduce CPU usage while paused
     if stopevent.is_set():
         return True
@@ -1735,14 +1737,14 @@ def activityManager():
         connect_device()
         handleFightOfFates(config.getint("ACTIVITY", "activitybattles"))
         buttonState("normal")
-        print("")
+        logger.info("")
 
     if app.activityFormationDropdown.get() == "Battle of Blood":
         buttonState("disabled")
         connect_device()
         handleBattleofBlood(config.getint("ACTIVITY", "activitybattles"))
         buttonState("normal")
-        print("")
+        logger.info("")
 
     if app.activityFormationDropdown.get() == "Arena of Heroes":
         buttonState("disabled")
@@ -1754,14 +1756,14 @@ def activityManager():
             app,
         )
         buttonState("normal")
-        print("")
+        logger.info("")
 
     if app.activityFormationDropdown.get() == "Arcane Labyrinth":
         buttonState("disabled")
         connect_device()
         handleLab()
         buttonState("normal")
-        print("")
+        logger.info("")
 
     if app.activityFormationDropdown.get() == "Heroes of Esperia":
         buttonState("disabled")
@@ -1771,7 +1773,7 @@ def activityManager():
             config.getint("ARENA", "arenaopponent"),
         )
         buttonState("normal")
-        print("")
+        logger.info("")
 
     desktopNotification("Activity done.")
     return
@@ -1781,7 +1783,7 @@ def dailiesButton():
 
     buttonState("disabled")
     dailies()
-    print("")
+    logger.info("")
     buttonState("normal")
     return
 
@@ -1901,7 +1903,7 @@ def dailies():
             useBagConsumables()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
-        printGreen("Dailies done!")
+        logger.info("Dailies done!")
 
         if config.getboolean("ADVANCED", "enable_afkjourney"):
             afkjourney()
@@ -1909,7 +1911,7 @@ def dailies():
         desktopNotification("Dailies done!")
 
         if config.getboolean("DAILIES", "hibernate"):
-            printWarning("Hibernating system in 1 minute...")
+            logger.warning("Hibernating system in 1 minute...")
             time.sleep(60)
             os.system("shutdown /h")
 
@@ -1926,7 +1928,7 @@ def push():
     )  # to str first so we can take first character, then int
     stopButtonState("normal")
     if app.pushLocationDropdown.get() == "Campaign":
-        printBlue(
+        logger.info(
             "Auto-Pushing Campaign using the "
             + str(app.pushFormationDropdown.get())
             + " formation"
@@ -1941,7 +1943,7 @@ def push():
             app=app,
         )
     else:
-        printBlue(
+        logger.info(
             "Auto-Pushing "
             + str(app.pushLocationDropdown.get())
             + " using using the "
@@ -1957,7 +1959,7 @@ def push():
             duration=int(config.get("PUSH", "victoryCheck")),
             app=app,
         )
-    printGreen("Auto Push stopped!")
+    logger.info("Auto Push stopped!")
     buttonState("normal")
 
 
@@ -2007,6 +2009,7 @@ class STDOutRedirector(IORedirector):
 
 
 if __name__ == "__main__":
+    setup_logging()
     app = App()
     setUlockedTowers()
     headlessArgs()  # Will launch dailies script before we load the UI if its flagged
@@ -2020,49 +2023,3 @@ def writeToLog(text):
                 "[" + datetime.now().strftime("%d/%m/%y %H:%M:%S") + "] " + text + "\n"
             )
             log.write(line)
-
-
-# Coloured text for the console
-def printError(text):
-    if args["dailies"]:
-        print(text)
-    else:
-        print("ERR" + text)
-    writeToLog(text)
-
-
-def printGreen(text):
-    if args["dailies"]:
-        print(text)
-    else:
-        print("GRE" + text)
-    writeToLog(text)
-
-
-def printWarning(text):
-    if args["dailies"]:
-        print(text)
-    else:
-        print("WAR" + text)
-    writeToLog(text)
-
-
-def printBlue(text):
-    if args["dailies"]:
-        print(text)
-    else:
-        print("BLU" + text)
-    writeToLog(text)
-
-
-def printPurple(text):
-    if args["dailies"]:
-        print(text)
-    else:
-        print("PUR" + text)
-    writeToLog(text)
-
-
-def printInfo(text):
-    print(text, end="")
-    writeToLog(text)
