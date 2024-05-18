@@ -4,16 +4,9 @@ import datetime
 import shlex
 import time
 
-from main import (
-    pauseOrStopEventCheck,
-    printBlue,
-    printError,
-    printGreen,
-    printInfo,
-    printPurple,
-    printWarning,
-    settings,
-)
+from logger import logger
+from main import pauseOrStopEventCheck, settings
+
 
 d = datetime.datetime.now()
 
@@ -66,7 +59,7 @@ boundaries = {
 
 
 def collectAFKRewards():
-    printBlue("Attempting AFK Reward collection")
+    logger.info("Attempting AFK Reward collection")
     confirmLocation("campaign", region=boundaries["campaignSelect"])
     if isVisible("buttons/campaign_selected", region=boundaries["campaignSelect"]):
         clickXY(550, 1550)
@@ -74,15 +67,15 @@ def collectAFKRewards():
         clickXY(550, 1800, seconds=1)  # Click campaign in case we level up
         clickXY(550, 1800, seconds=1)  # again for the time limited deal popup
         clickXY(550, 1800, seconds=1)  # 3rd to be safe
-        printGreen("    AFK Rewards collected!")
+        logger.info("    AFK Rewards collected!")
     else:
-        printError("AFK Rewards chests not found, recovering and will try again")
+        logger.error("AFK Rewards chests not found, recovering and will try again")
         recover()
         collectAFKRewards()  # In case there was a popup to trial new hero
 
 
 def collectMail():
-    printBlue("Attempting mail collection")
+    logger.info("Attempting mail collection")
     if isVisible("buttons/mail", region=boundaries["mailLocate"]):
         wait()
         # if (pixelCheck(1012, 610, 0) > 240): # We check if the pixel where the notification sits has a red value of higher than 240
@@ -90,15 +83,15 @@ def collectMail():
         click("buttons/collect_all", seconds=3, region=boundaries["collectMail"])
         clickXY(550, 1600)  # Clear any popups
         click("buttons/back", region=boundaries["backMenu"])
-        printGreen("    Mail collected!")
+        logger.info("    Mail collected!")
         # else:
-        #     printWarning('    Mail notification not found')
+        #     logger.warning('    Mail notification not found')
     else:
-        printError("Mail icon not found!")
+        logger.error("Mail icon not found!")
 
 
 def collectCompanionPoints(mercs=False):
-    printBlue("Attempting to send/receive companion points")
+    logger.info("Attempting to send/receive companion points")
     if isVisible("buttons/friends", region=boundaries["friends"]):
         if (
             pixelCheck(1012, 790, 0) > 240
@@ -111,15 +104,15 @@ def collectCompanionPoints(mercs=False):
                 clickXY(630, 1590)  # Apply
                 clickXY(750, 1410)  # Auto lend
                 click("buttons/exitmenu", region=boundaries["exitMerc"])
-                printGreen("    Mercenaries lent out")
+                logger.info("    Mercenaries lent out")
             click("buttons/back", region=boundaries["backMenu"])
-            printGreen("    Friends Points Sent")
+            logger.info("    Friends Points Sent")
         else:
-            printWarning("    Friends notification not found")
+            logger.warning("    Friends notification not found")
 
 
 def collectFastRewards(count):
-    printBlue("Attempting to collecting Fast Rewards " + str(count) + "x times")
+    logger.info("Attempting to collecting Fast Rewards " + str(count) + "x times")
     counter = 0
     confirmLocation("campaign", region=boundaries["campaignSelect"])
     if isVisible("buttons/fastrewards", region=boundaries["fastrewards"]):
@@ -132,27 +125,27 @@ def collectFastRewards(count):
                 clickXY(550, 1800)
                 counter = counter + 1
             click("buttons/close", region=boundaries["closeFR"])
-            printGreen("    Fast Rewards Done")
+            logger.info("    Fast Rewards Done")
         else:
-            printWarning("    Fast Rewards already done")
+            logger.warning("    Fast Rewards already done")
     else:
-        printError("    Fast Rewards icon not found!")
+        logger.error("    Fast Rewards icon not found!")
 
 
 # Loads and exits a campaign abttle for dailies quest
 def attemptCampaign():
-    printBlue("Attempting Campaign battle")
+    logger.info("Attempting Campaign battle")
     confirmLocation("campaign", region=boundaries["campaignSelect"])
     click("buttons/begin", seconds=2, retry=3, region=boundaries["begin"])
     # Check if we're multi or single stage
     multi = isVisible("buttons/begin", 0.7, retry=3, region=boundaries["multiBegin"])
     if multi:
-        printGreen("    Multi stage detected")
+        logger.info("    Multi stage detected")
         click(
             "buttons/begin", 0.7, retry=5, seconds=2, region=boundaries["multiBegin"]
         )  # Second button to enter multi
     else:
-        printGreen("    Single stage detected")
+        logger.info("    Single stage detected")
     # Start and exit battle
     # Weird amount of retries as when loading the game for the first time this screen can take a while to load, so it acts as a counter
     if isVisible(
@@ -183,15 +176,15 @@ def attemptCampaign():
             region=boundaries["backMenu"],
         )
         if confirmLocation("campaign", bool=True, region=boundaries["campaignSelect"]):
-            printGreen("    Campaign attempted successfully")
+            logger.info("    Campaign attempted successfully")
     else:
-        printError("    Something went wrong, attempting to recover")
+        logger.error("    Something went wrong, attempting to recover")
         recover()
 
 
 # Handles the Bounty Board, calls dispatchSoloBounties() to handle solo dust/diamond recognition and dispatching
 def handleBounties():
-    printBlue("Handling Bounty Board")
+    logger.info("Handling Bounty Board")
     config.read(settings)  # Has to be read here again to update
     confirmLocation("darkforest", region=boundaries["darkforestSelect"])
     clickXY(600, 1320)
@@ -220,9 +213,9 @@ def handleBounties():
                     click("buttons/dispatch", confidence=0.8, grayscale=True)
 
         click("buttons/back", region=boundaries["backMenu"])
-        printGreen("    Bounties attempted successfully")
+        logger.info("    Bounties attempted successfully")
     else:
-        printError("    Bounty Board not found, attempting to recover")
+        logger.error("    Bounty Board not found, attempting to recover")
         recover()
 
 
@@ -233,7 +226,7 @@ def dispatchSoloBounties(remaining=2, maxrefreshes=3):
     refreshes = 0
     while refreshes <= maxrefreshes:
         if refreshes > 0:
-            printWarning("    Board refreshed (#" + str(refreshes) + ")")
+            logger.warning("    Board refreshed (#" + str(refreshes) + ")")
         dispatcher(returnDispatchButtons())  # Send the list to the function to dispatch
         swipe(550, 800, 550, 500, duration=200, seconds=2)  # scroll down
         dispatcher(
@@ -245,7 +238,7 @@ def dispatchSoloBounties(remaining=2, maxrefreshes=3):
             if (
                 len(returnDispatchButtons(scrolled=True)) <= remaining
             ):  # if <=remaining bounties left we just dispatch all and continue
-                printWarning(
+                logger.warning(
                     "  " + str(remaining) + " or less bounties remaining, dispatching.."
                 )
                 click("buttons/dispatch", confidence=0.8, suppress=True, grayscale=True)
@@ -255,7 +248,7 @@ def dispatchSoloBounties(remaining=2, maxrefreshes=3):
             clickXY(90, 250)
             clickXY(700, 1250)
         refreshes += 1
-    printGreen("    " + str(maxrefreshes) + " refreshes done, dispatching remaining..")
+    logger.info("    " + str(maxrefreshes) + " refreshes done, dispatching remaining..")
     click("buttons/dispatch", confidence=0.8, suppress=True, grayscale=True)
     click("buttons/confirm", suppress=True)
 
@@ -282,7 +275,7 @@ def dispatcher(dispatches):
                     if config.getboolean(
                         "BOUNTIES", "dispatch" + resource
                     ):  # If it's enabled dispatch
-                        printBlue("Dispatching " + resource.title())
+                        logger.info("Dispatching " + resource.title())
                         clickXY(900, button)
                         clickXY(350, 1150)
                         clickXY(750, 1150)
@@ -291,7 +284,7 @@ def dispatcher(dispatches):
 
 def handleArenaOfHeroes(count, opponent, app):
     counter = 0
-    printBlue("Battling Arena of Heroes " + str(count) + " times")
+    logger.info("Battling Arena of Heroes " + str(count) + " times")
     confirmLocation("darkforest", region=boundaries["darkforestSelect"])
     clickXY(740, 1050)
     clickXY(550, 50)
@@ -316,10 +309,10 @@ def handleArenaOfHeroes(count, opponent, app):
                 region=boundaries["skipAoH"],
             )  # Retries as ulting heros can cover the button
             if returnBattleResults(type="arena"):
-                printGreen("    Battle #" + str(counter + 1) + " Victory!")
+                logger.info("    Battle #" + str(counter + 1) + " Victory!")
                 clickXY(600, 550)  # Clear loot popup
             else:
-                printError("    Battle #" + str(counter + 1) + " Defeat!")
+                logger.error("    Battle #" + str(counter + 1) + " Defeat!")
             clickXY(600, 550)  # Back to opponent selection
             counter = counter + 1
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
@@ -329,14 +322,14 @@ def handleArenaOfHeroes(count, opponent, app):
         click("buttons/exitmenu", region=boundaries["exitAoH"])
         click("buttons/back", retry=3, region=boundaries["backMenu"])
         click("buttons/back", retry=3, region=boundaries["backMenu"])
-        printGreen("    Arena battles complete")
+        logger.info("    Arena battles complete")
     else:
-        printError("Arena of Heroes not found, attempting to recover")
+        logger.error("Arena of Heroes not found, attempting to recover")
         recover()
 
 
 def collectGladiatorCoins():
-    printBlue("Collecting Gladiator Coins")
+    logger.info("Collecting Gladiator Coins")
     confirmLocation("darkforest", region=boundaries["darkforestSelect"])
     clickXY(740, 1050)
     clickXY(550, 50)
@@ -347,19 +340,19 @@ def collectGladiatorCoins():
         clickXY(50, 1850)
         click("buttons/back", region=boundaries["backMenu"])
         click("buttons/back", region=boundaries["backMenu"])
-        printGreen("    Gladiator Coins collected")
+        logger.info("    Gladiator Coins collected")
     else:
-        printError("    Legends Tournament not found, attempting to recover")
+        logger.error("    Legends Tournament not found, attempting to recover")
         recover()
 
 
 def useBagConsumables():
     crashcounter = 0  # So we don't get stuck forever in the Use button loop
-    printBlue("Using consumables from bag")
+    logger.info("Using consumables from bag")
     clickXY(1000, 500, seconds=3)
     if isVisible("buttons/batchselect", click=True, retry=3):
         if isVisible("buttons/confirm_grey"):
-            printWarning("Nothing selected/available! Returning..")
+            logger.warning("Nothing selected/available! Returning..")
             click("buttons/back", region=boundaries["backMenu"])
             return
         clickXY(550, 1650, seconds=2)
@@ -367,7 +360,7 @@ def useBagConsumables():
             clickXY(550, 1800, seconds=0)  # 1 second check above is plenty so this is 0
             crashcounter += 1
             if crashcounter > 30:
-                printError(
+                logger.error(
                     "Something went wrong (normally gear chests being selected), returning.."
                 )
                 click("buttons/back", region=boundaries["backMenu"])
@@ -376,15 +369,15 @@ def useBagConsumables():
         clickXY(550, 1800)  # Use
         clickXY(950, 1700)  # 'All' Bag button to clear loot
         click("buttons/back", region=boundaries["backMenu"], suppress=True)
-        printGreen("    Bag consumables used!")
+        logger.info("    Bag consumables used!")
     else:
-        printError("    Bag not found, attempting to recover")
+        logger.error("    Bag not found, attempting to recover")
         recover()
 
 
 # TODO Get image for the fire debuff banner
 def collectTSRewards():
-    printBlue("Collecting Treasure Scramble daily loot")
+    logger.info("Collecting Treasure Scramble daily loot")
     confirmLocation("darkforest", region=boundaries["darkforestSelect"])
     clickXY(740, 1050)  # open Arena of Heroes
     clickXY(550, 50)  # Clear Arena Tickets
@@ -408,15 +401,15 @@ def collectTSRewards():
                 clickXY(400, 50, seconds=2)  # Clear Loot
                 click("buttons/back", retry=3, region=boundaries["backMenu"])
                 click("buttons/back", retry=3, region=boundaries["backMenu"])
-                printGreen("    Treasure Scramble daily loot collected!")
+                logger.info("    Treasure Scramble daily loot collected!")
             return
     else:
-        printError("    Treasure Scramble not found, attempting to recover")
+        logger.error("    Treasure Scramble not found, attempting to recover")
         recover()
 
 
 def collectFountainOfTime():
-    printBlue("Collecting Fountain of Time")
+    logger.info("Collecting Fountain of Time")
     confirmLocation("darkforest", region=boundaries["darkforestSelect"])
     clickXY(800, 700, seconds=6)
     clickXY(800, 700, seconds=1)
@@ -428,14 +421,14 @@ def collectFountainOfTime():
         clickXY(550, 1800, seconds=3)  # Clear limited deal
         clickXY(550, 1800, seconds=3)  # Clear newly unlocked
         click("buttons/back", region=boundaries["backMenu"])
-        printGreen("    Fountain of Time collected")
+        logger.info("    Fountain of Time collected")
     else:
-        printError("    Temporal Rift not found, attempting to recover")
+        logger.error("    Temporal Rift not found, attempting to recover")
         recover()
 
 
 def openTower(name):
-    printBlue("Opening " + name + ".")
+    logger.info("Opening " + name + ".")
     confirmLocation("darkforest", region=boundaries["darkforestSelect"])
     wait(3)  # Medium wait to make sure tower button is active when we click
     clickXY(500, 870, seconds=3)  # Long pause for animation opening towers
@@ -458,7 +451,7 @@ def openTower(name):
             if tower == name:
                 clickXY(location[0], location[1], seconds=3)
     else:
-        printError("Tower selection screen not found.")
+        logger.error("Tower selection screen not found.")
         recover()
 
 
@@ -529,7 +522,7 @@ class towerPusher:
                     "labels/autobattle_0", retry=3, region=boundaries["autobattle0"]
                 ):
                     if config.getboolean("PUSH", "suppressspam") is False:
-                        printWarning(
+                        logger.warning(
                             "No victory found, checking again in "
                             + str(config.get("PUSH", "victoryCheck") + " minutes.")
                         )
@@ -540,7 +533,7 @@ class towerPusher:
                         region=boundaries["cancelAB"],
                     )
                 else:  # If we don't see 0 we assume victory. We exit the battle, clear victory screen and clear time limited rewards screen
-                    printGreen(
+                    logger.info(
                         "Victory found! Loading the "
                         + str(
                             config.get("PUSH", "formation")
@@ -579,7 +572,7 @@ class towerPusher:
                         550, 1750
                     )  # To clear the Limited Rewards pop up every 20 stages
             else:  # If after clicking we don't get the Auto Battle notice pop up something has gone wrong so we recover() and load pushTower() again
-                printWarning("AutoBattle screen not found, reloading auto-push..")
+                logger.warning("AutoBattle screen not found, reloading auto-push..")
                 if recover() is True:
                     towerPusher.towerOpen = False
                     openTower(tower)
@@ -608,7 +601,7 @@ def pushCampaign(formation=3, duration=1, app=None):
                     "labels/autobattle_0", region=boundaries["autobattle0"]
                 ):  # If it's 0 continue
                     if config.getboolean("PUSH", "suppressSpam") is False:
-                        printWarning(
+                        logger.warning(
                             "No victory found, checking again in "
                             + str(config.get("PUSH", "victoryCheck") + " minutes.")
                         )
@@ -620,7 +613,7 @@ def pushCampaign(formation=3, duration=1, app=None):
                     )
                     wait((duration * 60) - 30)  # Sleep for the wait duration
                 else:  # If it's not 0 we have passed a stage
-                    printGreen(
+                    logger.info(
                         "Victory found! Loading the "
                         + str(
                             config.get("PUSH", "formation")
@@ -661,7 +654,7 @@ def configureBattleFormation(formation):
     artifacts = None
     counter = 0
     if config.getboolean("ADVANCED", "ignoreformations") is True:
-        printWarning("ignoreformations enabled, skipping formation selection")
+        logger.warning("ignoreformations enabled, skipping formation selection")
         click(
             "buttons/autobattle",
             suppress=True,
@@ -695,15 +688,15 @@ def configureBattleFormation(formation):
         if (
             counter >= 5
         ):  # If still None after 5 tries give error and contiue without configuring
-            printError("Couldn't read artifact status")
+            logger.error("Couldn't read artifact status")
         if (
             artifacts is not config.getboolean("PUSH", "useartifacts")
             and artifacts is not None
         ):
             if config.getboolean("PUSH", "useartifacts"):
-                printBlue("Enabling Artifact copying")
+                logger.info("Enabling Artifact copying")
             else:
-                printBlue("Disabling Artifact copying")
+                logger.info("Disabling Artifact copying")
             clickXY(
                 275, 1150
             )  # clickXY not ideal here but my brain is fried so it'll do for now
@@ -719,11 +712,11 @@ def configureBattleFormation(formation):
             secureregion=boundaries["autobattleLabel"],
         )
     else:
-        printWarning("Could not find Formations button")
+        logger.warning("Could not find Formations button")
 
 
 def handleKingsTower():
-    printBlue("Attempting Kings Tower battle")
+    logger.info("Attempting Kings Tower battle")
     confirmLocation("darkforest", region=boundaries["darkforestSelect"])
     clickXY(500, 870, seconds=3)  # Long pause for animation
     if isVisible("labels/kingstower"):
@@ -742,15 +735,15 @@ def handleKingsTower():
             click(
                 "buttons/back", region=boundaries["backMenu"]
             )  # Last one only needed for multifights
-        printGreen("    Tower attempted successfully")
+        logger.info("    Tower attempted successfully")
     else:
-        printError("Tower screen not found, attempting to recover")
+        logger.error("Tower screen not found, attempting to recover")
         recover()
 
 
 def collectInnGifts():
     checks = 0
-    printBlue("Attempting daily Inn gift collection")
+    logger.info("Attempting daily Inn gift collection")
     confirmLocation("ranhorn", region=boundaries["ranhornSelect"])
     wait()
     clickXY(500, 200, seconds=4)
@@ -769,10 +762,10 @@ def collectInnGifts():
             checks += 1
             wait()
         click("buttons/back", region=boundaries["backMenu"])
-        printGreen("    Inn Gifts collected.")
+        logger.info("    Inn Gifts collected.")
         wait(2)  # wait before next task as loading ranhorn can be slow
     else:
-        printError("    Inn not found, attempting to recover")
+        logger.error("    Inn not found, attempting to recover")
         recover()
 
 
@@ -826,7 +819,7 @@ def handleShopPurchasing(counter):
                 item == "cores" or item == "arcanestaffs"
             ) and counter > 2:  # only three shards/staffs
                 continue
-            printPurple("    Buying: " + nameTranslator(item))
+            logger.info("    Buying: " + nameTranslator(item))
             clickXY(pos[0], pos[1])
             click("buttons/shop/purchase", suppress=True)
             clickXY(550, 1220, seconds=2)
@@ -838,7 +831,7 @@ def handleShopPurchasing(counter):
     for item, button in bottomrow.items():
         if config.getboolean("SHOP", item):
             if isVisible(button, 0.95, click=True):
-                printPurple("    Buying: " + nameTranslator(item))
+                logger.info("    Buying: " + nameTranslator(item))
                 click("buttons/shop/purchase", suppress=True)
                 clickXY(550, 1220)
     wait(3)  # Long wait else Twisted Realm isn't found after if enabled in Dailies
@@ -848,7 +841,7 @@ def shopPurchases(shoprefreshes, skipQuick=0):
     if config.getboolean("SHOP", "quick") and skipQuick == 0:
         shopPurchases_quick(shoprefreshes)
         return
-    printBlue("Attempting store purchases (Refreshes: " + str(shoprefreshes) + ")")
+    logger.info("Attempting store purchases (Refreshes: " + str(shoprefreshes) + ")")
     counter = 0
     confirmLocation("ranhorn", region=boundaries["ranhornSelect"])
     wait(2)
@@ -861,18 +854,18 @@ def shopPurchases(shoprefreshes, skipQuick=0):
             clickXY(1000, 300)
             click("buttons/confirm", suppress=True, seconds=5)
             counter += 1
-            printGreen("    Refreshed store " + str(counter) + " times.")
+            logger.info("    Refreshed store " + str(counter) + " times.")
             handleShopPurchasing(counter)
         click("buttons/back")
-        printGreen("    Store purchases attempted.")
+        logger.info("    Store purchases attempted.")
         wait(2)  # wait before next task as loading ranhorn can be slow
     else:
-        printError("Store not found, attempting to recover")
+        logger.error("Store not found, attempting to recover")
         recover()
 
 
 def shopPurchases_quick(shoprefreshes):
-    printBlue("Attempting store quickbuys (Refreshes: " + str(shoprefreshes) + ")")
+    logger.info("Attempting store quickbuys (Refreshes: " + str(shoprefreshes) + ")")
     counter = 0
     confirmLocation("ranhorn")
     wait(2)
@@ -890,19 +883,19 @@ def shopPurchases_quick(shoprefreshes):
                 clickXY(970, 90)
                 counter += 1
             click("buttons/back")
-            printGreen("Store purchases attempted.")
+            logger.info("Store purchases attempted.")
         else:
-            printBlue("Quickbuy not found, switching to old style")
+            logger.info("Quickbuy not found, switching to old style")
             click("buttons/back")
             shopPurchases(shoprefreshes, 1)
 
     else:
-        printError("Store not found, attempting to recover")
+        logger.error("Store not found, attempting to recover")
         recover()
 
 
 def handleGuildHunts():
-    printBlue("Attempting to run Guild Hunts")
+    logger.info("Attempting to run Guild Hunts")
     confirmLocation("ranhorn", region=boundaries["ranhornSelect"])
     clickXY(380, 360)
     wait(6)
@@ -921,7 +914,7 @@ def handleGuildHunts():
     # Wrizz check
     if isVisible("labels/wrizz"):
         if isVisible("buttons/quickbattle"):
-            printGreen("    Wrizz Found, collecting")
+            logger.info("    Wrizz Found, collecting")
             click("buttons/quickbattle")
             clickXY(725, 1300)
             # So we don't get stuck on capped resources screen
@@ -930,11 +923,11 @@ def handleGuildHunts():
             clickXY(550, 500)
             clickXY(550, 500, seconds=2)
         else:
-            printWarning("    Wrizz quick battle not found")
+            logger.warning("    Wrizz quick battle not found")
         # Soren Check
         clickXY(970, 890)
         if isVisible("buttons/quickbattle"):
-            printGreen("    Soren Found, collecting")
+            logger.info("    Soren Found, collecting")
             click("buttons/quickbattle")
             clickXY(725, 1300)
             # So we don't get stuck on capped resources screen
@@ -943,43 +936,43 @@ def handleGuildHunts():
             clickXY(550, 500)
             clickXY(550, 500, seconds=2)
         else:
-            printWarning("    Soren quick battle not found")
+            logger.warning("    Soren quick battle not found")
         clickXY(70, 1810)
         clickXY(70, 1810)
-        printGreen("    Guild Hunts checked successfully")
+        logger.info("    Guild Hunts checked successfully")
     else:
-        printError("    Error opening Guild Hunts, attempting to recover")
+        logger.error("    Error opening Guild Hunts, attempting to recover")
         recover()
 
 
 # Checks for completed quests and collects, then clicks the open chect and clears rewards
 # Once for Dailies once for Weeklies
 def collectQuests():
-    printBlue("Attempting to collect quest chests")
+    logger.info("Attempting to collect quest chests")
     clickXY(960, 250)
     if isVisible("labels/quests"):
         clickXY(400, 1650)  # Dailies
         if isVisible("labels/questcomplete"):
-            printGreen("    Daily Quest(s) found, collecting..")
+            logger.info("    Daily Quest(s) found, collecting..")
             clickXY(930, 680, seconds=4)  # Click top quest
             click("buttons/fullquestchest", seconds=3, retry=3, suppress=True)
             clickXY(400, 1650)
         clickXY(600, 1650)  # Weeklies
         if isVisible("labels/questcomplete"):
-            printGreen("    Weekly Quest(s) found, collecting..")
+            logger.info("    Weekly Quest(s) found, collecting..")
             clickXY(930, 680, seconds=4)  # Click top quest
             click("buttons/fullquestchest", seconds=3, retry=3, suppress=True)
             clickXY(600, 1650, seconds=2)
             clickXY(600, 1650)  # Second in case we get Limited Rewards popup
         click("buttons/back", retry=3)
-        printGreen("    Quests collected")
+        logger.info("    Quests collected")
     else:
-        printError("    Quests screen not found, attempting to recover")
+        logger.error("    Quests screen not found, attempting to recover")
         recover()
 
 
 def clearMerchant():
-    printBlue("Attempting to collect merchant deals")
+    logger.info("Attempting to collect merchant deals")
     clickXY(120, 300, seconds=5)
     if isVisible("buttons/funinthewild", click=True, seconds=2):
         clickXY(250, 1820, seconds=2)  # Ticket
@@ -987,11 +980,11 @@ def clearMerchant():
     swipe(1000, 1825, 100, 1825, 500)
     swipe(1000, 1825, 100, 1825, 500, seconds=3)
     if isVisible("buttons/noblesociety"):
-        printPurple("    Collecting Nobles")
+        logger.info("    Collecting Nobles")
         # Nobles
         clickXY(675, 1825)
         if isVisible("buttons/confirm_nobles", 0.8, retry=2):
-            printWarning(
+            logger.warning(
                 "Noble resource collection screen found, skipping Noble collection"
             )
             clickXY(70, 1810)
@@ -1021,7 +1014,7 @@ def clearMerchant():
             clickXY(440, 725, seconds=0.5)
             clickXY(450, 1600)  # Icon
         # Monthly Cards
-        printPurple("    Collecting Monthly Cards")
+        logger.info("    Collecting Monthly Cards")
         clickXY(400, 1825)
         # Monthly
         clickXY(300, 1000, seconds=3)
@@ -1033,13 +1026,13 @@ def clearMerchant():
         swipe(200, 1825, 450, 1825, 1000, seconds=2)
         clickXY(400, 1825)
         # Special Deal, no check as its active daily
-        printPurple("    Collecting Special Deal")
+        logger.info("    Collecting Special Deal")
         click("buttons/dailydeals")
         clickXY(150, 1625)
         clickXY(150, 1625)
         # Daily Deal
         if isVisible("buttons/merchant_daily", confidence=0.8, retry=2, click=True):
-            printPurple("    Collecting Daily Deal")
+            logger.info("    Collecting Daily Deal")
             swipe(550, 1400, 550, 1200, 500, seconds=3)
             click("buttons/dailydeals", confidence=0.8, retry=2)
             clickXY(400, 1675, seconds=2)
@@ -1048,41 +1041,41 @@ def clearMerchant():
             if isVisible(
                 "buttons/merchant_biweekly", confidence=0.8, retry=2, click=True
             ):
-                printPurple("    Collecting Bi-weekly Deal")
+                logger.info("    Collecting Bi-weekly Deal")
                 swipe(300, 1400, 200, 1200, 500, seconds=3)
                 clickXY(200, 1200)
                 clickXY(550, 1625, seconds=2)
         # Yuexi
         if d.isoweekday() == 1:  # Monday
-            printPurple("    Collecting Yuexi")
+            logger.info("    Collecting Yuexi")
             clickXY(200, 1825)
             clickXY(240, 880)
             clickXY(150, 1625, seconds=2)
         # Clear Rhapsody bundles notification
-        printPurple("    Clearing Rhapsody bundles notification")
+        logger.info("    Clearing Rhapsody bundles notification")
         swipe(200, 1825, 1000, 1825, 450, seconds=2)
         if isVisible("labels/wishing_ship", confidence=0.8, retry=2, click=True):
             clickXY(620, 1600)
             clickXY(980, 200)
             clickXY(70, 1810)
             clickXY(70, 1810)
-        printGreen("    Merchant deals collected")
+        logger.info("    Merchant deals collected")
         recover(True)
     else:
-        printError("    Noble screen not found, attempting to recover")
+        logger.error("    Noble screen not found, attempting to recover")
         recover()
 
 
 # Opens Twisted Realm and runs it once with whatever formation is loaded
 def handleTwistedRealm():
-    printBlue("Attempting to run Twisted Realm")
+    logger.info("Attempting to run Twisted Realm")
     confirmLocation("ranhorn", region=boundaries["ranhornSelect"])
     clickXY(380, 360, seconds=6)
     clickXY(550, 1800)  # Clear chests
     clickXY(775, 875, seconds=2)
     clickXY(550, 600, seconds=3)
     if isVisible("buttons/nextboss"):
-        printGreen("    Twisted Realm found, battling")
+        logger.info("    Twisted Realm found, battling")
         if isVisible("buttons/challenge_tr", retry=3, confidence=0.8):
             clickXY(550, 1850, seconds=2)
             click("buttons/autobattle", retry=3, seconds=2)
@@ -1094,16 +1087,16 @@ def handleTwistedRealm():
             clickXY(70, 1800)
             clickXY(70, 1800)
             clickXY(70, 1800)
-            printGreen("    Twisted Realm attempted successfully")
+            logger.info("    Twisted Realm attempted successfully")
             wait(3)  # wait before next task as loading ranhorn can be slow
             recover(True)
         else:
             clickXY(70, 1800)
             clickXY(70, 1800)
-            printError("    Challenge button not found, attempting to recover")
+            logger.error("    Challenge button not found, attempting to recover")
             recover()
     else:
-        printError("    Error opening Twisted Realm, attempting to recover")
+        logger.error("    Error opening Twisted Realm, attempting to recover")
         # TODO Add 'Calculating' confirmation to exit safely
         recover()
 
@@ -1111,7 +1104,7 @@ def handleTwistedRealm():
 # Opens a Fight of Fates battle and then cycles between dragging heroes and dragging skills until we see the battle end screen
 # Collects quests at the end
 def handleFightOfFates(battles=3):
-    printBlue("Attempting to run Fight of Fates " + str(battles) + " times")
+    logger.info("Attempting to run Fight of Fates " + str(battles) + " times")
     counter = 0
     expandMenus()  # Expand left menu again as it can shut after other dailies activities
     click("buttons/fightoffates", confidence=0.8, retry=5, seconds=3)
@@ -1138,7 +1131,7 @@ def handleFightOfFates(battles=3):
                 # Skill 3
                 swipe(800, 1700, 550, 950, 200)
             counter = counter + 1
-            printGreen("    Fight of Fates Battle #" + str(counter) + " complete")
+            logger.info("    Fight of Fates Battle #" + str(counter) + " complete")
         # Click quests
         clickXY(975, 125, seconds=2)
         # select dailies tab
@@ -1151,9 +1144,9 @@ def handleFightOfFates(battles=3):
         # Back twice to exit
         clickXY(70, 1650, seconds=1)
         clickXY(70, 1810, seconds=1)
-        printGreen("    Fight of Fates attempted successfully")
+        logger.info("    Fight of Fates attempted successfully")
     else:
-        printWarning("Fight of Fates not found, recovering..")
+        logger.warning("Fight of Fates not found, recovering..")
         recover()
 
 
@@ -1162,7 +1155,7 @@ def handleFightOfFates(battles=3):
 # Timeout is probably 10 seconds longer than the stage timer so if we exceed that something has gone wrong
 # A round can take between 40 seconds or over 2 minutes depending on if our opponent is afk or not, at the end we collect daily quests
 def handleBattleofBlood(battles=3):
-    printBlue("Attempting to run Battle of Blood " + str(battles) + " times")
+    logger.info("Attempting to run Battle of Blood " + str(battles) + " times")
     battlecounter = 0  # Number of battles we want to run
     bob_timeout = 0  # Timer for tracking if something has gone wrong with placing cards
     expandMenus()  # Expand left menu again as it can shut after other dailies activities
@@ -1183,7 +1176,7 @@ def handleBattleofBlood(battles=3):
                 wait(1)
                 bob_timeout += 1
                 if bob_timeout > 30:
-                    printError("Battle of Blood timeout!")
+                    logger.error("Battle of Blood timeout!")
                     recover()
                     return
             else:
@@ -1202,7 +1195,7 @@ def handleBattleofBlood(battles=3):
                 wait(1)
                 bob_timeout += 1
                 if bob_timeout > 30:
-                    printError("Battle of Blood timeout!")
+                    logger.error("Battle of Blood timeout!")
                     recover()
                     return
             else:
@@ -1220,7 +1213,7 @@ def handleBattleofBlood(battles=3):
                 wait(1)
                 bob_timeout += 1
                 if bob_timeout > 30:
-                    printError("Battle of Blood timeout!")
+                    logger.error("Battle of Blood timeout!")
                     recover()
                     return
             else:
@@ -1232,13 +1225,13 @@ def handleBattleofBlood(battles=3):
                 battlecounter += 1
                 result = returnBattleResults("BoB")
                 if result is True:
-                    printGreen(
+                    logger.info(
                         "    Victory! Battle of Blood Battle #"
                         + str(battlecounter)
                         + " complete"
                     )
                 else:
-                    printError(
+                    logger.error(
                         "    Defeat! Battle of Blood Battle #"
                         + str(battlecounter)
                         + " complete"
@@ -1259,18 +1252,18 @@ def handleBattleofBlood(battles=3):
         clickXY(70, 1810, seconds=1)  # Exit BoB
         clickXY(70, 1810, seconds=1)  # Exit Events screen
         if confirmLocation("ranhorn", bool=True, region=boundaries["ranhornSelect"]):
-            printGreen("    Battle of Blood attempted successfully")
+            logger.info("    Battle of Blood attempted successfully")
         else:
-            printWarning("Issue exiting Battle of Blood, recovering..")
+            logger.warning("Issue exiting Battle of Blood, recovering..")
             recover()
     else:
-        printWarning("Battle of Blood not found, recovering..")
+        logger.warning("Battle of Blood not found, recovering..")
         recover()
 
 
 def handleCircusTour(battles=3):
     battlecounter = 1
-    printBlue("Attempting to run Circus Tour battles")
+    logger.info("Attempting to run Circus Tour battles")
     confirmLocation(
         "ranhorn", region=boundaries["ranhornSelect"]
     )  # Trying to fix 'buttons/events not found' error
@@ -1278,7 +1271,7 @@ def handleCircusTour(battles=3):
     click("buttons/events", confidence=0.8, retry=3, seconds=3)
     if isVisible("labels/circustour", retry=3, click=True):
         while battlecounter < battles:
-            printGreen("    Circus Tour battle #" + str(battlecounter))
+            logger.info("    Circus Tour battle #" + str(battlecounter))
             click(
                 "buttons/challenge_tr",
                 confidence=0.8,
@@ -1291,7 +1284,7 @@ def handleCircusTour(battles=3):
                 while isVisible(
                     "labels/dialogue_left", retry=2, region=boundaries["dialogue_left"]
                 ):
-                    printWarning("    Clearing dialogue..")
+                    logger.warning("    Clearing dialogue..")
                     clickXY(550, 900)  # Clear dialogue box on new boss rotation
                     clickXY(550, 900)  # Only need to do this on the first battle
                     clickXY(550, 900)
@@ -1324,17 +1317,17 @@ def handleCircusTour(battles=3):
         clickXY(70, 1810, seconds=1)
         clickXY(70, 1810, seconds=1)
         if confirmLocation("ranhorn", bool=True, region=boundaries["ranhornSelect"]):
-            printGreen("    Circus Tour attempted successfully")
+            logger.info("    Circus Tour attempted successfully")
         else:
-            printWarning("Issue exiting Circus Tour, recovering..")
+            logger.warning("Issue exiting Circus Tour, recovering..")
             recover()
     else:
-        printWarning("Circus Tour not found, recovering..")
+        logger.warning("Circus Tour not found, recovering..")
         recover()
 
 
 def handleLab():
-    printBlue("Attempting to run Arcane Labyrinth")
+    logger.info("Attempting to run Arcane Labyrinth")
     lowerdirection = ""  # for whether we go left or right for the first battle
     upperdirection = (
         ""  # For whether we go left or right to get the double battle at the end
@@ -1343,24 +1336,24 @@ def handleLab():
     wait()
     clickXY(400, 1150, seconds=3)
     if isVisible("labels/labfloor3", retry=3, confidence=0.8, seconds=3):
-        printGreen("Lab already open! Continuing..")
+        logger.info("Lab already open! Continuing..")
         clickXY(50, 1800, seconds=2)  # Exit Lab Menu
         return
     if isVisible("labels/lablocked", confidence=0.8, seconds=3):
-        printGreen("Dismal Lab not unlocked! Continuing..")
+        logger.info("Dismal Lab not unlocked! Continuing..")
         clickXY(50, 1800, seconds=2)  # Exit Lab Menu
         return
     if isVisible("labels/lab", retry=3):
         # Check for Swept
         if isVisible("labels/labswept", retry=3, confidence=0.8, seconds=3):
-            printGreen("Lab already swept! Continuing..")
+            logger.info("Lab already swept! Continuing..")
             clickXY(50, 1800, seconds=2)  # Exit Lab Menu
             return
         # Check for Sweep
         if isVisible(
             "buttons/labsweep", retry=3, confidence=0.8, click=True, seconds=3
         ):
-            printGreen("    Sweep Available!")
+            logger.info("    Sweep Available!")
             if isVisible(
                 "buttons/labsweepbattle", retry=3, confidence=0.8, click=True, seconds=3
             ):
@@ -1374,27 +1367,27 @@ def handleLab():
                     550, 1550, seconds=5
                 )  # Clear Roamer Deals, long wait for the Limited Offer to pop up for Lab completion
                 clickXY(550, 1650)  # Clear Limited Offer
-                printGreen("    Lab Swept!")
+                logger.info("    Lab Swept!")
                 return
         else:  # Else we run lab manually
-            printGreen("    Sweep not found, attempting manual Lab run..")
+            logger.info("    Sweep not found, attempting manual Lab run..")
 
             # Pre-run set up
-            printGreen("    Entering Lab")
+            logger.info("    Entering Lab")
             clickXY(750, 1100, seconds=2)  # Center of Dismal
             clickXY(550, 1475, seconds=2)  # Challenge
             clickXY(550, 1600, seconds=2)  # Begin Adventure
             clickXY(700, 1250, seconds=6)  # Confirm
             clickXY(550, 1600, seconds=3)  # Clear Debuff
             # TODO Check Dismal Floor 1 text
-            printGreen("    Sweeping to 2nd Floor")
+            logger.info("    Sweeping to 2nd Floor")
             clickXY(950, 1600, seconds=2)  # Level Sweep
             clickXY(550, 1550, seconds=8)  # Confirm, long wait for animations
             clickXY(550, 1600, seconds=2)  # Clear Resources Exceeded message
             clickXY(550, 1600, seconds=2)  # And again for safe measure
             clickXY(550, 1600, seconds=3)  # Clear Loot
             clickXY(550, 1250, seconds=5)  # Abandon Roamer
-            printGreen("    Choosing relics")
+            logger.info("    Choosing relics")
             clickXY(550, 900)  # Relic 1
             clickXY(550, 1325, seconds=3)  # Choose
             clickXY(550, 900)  # Relic 2
@@ -1407,7 +1400,7 @@ def handleLab():
             clickXY(550, 1325, seconds=3)  # Choose
             clickXY(550, 900)  # Relic 6
             clickXY(550, 1325, seconds=3)  # Choose
-            printGreen("    Entering 3rd Floor")
+            logger.info("    Entering 3rd Floor")
             clickXY(550, 550, seconds=2)  # Portal to 3rd Floor
             clickXY(550, 1200, seconds=5)  # Enter
             clickXY(550, 1600, seconds=2)  # Clear Debuff
@@ -1416,10 +1409,10 @@ def handleLab():
             # Check which route we are taking, as to avoid the cart
             clickXY(400, 1400, seconds=2)  # Open first tile on the left
             if isVisible("labels/labguard", retry=2):
-                printWarning("    Loot Route: Left")
+                logger.warning("    Loot Route: Left")
                 lowerdirection = "left"
             else:
-                printWarning("    Loot Route: Right")
+                logger.warning("    Loot Route: Right")
                 lowerdirection = "right"
                 clickXY(550, 50, seconds=3)  # Back to Lab screen
 
@@ -1431,7 +1424,7 @@ def handleLab():
                 configureLabTeams(1)
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab") is False:
@@ -1444,7 +1437,7 @@ def handleLab():
             ):  # Check we're at the battle screen
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab", firstOfMulti=True) is False:
@@ -1456,7 +1449,7 @@ def handleLab():
                 configureLabTeams(2)
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab") is False:
@@ -1469,7 +1462,7 @@ def handleLab():
             ):  # Check we're at the battle screen
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab") is False:
@@ -1483,7 +1476,7 @@ def handleLab():
             ):  # Check we're at the battle screen
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab", firstOfMulti=True) is False:
@@ -1494,7 +1487,7 @@ def handleLab():
             ):  # Check we're at the battle screen
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab") is False:
@@ -1507,7 +1500,7 @@ def handleLab():
             ):  # Check we're at the battle screen
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab") is False:
@@ -1520,7 +1513,7 @@ def handleLab():
             ):  # Check we're at the battle screen
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab") is False:
@@ -1531,10 +1524,10 @@ def handleLab():
             swipe(550, 200, 550, 1800, duration=1000)
             clickXY(400, 1450, seconds=2)  # First tile on the left
             if isVisible("labels/labpraeguard", retry=2):
-                printWarning("    Loot Route: Left")
+                logger.warning("    Loot Route: Left")
                 upperdirection = "left"
             else:
-                printWarning("    Loot Route: Right")
+                logger.warning("    Loot Route: Right")
                 upperdirection = "right"
                 clickXY(550, 50, seconds=2)  # Back to Lab screen
 
@@ -1545,7 +1538,7 @@ def handleLab():
             ):  # Check we're at the battle screen
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab", firstOfMulti=True) is False:
@@ -1556,7 +1549,7 @@ def handleLab():
             ):  # Check we're at the battle screen
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab") is False:
@@ -1569,7 +1562,7 @@ def handleLab():
             ):  # Check we're at the battle screen
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab", firstOfMulti=True) is False:
@@ -1581,7 +1574,7 @@ def handleLab():
                 # configureLabTeams(2, pet=False)  # We've lost heroes to Thoran etc by now, so lets re-pick 5 strongest heroes
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab") is False:
@@ -1590,11 +1583,11 @@ def handleLab():
             # 9th Row (witches den or fountain)
             handleLabTile("upper", upperdirection, "9")
             if isVisible("labels/labwitchsden", retry=3):
-                printWarning("    Clearing Witch's Den")
+                logger.warning("    Clearing Witch's Den")
                 clickXY(550, 1500, seconds=3)  # Go
                 clickXY(300, 1600, seconds=4)  # Abandon
             if isVisible("labels/labfountain", retry=3):
-                printWarning("    Clearing Divine Fountain")
+                logger.warning("    Clearing Divine Fountain")
                 clickXY(725, 1250, seconds=3)  # Confirm
                 clickXY(725, 1250, seconds=2)  # Go
 
@@ -1608,7 +1601,7 @@ def handleLab():
                 )  # We've lost heroes to Thoran etc by now, so lets re-pick 5 strongest heroes
                 clickXY(550, 1850, seconds=4)  # Battle
             else:
-                printError("Battle Screen not found! Exiting")
+                logger.error("Battle Screen not found! Exiting")
                 recover()
                 return
             if returnBattleResults(type="lab") is False:
@@ -1621,9 +1614,9 @@ def handleLab():
             clickXY(550, 1650, seconds=2)  # Clear Notice
             clickXY(550, 1650, seconds=2)  # One more for safe measure
             clickXY(50, 1800, seconds=2)  # Click Back to Exit
-            printGreen("    Manual Lab run complete!")
+            logger.info("    Manual Lab run complete!")
     else:
-        printError("Can't find Lab screen! Exiting..")
+        logger.error("Can't find Lab screen! Exiting..")
         recover()
 
 
@@ -1675,9 +1668,9 @@ def configureLabTeams(team, pet=True):
 # Tile is the row of the tile we're aiming for, from 1 at the bottom to 10 at the final boss
 def handleLabTile(elevation, side, tile):
     if tile == "4" or tile == "6" or tile == "10":
-        printBlue("    Battling " + elevation.capitalize() + " Tile " + tile)
+        logger.info("    Battling " + elevation.capitalize() + " Tile " + tile)
     else:
-        printBlue(
+        logger.info(
             "    Battling "
             + elevation.capitalize()
             + " "
@@ -1778,15 +1771,15 @@ def returnBattleResults(type, firstOfMulti=False):
     if type == "BoB":
         while counter < 30:
             if isVisible("labels/victory"):
-                # printGreen('    Battle of Blood Victory!')
+                # logger.info('    Battle of Blood Victory!')
                 clickXY(550, 1850, seconds=3)  # Clear window
                 return True
             if isVisible("labels/defeat"):
-                # printError('    Battle of Blood Defeat!')
+                # logger.error('    Battle of Blood Defeat!')
                 clickXY(550, 1850, seconds=3)  # Clear window
                 return False
             counter += 1
-        printError("Battletimer expired")
+        logger.error("Battletimer expired")
         recover()
         return False
 
@@ -1797,15 +1790,15 @@ def returnBattleResults(type, firstOfMulti=False):
             if isVisible("labels/hoe_ranktrophy", retry=5, region=(150, 900, 350, 250)):
                 clickXY(550, 1200)
             if isVisible("labels/victory"):
-                # printGreen('    Battle of Blood Victory!')
+                # logger.info('    Battle of Blood Victory!')
                 clickXY(550, 700, seconds=3)  # Clear window
                 return True
             if isVisible("labels/defeat"):
-                # printError('    Battle of Blood Defeat!')
+                # logger.error('    Battle of Blood Defeat!')
                 clickXY(550, 700, seconds=3)  # Clear window
                 return False
             counter += 1
-        printError("Battletimer expired")
+        logger.error("Battletimer expired")
         return False
 
     if type == "lab":
@@ -1814,7 +1807,7 @@ def returnBattleResults(type, firstOfMulti=False):
             if isVisible("labels/notice"):
                 clickXY(550, 1250)
             if isVisible("labels/victory"):
-                printGreen("    Lab Battle Victory!")
+                logger.info("    Lab Battle Victory!")
                 if (
                     firstOfMulti is False
                 ):  # Else we exit before second battle while trying to collect loot
@@ -1824,11 +1817,11 @@ def returnBattleResults(type, firstOfMulti=False):
                 return
             if isVisible("labels/defeat"):
                 # TODO Use Duras Tears so we can continue
-                printError("    Lab Battle  Defeat! Exiting..")
+                logger.error("    Lab Battle  Defeat! Exiting..")
                 recover()
                 return False
             counter += 1
-        printError("Battletimer expired")
+        logger.error("Battletimer expired")
         recover()
         return False
 
@@ -1840,15 +1833,15 @@ def returnBattleResults(type, firstOfMulti=False):
                 return False
             wait(1)
             counter += 1
-        printError("Arena battle timed out!")
+        logger.error("Arena battle timed out!")
         return False
 
     if type == "campaign":
         if isVisible("labels/victory", confidence=0.75, retry=2):
-            printGreen("    Victory!")
+            logger.info("    Victory!")
             return True
         elif isVisible("labels/defeat", confidence=0.8):
-            printError("    Defeat!")
+            logger.error("    Defeat!")
             return False
         else:
             return "Unknown"
@@ -1857,15 +1850,15 @@ def returnBattleResults(type, firstOfMulti=False):
 def handleHeroesofEsperia(count=3, opponent=4):
     counter = 0
     errorcounter = 0
-    printBlue("Battling Heroes of Esperia " + str(count) + " times")
-    printWarning("Note: this currently won't work in the Legends Tower")
+    logger.info("Battling Heroes of Esperia " + str(count) + " times")
+    logger.warning("Note: this currently won't work in the Legends Tower")
     confirmLocation("darkforest", region=boundaries["darkforestSelect"])
     clickXY(740, 1050)  # Open Arena of Heroes
     clickXY(550, 50)  # Clear Tickets Popup
     if isVisible("labels/heroesofesperia", click=True, seconds=3):
         # Check if we've opened it yet
         if isVisible("buttons/join_hoe", 0.8, retry=3, region=(420, 1780, 250, 150)):
-            printWarning("Heroes of Esperia not opened! Entering..")
+            logger.warning("Heroes of Esperia not opened! Entering..")
             clickXY(550, 1850)  # Clear Info
             clickXY(550, 1850, seconds=6)  # Click join
             clickXY(550, 1140, seconds=3)  # Clear Placement
@@ -1885,7 +1878,7 @@ def handleHeroesofEsperia(count=3, opponent=4):
                 if isVisible(
                     "labels/hoe_buytickets", region=(243, 618, 600, 120)
                 ):  # Check for ticket icon pixel
-                    printError("Ticket Purchase screen found, exiting")
+                    logger.error("Ticket Purchase screen found, exiting")
                     recover()
                     return
                 while isVisible(
@@ -1896,9 +1889,9 @@ def handleHeroesofEsperia(count=3, opponent=4):
                     "buttons/skip", confidence=0.8, region=boundaries["skipAoH"]
                 )
                 if returnBattleResults(type="HoE"):
-                    printGreen("    Battle #" + str(counter + 1) + " Victory!")
+                    logger.info("    Battle #" + str(counter + 1) + " Victory!")
                 else:
-                    printError("    Battle #" + str(counter + 1) + " Defeat!")
+                    logger.error("    Battle #" + str(counter + 1) + " Defeat!")
 
                 # Lots of things/animations can happen after a battle so we keep clicking until we see the fight button again
                 while not isVisible(
@@ -1912,17 +1905,17 @@ def handleHeroesofEsperia(count=3, opponent=4):
                         clickXY(550, 1420)  # Rank up confirm button
                         errorcounter += 1
                     else:
-                        printError("Something went wrong post-battle, recovering")
+                        logger.error("Something went wrong post-battle, recovering")
                         recover()
                         return
                 errorcounter = 0
                 counter += 1
         else:
-            printError("Heroes of Esperia Fight button not found! Recovering")
+            logger.error("Heroes of Esperia Fight button not found! Recovering")
             recover()
             return
         click("buttons/exitmenu", region=boundaries["exitAoH"])
-        printGreen("    Collecting Quests")
+        logger.info("    Collecting Quests")
         clickXY(975, 300, seconds=2)  # Bounties
         clickXY(975, 220, seconds=2)  # Quests
         clickXY(850, 880, seconds=2)  # Top daily quest
@@ -1932,15 +1925,15 @@ def handleHeroesofEsperia(count=3, opponent=4):
         clickXY(550, 420, seconds=2)  # Click to clear loot
         click("buttons/exitmenu", region=boundaries["exitAoH"], seconds=2)
         if pixelCheck(550, 1850, 2) > 150:
-            printGreen("    Collecting Heroes of Esperia Pass loot")
+            logger.info("    Collecting Heroes of Esperia Pass loot")
             clickXY(550, 1800, seconds=2)  # Collect all at the pass screen
             clickXY(420, 50)  # Click to clear loot
         click("buttons/back", retry=3, region=boundaries["backMenu"])
         click("buttons/back", retry=3, region=boundaries["backMenu"])
         click("buttons/back", retry=3, region=boundaries["backMenu"])
-        printGreen("    Heroes of Esperia battles complete")
+        logger.info("    Heroes of Esperia battles complete")
     else:
-        printError("Heroes of Esperia not found, attempting to recover")
+        logger.error("Heroes of Esperia not found, attempting to recover")
         recover()
 
 
@@ -1956,13 +1949,13 @@ def afkjourney():
 
     # Check if the file exists
     if os.path.exists(file_path):
-        print("")
-        printBlue("Attempting to run AFK Journey dailies")
+        logger.info("")
+        logger.info("Attempting to run AFK Journey dailies")
         process = Popen(
             config.get("ADVANCED", "afkjourney_cmd"), stdout=PIPE, text=True
         )
         for line in process.stdout:
             if line.strip():  # Check if the line is not empty
-                printInfo(line)
+                logger.info(line)
         process.wait()
-        printGreen("AFK Journey dailies done!")
+        logger.info("AFK Journey dailies done!")
