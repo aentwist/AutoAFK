@@ -2010,27 +2010,3 @@ def challenge_hoe(settings: ChallengeOpponentSettings) -> None:
     else:
         logger.error("Heroes of Esperia not found, attempting to recover")
         recover()
-
-
-def afkjourney() -> None:
-    Popen(["adb", "shell", "am", "force-stop", "com.lilithgame.hgame.gp"])
-    afkjourney_cmd = config.get("ADVANCED", "afkjourney_cmd")
-
-    # Split the string by spaces
-    cmd_parts = shlex.split(afkjourney_cmd)
-
-    # Extract the file path
-    file_path = cmd_parts[2]
-
-    # Check if the file exists
-    if os.path.exists(file_path):
-        logger.info("")
-        logger.info("Attempting to run AFK Journey dailies")
-        process = Popen(
-            config.get("ADVANCED", "afkjourney_cmd"), stdout=PIPE, text=True
-        )
-        for line in process.stdout:
-            if line.strip():  # Check if the line is not empty
-                logger.info(line)
-        process.wait()
-        logger.info("AFK Journey dailies done!")

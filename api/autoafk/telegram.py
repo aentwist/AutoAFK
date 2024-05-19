@@ -40,39 +40,7 @@ telegram_settings: TelegramSettings = {
 }
 
 if config.has_section("TELEGRAM") and telegram_settings["enable_telegram"]:
-
-    # Initialize the Telegram object
     telegram = Telegram(
         telegram_settings["chat_id"],
         telegram_settings["token"],
     )
-
-    # TODO: Remove
-    # Custom print function that duplicates output to console and Telegram
-    def log(*args, **kwargs):
-        # Convert all arguments to strings and join them
-        message = " ".join(map(str, args))
-
-        # Print to console
-        log(*args, **kwargs)
-
-        # Check if message is empty
-        if message.strip():
-            # List of prefixes to check
-            prefixes = ["ERR", "WAR", "GRE", "BLU", "PUR"]
-
-            # Check if the message starts with any of the prefixes
-            if any(message.startswith(prefix) for prefix in prefixes):
-                # Start from the fourth character
-                processed_message = message[3:]
-                # Send processed message to Telegram
-                telegram.send(processed_message)
-            else:
-                # Send the original message to Telegram
-                telegram.send(message)
-
-    # Save the built-in print function to avoid infinite recursion
-    built_in_print = print
-
-    # Replace the built-in print function with our custom function
-    print = print_and_send_to_telegram
