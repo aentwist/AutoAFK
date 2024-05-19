@@ -1612,38 +1612,6 @@ app_settings: AppSettings = {
 }
 
 
-def headlessArgs():
-    if args["dailies"]:
-        dailies()
-        sys.exit(0)
-    if args["autotower"]:
-        connect_device(app_settings)
-        formation = int(str(config.get("PUSH", "formation"))[0:1])
-        duration = int(config.get("PUSH", "victoryCheck"))
-        towerdays = {
-            1: "Lightbearer Tower",
-            2: "Mauler Tower",
-            3: "Wilder Tower",
-            4: "Graveborn Tower",
-            5: "Celestial Tower",
-            6: "Hypogean Tower",
-            7: "King's Tower",
-        }
-        for day, tower in towerdays.items():
-            if currenttimeutc.isoweekday() == day:
-                logger.info(
-                    "Auto-Pushing "
-                    + str(tower)
-                    + " using using the "
-                    + str(config.get("PUSH", "formation") + " formation")
-                )
-                wait(3)
-                while 1:
-                    TowerPusher.push_tower(tower, formation, duration)
-    if args["tower"]:
-        logger.info("ok")
-
-
 def updateSettings():
     with open(settings, "w") as configfile:
         config.write(configfile)
@@ -1967,9 +1935,6 @@ def dailies():
                 break  # Exit the loop if stop event is set
         logger.info("Dailies done!")
 
-        if config.getboolean("ADVANCED", "enable_afkjourney"):
-            afkjourney()
-
         desktopNotification("Dailies done!")
 
         if config.getboolean("DAILIES", "hibernate"):
@@ -2023,63 +1988,8 @@ def push():
     buttonState("normal")
 
 
-# Windows notification
-def desktopNotification(msg):
-    notification.notify(
-        title="AutoAFK " + version,
-        message=msg,
-        app_icon="img/auto.ico",  # If you want to display an icon, provide the path here
-        timeout=5,  # Duration the notification should be displayed (in seconds)
-    )
-
-
-class IORedirector(object):
-    def __init__(self, text_widget):
-        self.text_space = text_widget
-
-
-class STDOutRedirector(IORedirector):
-    def write(self, string):
-        timestamp = "[" + datetime.now().strftime("%H:%M:%S") + "] "
-        # Very hacky implementation, we scan first 3 characters for colour tag, if found we apply the textbox tag
-        # and print the string minus the first 3 characters
-        entry = string[0:3]
-        if entry == "ERR":
-            self.text_space.insert("end", timestamp + string[3:], "error")
-        elif entry == "WAR":
-            self.text_space.insert("end", timestamp + string[3:], "warning")
-        elif entry == "GRE":
-            self.text_space.insert("end", timestamp + string[3:], "green")
-        elif entry == "BLU":
-            self.text_space.insert("end", timestamp + string[3:], "blue")
-        elif entry == "PUR":
-            self.text_space.insert("end", timestamp + string[3:], "purple")
-        else:
-            self.text_space.insert("end", string)
-        self.text_space.see("end")
-
-    def flush(self):
-        try:
-            sys.stdout.flush()
-        except Exception as e:
-            subprocess.run(
-                ["adb", "kill-server"], check=True
-            )  # Program is exitting => kill adb
-            pass
-
-
 if __name__ == "__main__":
     setup_logging()
     app = App()
     setUlockedTowers()
-    headlessArgs()  # Will launch dailies script before we load the UI if its flagged
     app.mainloop()
-
-
-def writeToLog(text):
-    if args["logging"] is True:
-        with open((args["config"]).split(".")[0] + ".log", "a") as log:
-            line = (
-                "[" + datetime.now().strftime("%d/%m/%y %H:%M:%S") + "] " + text + "\n"
-            )
-            log.write(line)

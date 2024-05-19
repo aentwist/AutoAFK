@@ -1,6 +1,5 @@
 # Imports
 import configparser, datetime, os, sys, time
-import ctypes
 import io
 import os
 import random
@@ -16,8 +15,6 @@ from logger import logger
 from main import args, settings
 from PIL import Image
 
-# import win32gui
-# import win32con
 from plyer import notification
 from ppadb.client import Client
 from pyscreeze import locate
@@ -120,8 +117,6 @@ def connect_device(app_settings: AppSettings) -> None:
         else:
             if device is not None:
                 connected = True
-                # if not was_running:
-                #     minimize_window()
             break
 
     # Break after 3 retries
@@ -900,24 +895,3 @@ def is_process_running(process_name) -> bool:
         if proc.info["name"] == process_name:
             return True
     return False
-
-
-# Minimize window
-# def minimize_window():
-#     count = 0
-#     while count < 25:
-#         hwnd = win32gui.GetForegroundWindow()
-#         title = win32gui.GetWindowText(hwnd)
-#         if "MuMu" in title or "Bluestacks" in title:
-#             win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
-#             break
-#         count += 1
-#         time.sleep(0.2)  # Sleep for 200 milliseconds
-
-# def hide_console():
-#     kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-#     user32 = ctypes.WinDLL('user32', use_last_error=True)
-#     SW_HIDE = 0
-#     hWnd = kernel32.GetConsoleWindow()
-#     if hWnd:
-#         user32.ShowWindow(hWnd, SW_HIDE)
