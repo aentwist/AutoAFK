@@ -3,7 +3,7 @@ import SettingListItem from "../components/SettingListItem";
 import { useAppSelector } from "../stores";
 
 export default function Settings() {
-  const { clientSettings, automationSettings } = useAppSelector(
+  const { clientSettings, automationSettings, telegramSettings } = useAppSelector(
     (state) => state.setting,
   );
 
@@ -16,6 +16,9 @@ export default function Settings() {
           </ListItem>
           <ListItem component="a" href="#automation">
             Automation
+          </ListItem>
+          <ListItem component="a" href="#telegram">
+            Telegram
           </ListItem>
         </List>
       </nav>
@@ -38,6 +41,17 @@ export default function Settings() {
           </h3>
           <List disablePadding>
             {automationSettings.map((setting) => (
+              <SettingListItem key={setting.name} setting={setting} />
+            ))}
+          </List>
+        </section>
+
+        <section>
+          <h3 id="telegram" className="m-4 mb-1 text-lg uppercase">
+            Telegram
+          </h3>
+          <List disablePadding>
+            {telegramSettings.map((setting) => (
               <SettingListItem key={setting.name} setting={setting} />
             ))}
           </List>

@@ -11,6 +11,7 @@ from subprocess import PIPE, Popen
 import numpy as np
 import psutil
 import scrcpy
+from activities import AppSettings
 from logger import logger
 from main import args, settings
 from PIL import Image
@@ -39,40 +40,32 @@ adb = Client(host="127.0.0.1", port=5037)
 # Connects to the ADB device using PPADB, allowing us to send commands via Python
 # Then connects scrcpy for screen reading
 # On success we go through our startup checks to make sure we are starting from the same point each time, and can recognise the template images
-def connect_device():
+def connect_device(app_settings: AppSettings) -> None:
     global device
     global connect_counter
     global connected  # So we don't reconnect with every new activity in the same session
     global config
-    was_running = False
     config.read(settings)  # Load settings
 
-    # Check if emulator process is already running and try to run it if not
-    if config.has_option("ADVANCED", "emulatorpath") and not is_process_running(
-        config.get("ADVANCED", "emulatorpath").rsplit("\\", 1)[-1]
+    if (
+        app_settings["emulator_path"]
+        and os.path.exists(app_settings["emulator_path"])
+        and not is_process_running(app_settings["emulator_path"].rsplit("\\", 1)[-1])
     ):
-        if config.get("ADVANCED", "emulatorpath"):
-            # Check if the file exists
-            if os.path.exists(config.get("ADVANCED", "emulatorpath")):
-                # Run the executable file
-                logger.info("Starting emulator...")
-                Popen(config.get("ADVANCED", "emulatorpath"), shell=False)
-                minimize_window()
-                wait(3)
-                minimize_window()
-    else:
-        was_running = True
+        logger.info("Starting emulator...")
+        Popen(app_settings["emulator_path"])
+        wait(3)
 
     logger.info("Attempting to connect..")
 
     if (
         connected is True
     ):  # Skip if we've ran through and connected succesfully already this session
-        waitUntilGameActive()  # but still confirm we start from the right place
+        wait_until_game_active()  # but still confirm we start from the right place
         return
 
     # Run through the various methods to find the ADB device of the emulator, and point PPADB to the found device
-    device = configureADB()
+    device = configure_adb(app_settings)
 
     # PPADB can throw errors occasionally for no good reason, here we try and catch them and retry for stability
     while connect_counter <= 3:
@@ -123,7 +116,7 @@ def connect_device():
             wait(3)
             connect_counter += 1
             if connect_counter <= 3:
-                device = configureADB()
+                device = configure_adb(app_settings)
         else:
             if device is not None:
                 connected = True
@@ -153,25 +146,25 @@ def connect_device():
         scrcpyClient.start(daemon_threaded=True)
         setattr(device, "srccpy", scrcpyClient)
 
-        if config.getboolean("ADVANCED", "debug") is True:
+        if app_settings["debug_mode"]:
             logger.debug("\nDevice: " + device.serial)
             logger.debug("scrcpy device: " + str(scrcpyClient))
             logger.debug("Resolution: " + device.shell("wm size"))
             logger.debug("DPI: " + device.shell("wm density"))
             # save_scrcpy_screenshot('debug')
 
-        resolutionCheck(
-            device
+        check_device_resolution(
+            device, app_settings["debug_mode"]
         )  # Four start up checks, so we have an exact position/screen configuration to start with
-        afkRunningCheck()
-        waitUntilGameActive()
-        expandMenus()
+        run_afk_arena(app_settings["debug_mode"])
+        wait_until_game_active()
+        expand_menus()
 
 
 # This function manages the ADB connection to Bluestacks.
 # First it restarts ADB then checks for a port in settings.ini, after that we check for existing connected ADB devices
-# If neither are found we run portScan() to find the active port and connect using that
-def configureADB():
+# If neither are found we run port_scan() to find the active port and connect using that
+def configure_adb(app_settings: AppSettings):
     # Load any new values (ie port changed and saved) into memory
     config.read(settings)
 
@@ -182,35 +175,25 @@ def configureADB():
         )  # If we're not on Windows or can't find adb.exe in the working directory we try and find it in the PATH
 
     # Restarting the ADB server solves 90% of issues with it
-    if config.getboolean("ADVANCED", "adbrestart") is True:
+    if False:
         Popen([adbpath, "kill-server"], stdout=PIPE).communicate()[0]
         Popen([adbpath, "start-server"], stdout=PIPE).communicate()[0]
     else:
         logger.warning("ADB Restart disabled")
 
     # First we check settings for a valid port and try that
-    if config.getint("ADVANCED", "port") != 0:
-        port = config.get("ADVANCED", "port")
-        if port == "":
-            port == 0  # So we don't throw a NaN error if the field's blank
-        if ":" in str(port):
-            logger.error(
-                "Port entered includes the : symbol, it should only be the last 4 or 5 digits not the full IP:Port address. Exiting.."
-            )
-            sys.exit(1)
-        if int(port) == 5037:
+    if app_settings["port"]:
+        if int(app_settings["port"]) == 5037:
             logger.error(
                 "Port 5037 has been entered, this is the port of the ADB connection service not the emulator, check BlueStacks Settings - Preferences to get the ADB port number"
             )
             sys.exit(1)
         logger.warning(
-            "Port "
-            + str(config.get("ADVANCED", "port"))
-            + " found in settings.ini, using that"
+            "Port " + str(app_settings["port"]) + " found in settings.ini, using that"
         )
-        device = "127.0.0.1:" + str(config.get("ADVANCED", "port"))
+        device = "127.0.0.1:" + str(app_settings["port"])
         Popen([adbpath, "connect", device], stdout=PIPE).communicate()[0]
-        adb_device = adb.device("127.0.0.1:" + str(config.get("ADVANCED", "port")))
+        adb_device = adb.device("127.0.0.1:" + str(app_settings["port"]))
         return adb_device
 
     # Second we list adb devices and see if something is there already, it will take the first device which may not be what we want so settings.ini port takes priority
@@ -224,7 +207,7 @@ def configureADB():
 
     # Last step is to find the port ourselves, this is Windows only as it runs a PowerShell command
     if system() == "Windows":
-        device = "127.0.0.1:" + str(portScan())
+        device = "127.0.0.1:" + str(port_scan())
         Popen([adbpath, "connect", device], stdout=PIPE).communicate()[0]
         adb_device = adb.device(device)
         return adb_device
@@ -235,7 +218,7 @@ def configureADB():
 
 
 # This takes all Listening ports opened by HD-Player.exe and tries to connect to them with ADB
-def portScan():
+def port_scan() -> None | int:
     adbpath = os.path.join(cwd, "adb.exe")  # Locate adb.exe in working directory
     if system() != "Windows" or not os.path.exists(adbpath):
         adbpath = which(
@@ -276,26 +259,26 @@ def portScan():
 
 
 # Expands the left and right button menus
-def expandMenus():
-    while isVisible("buttons/downarrow", 0.8, suppress=True):
+def expand_menus() -> None:
+    while is_visible("buttons/downarrow", 0.8, suppress=True):
         click("buttons/downarrow", 0.8, retry=3)
 
 
 # Checks if AFK Arena process is running, if not we launch it
-def afkRunningCheck():
+def run_afk_arena(debug: bool = False) -> None:
     if args["test"]:
         # logger.error('AFK Arena Test Server is not running, launching..')
         device.shell("monkey -p  com.lilithgames.hgame.gp.id 1")
     elif not args["test"]:
         # logger.error('AFK Arena is not running, launching..')
         device.shell("monkey -p com.lilithgame.hgame.gp 1")
-    if config.getboolean("ADVANCED", "debug") is True:
+    if debug:
         logger.debug("Game check passed\n")
 
 
 # Confirms that the game has loaded by checking for the campaign_selected button. We press a few buttons to navigate back if needed
 # May also require a ClickXY over Campaign to clear Time Limited Deals that appear
-def waitUntilGameActive():
+def wait_until_game_active() -> None:
     logger.warning("Searching for Campaign screen..")
     loadingcounter = 0
     timeoutcounter = 0
@@ -305,7 +288,7 @@ def waitUntilGameActive():
         loaded = 1
 
     while loadingcounter < loaded:
-        clickXY(
+        click_xy(
             420, 50
         )  # Neutral location for closing reward pop ups etc, should never be an in game button here
         buttons = [
@@ -316,7 +299,7 @@ def waitUntilGameActive():
         for button in buttons:
             click(button, seconds=0, suppress=True)
         timeoutcounter += 1
-        if isVisible("buttons/campaign_selected"):
+        if is_visible("buttons/campaign_selected"):
             loadingcounter += 1
         if timeoutcounter > 60:  # Long so patching etc doesn't lead to timeout
             logger.error("Timed out while loading!")
@@ -325,7 +308,7 @@ def waitUntilGameActive():
 
 
 # Checks we are running 1920x1080 (or 1080x1920 if we're in landscape mode) and 240 DPI.
-def resolutionCheck(device):
+def check_device_resolution(device, debug: bool = False) -> None:
     resolution_lines = device.shell("wm size").split("\n")
     physical_resolution = resolution_lines[0].split(" ")
     override_resolution = resolution_lines[1].split(" ")
@@ -367,12 +350,12 @@ def resolutionCheck(device):
         )
         logger.warning("Continuining but this may cause errors with image detection")
 
-    if config.getboolean("ADVANCED", "debug") is True:
+    if debug:
         logger.debug("Resolution check passed")
 
 
 # Returns the last frame from scrcpy, if the resolution isn't 1080 we scale it but this will only work in 16:9 resolutions
-def getFrame():
+def get_frame() -> Image:
     im = Image.fromarray(device.srccpy.last_frame[:, :, ::-1])
 
     if not im.size == (1080, 1920) and not im.size == (1920, 1080):
@@ -382,8 +365,8 @@ def getFrame():
 
 
 # Saves screenshot locally
-def save_scrcpy_screenshot(name):
-    image = getFrame()
+def save_scrcpy_screenshot(name) -> None:
+    image = get_frame()
     # Convert image back to bytearray
     byteIO = io.BytesIO()
     image.save(byteIO, format="PNG")
@@ -397,7 +380,7 @@ def save_scrcpy_screenshot(name):
 # 0.9 will run with 90% of the default wait times
 # 2.0 will run with 200% of the default wait times
 # This is handy for slower machines where we need to wait for sections/images to load
-def wait(seconds=1):
+def wait(seconds=1) -> None:
     time.sleep(seconds * float(config.get("ADVANCED", "loadingMuliplier")))
 
 
@@ -410,7 +393,7 @@ def swipe(x1, y1, x2, y2, duration=100, seconds=1):
 # Returns True if the image is found, False if not
 # Confidence value can be reduced for images with animations
 # Retry for retrying image search
-def isVisible(
+def is_visible(
     image,
     confidence=0.9,
     seconds=1,
@@ -419,9 +402,9 @@ def isVisible(
     region=(0, 0, 1080, 1920),
     xyshift=None,
     suppress=False,
-):
+) -> bool:
     counter = 0
-    screenshot = getFrame()
+    screenshot = get_frame()
     search = Image.open(os.path.join(cwd, "img", image + ".png"))
     res = locate(
         search, screenshot, grayscale=False, confidence=confidence, region=region
@@ -429,7 +412,7 @@ def isVisible(
 
     if res == None and retry != 1:
         while counter < retry:
-            screenshot = getFrame()
+            screenshot = get_frame()
             res = locate(
                 search,
                 screenshot,
@@ -476,7 +459,7 @@ def isVisible(
 
 
 # Clicks on the given XY coordinates
-def clickXY(x, y, seconds=1, rs=None, xrandom_shift=0, yrandom_shift=0):
+def click_xy(x, y, seconds=1, rs=None, xrandom_shift=0, yrandom_shift=0) -> None:
     if rs is not None:
         xrandom_shift = rs
         yrandom_shift = rs
@@ -500,9 +483,9 @@ def click(
     grayscale=False,
     region=(0, 0, 1080, 1920),
     xyshift=None,
-):
+) -> None:
     counter = 0
-    screenshot = getFrame()
+    screenshot = get_frame()
 
     if config.getboolean("ADVANCED", "debug") is True:
         suppress = False
@@ -513,7 +496,7 @@ def click(
     )
     if result == None and retry != 1:
         while counter < retry:
-            screenshot = getFrame()
+            screenshot = get_frame()
             result = locate(
                 search,
                 screenshot,
@@ -566,7 +549,7 @@ def click(
 
 #   This function will keep clicking `image` until `secureimage` is no longer visible
 #   This is useful as sometimes clicks are sent but not registered and can causes issues
-def clickSecure(
+def secure_click(
     image,
     secureimage,
     retry=5,
@@ -576,10 +559,10 @@ def clickSecure(
     secureregion=(0, 0, 1080, 1920),
     grayscale=False,
     suppress=True,
-):
+) -> None:
     counter = 0
     secureCounter = 0
-    screenshot = getFrame()
+    screenshot = get_frame()
 
     search = Image.open(os.path.join(cwd, "img", image + ".png"))
     searchSecure = Image.open(os.path.join(cwd, "img", secureimage + ".png"))
@@ -596,7 +579,7 @@ def clickSecure(
 
     if result == None and retry != 1:
         while counter < retry:
-            screenshot = getFrame()
+            screenshot = get_frame()
             result = locate(
                 search,
                 screenshot,
@@ -622,7 +605,7 @@ def clickSecure(
                     y_center = round(y + h / 2)
                     device.input_tap(x_center, y_center)
                     wait(2)
-                    screenshot = getFrame()
+                    screenshot = get_frame()
                     resultSecure = locate(
                         searchSecure,
                         screenshot,
@@ -651,7 +634,7 @@ def clickSecure(
             y_center = round(y + h / 2)
             device.input_tap(x_center, y_center)
             wait(2)
-            screenshot = getFrame()
+            screenshot = get_frame()
             resultSecure = locate(
                 searchSecure,
                 screenshot,
@@ -665,13 +648,13 @@ def clickSecure(
         wait()
 
 
-def clickWhileVisible(
+def click_while_visible(
     image, confidence=0.9, seconds=1, retry=5, region=(0, 0, 1080, 1920)
-):
+) -> None:
     counter = 0
 
     while counter < retry:
-        while isVisible(
+        while is_visible(
             image=image, confidence=confidence, seconds=seconds, region=region
         ):
             click(
@@ -691,8 +674,8 @@ def clickWhileVisible(
 # Checks the 5 locations we find arena battle buttons in and selects the based on choice parameter
 # If the choice is outside the found buttons we return the last button found
 # if HoE is true we just check the blue pixel value for the 5 buttons
-def selectOpponent(choice, seconds=1, hoe=False):
-    screenshot = getFrame()
+def select_opponent(choice, seconds=1, hoe=False) -> None | bool:
+    screenshot = get_frame()
     search = Image.open(os.path.join(cwd, "img", "buttons", "arenafight.png"))
 
     if hoe is False:  # Arena
@@ -724,7 +707,7 @@ def selectOpponent(choice, seconds=1, hoe=False):
                     loc[1] + (loc[3] / 2)
                 )  # Half the height so we have the middle of the button
         else:
-            res = pixelCheck(loc[0], loc[1], 2, seconds=0)  # Check blue pixel value
+            res = check_pixel(loc[0], loc[1], 2, seconds=0)  # Check blue pixel value
             if res > 150:  # If the blue value is more than 150 we have a button
                 battleButtons.append(
                     loc[1]
@@ -738,19 +721,19 @@ def selectOpponent(choice, seconds=1, hoe=False):
     if choice > len(
         battleButtons
     ):  # If the choice is higher than the amount of results we take the last result in the list
-        clickXY(820, battleButtons[len(battleButtons) - 1])
+        click_xy(820, battleButtons[len(battleButtons) - 1])
         wait(seconds)
         return True
     else:
-        clickXY(820, battleButtons[choice - 1])
+        click_xy(820, battleButtons[choice - 1])
         wait(seconds)
         return True
 
 
 # Scans the coordinates from the two arrays, if a 'Dispatch' button is found returns the X and Y of the center of the button as an array
 # We have two arrays as when we scroll down in the bounty list the buttons are offset compared to the unscrolled list
-def returnDispatchButtons(scrolled=False):
-    screenshot = getFrame()
+def get_dispatch_btns(scrolled=False) -> list[tuple[int, int]]:
+    screenshot = get_frame()
     search = Image.open(os.path.join(cwd, "img", "buttons", "dispatch_bounties.png"))
     locations = {
         (820, 430, 170, 120),
@@ -786,8 +769,8 @@ def returnDispatchButtons(scrolled=False):
 
 # Checks the pixel at the XY coordinates
 # C Variable is array from 0 to 2 for RGB value
-def pixelCheck(x, y, c, seconds=1):
-    im = getFrame()
+def check_pixel(x, y, c, seconds=1):
+    im = get_frame()
     screenshot = np.asarray(im)  # Make it an array
 
     wait(seconds)
@@ -796,7 +779,9 @@ def pixelCheck(x, y, c, seconds=1):
 
 # Used to confirm which game screen we're currently sitting in, and change to if we're not.
 # Optionally with 'bool' flag we can return boolean for if statements
-def confirmLocation(location, change=True, bool=False, region=(0, 0, 1080, 1920)):
+def confirm_loc(
+    location, change=True, bool=False, region=(0, 0, 1080, 1920)
+) -> None | bool:
     detected = ""
     locations = {
         "campaign_selected": "campaign",
@@ -805,7 +790,7 @@ def confirmLocation(location, change=True, bool=False, region=(0, 0, 1080, 1920)
     }
     regions = [(424, 1750, 232, 170), (208, 1750, 226, 170), (0, 1750, 210, 160)]
 
-    screenshot = getFrame()
+    screenshot = get_frame()
     idx = 0
 
     for location_button, string in locations.items():
@@ -834,11 +819,11 @@ def confirmLocation(location, change=True, bool=False, region=(0, 0, 1080, 1920)
 
 # This function will cycle through known buttons to try and return us to the Campaign screen so we can start from a known location
 # It will try 8 times and if we haven't gotten back in that time we exit as we are lost
-def recover(silent=False):
+def recover(silent=False) -> None | bool:
     recoverCounter = 0
-    while not isVisible("buttons/campaign_selected"):
+    while not is_visible("buttons/campaign_selected"):
         # logger.info('recovery: ' + str(recoverCounter))
-        clickXY(
+        click_xy(
             300, 50
         )  # Neutral location for closing reward pop ups etc, should never be an in game button here
         click("buttons/back", suppress=True, seconds=0.5, region=(0, 1500, 250, 419))
@@ -868,8 +853,8 @@ def recover(silent=False):
         recoverCounter += 1
         if recoverCounter > 7:
             break
-    if confirmLocation("campaign", bool=True):
-        clickXY(
+    if confirm_loc("campaign", bool=True):
+        click_xy(
             550, 1900
         )  # Click in case we found Campaign in the background (basically if a campaign attempt fails)
         if not silent:
@@ -886,7 +871,7 @@ def recover(silent=False):
 
 
 # Delay start so it starts after reset
-def delayed_start(delay_minutes=0):
+def delayed_start(delay_minutes=0) -> None:
 
     if delay_minutes > 0:
         delay_minutes = delay_minutes + 0.1
@@ -910,7 +895,7 @@ def delayed_start(delay_minutes=0):
 
 
 # Check if a process with a given name is currently running
-def is_process_running(process_name):
+def is_process_running(process_name) -> bool:
     for proc in psutil.process_iter(["name"]):
         if proc.info["name"] == process_name:
             return True

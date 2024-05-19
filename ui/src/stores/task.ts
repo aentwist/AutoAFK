@@ -4,13 +4,13 @@ import type { Setting, SettingValue } from "./setting";
 
 export enum TaskType {
   ARENA_OF_HEROES = "ARENA_OF_HEROES",
-  BOUNTY_BOARD = "BOUNTY_BOARD",
   EVENT = "EVENT",
   GENERAL = "GENERAL",
   GUILD = "GUILD",
   PUSH = "PUSH",
 }
 export interface Task {
+  fn: Readonly<string>;
   name: Readonly<string>;
   type: Readonly<TaskType>;
   defaultIsSelected: Readonly<boolean>;
@@ -22,15 +22,24 @@ export interface Task {
 export type TaskSliceState = Task[];
 
 const numberOfBattlesSetting = (num: number) => ({
+  key: "battles",
   name: "Number of battles",
   value: num,
 });
+const opponentNumberSetting = () => ({
+  key: "opponent_number",
+  name: "Opponent number",
+  value: 1,
+  options: [1, 2, 3, 4],
+});
 const pushSettings = (): Setting[] => [
   {
+    key: "formation",
     name: "Which formation",
     value: 1,
   },
   {
+    key: "copy_artifacts",
     name: "Copy artifacts",
     value: false,
   },
@@ -39,24 +48,28 @@ const pushSettings = (): Setting[] => [
 // TODO: Load into db so we can make task groups
 const initialState: TaskSliceState = [
   {
+    fn: "collect_afk_rewards",
     name: "Collect AFK rewards",
     type: TaskType.GENERAL,
     defaultIsSelected: true,
     isSelected: true,
   },
   {
+    fn: "collect_fast_rewards",
     name: "Collect fast rewards",
     type: TaskType.GENERAL,
     defaultIsSelected: true,
     isSelected: true,
     settings: [
       {
+        key: "times",
         name: "Times",
         value: 5,
       },
     ],
   },
   {
+    fn: "collect_mentorship_points",
     name: "Collect mentorship points",
     type: TaskType.GENERAL,
     defaultIsSelected: false,
@@ -64,6 +77,7 @@ const initialState: TaskSliceState = [
     disabled: true,
   },
   {
+    fn: "assign_mentor_task",
     name: "Assign mentor task",
     type: TaskType.GENERAL,
     defaultIsSelected: false,
@@ -71,18 +85,21 @@ const initialState: TaskSliceState = [
     disabled: true,
   },
   {
+    fn: "send_and_receive_companion_points",
     name: "Send & receive companion points",
     type: TaskType.GENERAL,
     defaultIsSelected: true,
     isSelected: true,
   },
   {
+    fn: "auto_lend_mercs",
     name: "Auto-lend mercs",
     type: TaskType.GENERAL,
     defaultIsSelected: true,
     isSelected: true,
   },
   {
+    fn: "collect_mail",
     name: "Collect mail",
     type: TaskType.GENERAL,
     defaultIsSelected: true,
@@ -90,12 +107,14 @@ const initialState: TaskSliceState = [
   },
 
   {
+    fn: "attempt_campaign",
     name: "Attempt campaign",
     type: TaskType.GENERAL,
     defaultIsSelected: true,
     isSelected: true,
   },
   {
+    fn: "push_campaign",
     name: "Push campaign",
     type: TaskType.PUSH,
     settings: pushSettings(),
@@ -104,57 +123,70 @@ const initialState: TaskSliceState = [
   },
 
   {
-    name: "Collect and dispatch event bounties",
-    type: TaskType.BOUNTY_BOARD,
-    defaultIsSelected: true,
-    isSelected: true,
-  },
-  {
-    name: "Collect and dispatch solo bounties",
-    type: TaskType.BOUNTY_BOARD,
+    fn: "dispatch_bounties",
+    name: "Collect and dispatch bounties",
+    type: TaskType.GENERAL,
     defaultIsSelected: true,
     isSelected: true,
     settings: [
       {
+        key: "event_bounties",
+        name: "Dispatch event bounties",
+        value: true,
+      },
+      {
+        key: "solo_bounties",
+        name: "Dispatch solo bounties",
+        value: true,
+      },
+      {
+        key: "team_bounties",
+        name: "Dispatch team bounties",
+        value: true,
+      },
+
+      {
+        key: "dust",
         name: "Dispatch dust",
         value: true,
       },
       {
+        key: "diamonds",
         name: "Dispatch diamonds",
         value: true,
       },
       {
+        key: "juice",
         name: "Dispatch juice",
         value: true,
       },
       {
+        key: "shards",
         name: "Dispatch shards",
         value: false,
       },
       {
+        key: "max_refreshes",
         name: "Max refreshes",
         value: 5,
       },
       {
+        key: "number_remaining_to_dispatch_all",
         name: "Number remaining to dispatch all",
         value: 1,
       },
     ],
   },
-  {
-    name: "Collect and dispatch team bounties",
-    type: TaskType.BOUNTY_BOARD,
-    defaultIsSelected: true,
-    isSelected: true,
-  },
 
   {
+    fn: "attempt_kt",
     name: "Attempt King's Tower",
     type: TaskType.GENERAL,
     defaultIsSelected: true,
     isSelected: true,
   },
   {
+    fn: "push_kt",
     name: "Push King's Tower",
     type: TaskType.PUSH,
     defaultIsSelected: false,
@@ -162,6 +194,7 @@ const initialState: TaskSliceState = [
     settings: pushSettings(),
   },
   {
+    fn: "push_lb_tower",
     name: "Push LB tower",
     type: TaskType.PUSH,
     defaultIsSelected: false,
@@ -170,6 +203,7 @@ const initialState: TaskSliceState = [
     settings: pushSettings(),
   },
   {
+    fn: "push_mauler_tower",
     name: "Push mauler tower",
     type: TaskType.PUSH,
     defaultIsSelected: false,
@@ -178,6 +212,7 @@ const initialState: TaskSliceState = [
     settings: pushSettings(),
   },
   {
+    fn: "push_wilder_tower",
     name: "Push wilder tower",
     type: TaskType.PUSH,
     defaultIsSelected: false,
@@ -186,6 +221,7 @@ const initialState: TaskSliceState = [
     settings: pushSettings(),
   },
   {
+    fn: "push_gb_tower",
     name: "Push GB tower",
     type: TaskType.PUSH,
     defaultIsSelected: false,
@@ -193,6 +229,7 @@ const initialState: TaskSliceState = [
     settings: pushSettings(),
   },
   {
+    fn: "push_cele_tower",
     name: "Push cele tower",
     type: TaskType.PUSH,
     defaultIsSelected: false,
@@ -201,6 +238,7 @@ const initialState: TaskSliceState = [
     settings: pushSettings(),
   },
   {
+    fn: "push_hypo_tower",
     name: "Push hypo tower",
     type: TaskType.PUSH,
     defaultIsSelected: false,
@@ -209,6 +247,7 @@ const initialState: TaskSliceState = [
   },
 
   {
+    fn: "run_lab",
     name: "Run Lab",
     type: TaskType.GENERAL,
     defaultIsSelected: true,
@@ -216,6 +255,7 @@ const initialState: TaskSliceState = [
   },
 
   {
+    fn: "dispatch_treasure_vanguard",
     name: "Dispatch treasure vanguard",
     type: TaskType.ARENA_OF_HEROES,
     defaultIsSelected: false,
@@ -223,18 +263,21 @@ const initialState: TaskSliceState = [
     disabled: true,
     settings: [
       {
+        key: "operation",
         name: "Operation",
         value: "Occupy",
         options: ["Escort", "Inspect", "Occupy"],
       },
       // Escort: 3 teams of 5
       {
+        key: "escort_rss",
         name: "Escort resource",
         value: "Materials",
         options: ["Food", "Materials", "Equipment"],
       },
       // Inspect: 7 teams of 3
       {
+        key: "inspect_faction",
         name: "Inspect faction",
         value: 1,
         options: [1, 2, 3],
@@ -248,6 +291,7 @@ const initialState: TaskSliceState = [
     ],
   },
   {
+    fn: "purchase_treasure_bonds",
     name: "Purchase treasure bonds",
     type: TaskType.ARENA_OF_HEROES,
     defaultIsSelected: false,
@@ -255,6 +299,7 @@ const initialState: TaskSliceState = [
     disabled: true,
   },
   {
+    fn: "collect_treasure_commander_rewards",
     name: "Collect treasure commander rewards",
     type: TaskType.ARENA_OF_HEROES,
     defaultIsSelected: false,
@@ -262,6 +307,7 @@ const initialState: TaskSliceState = [
     disabled: true,
   },
   {
+    fn: "collect_task_hall_rewards",
     name: "Collect Task Hall rewards",
     type: TaskType.ARENA_OF_HEROES,
     defaultIsSelected: false,
@@ -270,33 +316,33 @@ const initialState: TaskSliceState = [
   },
 
   {
+    fn: "challenge_hoe",
     name: "Challenge Heroes of Esperia",
     type: TaskType.ARENA_OF_HEROES,
     defaultIsSelected: false,
     isSelected: false,
-    settings: [numberOfBattlesSetting(10)],
+    settings: [numberOfBattlesSetting(10), opponentNumberSetting()],
   },
   {
+    fn: "collect_ts_rewards",
     name: "Collect TS rewards",
     type: TaskType.ARENA_OF_HEROES,
     defaultIsSelected: true,
     isSelected: true,
   },
   {
+    fn: "challenge_arena",
     name: "Challenge Arena of Heroes",
     type: TaskType.ARENA_OF_HEROES,
     defaultIsSelected: true,
     isSelected: true,
     settings: [
       numberOfBattlesSetting(1),
-      {
-        name: "Opponent number",
-        value: 1,
-        options: [1, 2, 3, 4],
-      },
+      opponentNumberSetting(),
     ],
   },
   {
+    fn: "collect_gladiator_coins",
     name: "Collect gladiator coins",
     type: TaskType.ARENA_OF_HEROES,
     defaultIsSelected: true,
@@ -304,6 +350,7 @@ const initialState: TaskSliceState = [
   },
   // OCR would be nice here. Pick the lower badge number
   {
+    fn: "bet_on_lc",
     name: "Bet on Legends' Championship",
     type: TaskType.ARENA_OF_HEROES,
     defaultIsSelected: false,
@@ -312,6 +359,7 @@ const initialState: TaskSliceState = [
   },
 
   {
+    fn: "collect_fountain_of_time",
     name: "Collect Fountain of Time",
     type: TaskType.GENERAL,
     defaultIsSelected: false,
@@ -319,6 +367,7 @@ const initialState: TaskSliceState = [
   },
 
   {
+    fn: "make_store_purchases",
     name: "Make store purchases",
     type: TaskType.GENERAL,
     defaultIsSelected: true,
@@ -326,58 +375,72 @@ const initialState: TaskSliceState = [
     // TODO: Custom slot for this one
     settings: [
       {
+        key: "times",
         name: "Times",
         value: 3,
       },
       {
+        key: "quick_buy",
         name: "Use quick buy",
         value: true,
       },
       {
+        key: "gold__shards",
         name: "Shards (gold)",
         value: true,
       },
       {
+        key: "gold__dust",
         name: "Dust (gold)",
         value: true,
       },
       {
+        key: "gold__silver_emblems",
         name: "Silver emblems (gold)",
         value: false,
       },
       {
+        key: "gold__gold_emblems",
         name: "Gold emblems (gold)",
         value: false,
       },
       {
+        key: "gold__poe",
         name: "Poe (gold)",
         value: true,
       },
       {
+        key: "diamonds__timegazer",
         name: "Timegazer card (diamonds)",
         value: true,
       },
       {
+        key: "diamonds__staffs",
         name: "Arcane staffs (diamonds)",
         value: true,
       },
       {
+        key: "diamonds__baits",
         name: "Baits (diamonds)",
         value: false,
       },
       {
+        key: "diamonds__cores",
         name: "Cores (diamonds)",
         value: false,
       },
       {
+        key: "diamonds__dust",
         name: "Dust (diamonds)",
         value: true,
       },
       {
+        key: "diamonds__elite_soulstone",
         name: "Elite soulstone (diamonds)",
         value: false,
       },
       {
+        key: "diamonds__superb_soulstone",
         name: "Superb soulstone (diamonds)",
         value: false,
       },
@@ -385,6 +448,7 @@ const initialState: TaskSliceState = [
   },
 
   {
+    fn: "upgrade_rc",
     name: "Upgrade resonating crystal",
     type: TaskType.GENERAL,
     defaultIsSelected: false,
@@ -392,6 +456,7 @@ const initialState: TaskSliceState = [
     disabled: true,
   },
   {
+    fn: "level_up_tree",
     name: "Level up Elder Tree",
     type: TaskType.GENERAL,
     defaultIsSelected: false,
@@ -399,6 +464,7 @@ const initialState: TaskSliceState = [
     disabled: true,
     settings: [
       {
+        key: "branch",
         name: "Branch",
         value: "Mage",
         options: ["Support", "Mage", "Warrior", "Tank", "Ranger"],
@@ -407,12 +473,14 @@ const initialState: TaskSliceState = [
   },
 
   {
+    fn: "battle_guild_hunts",
     name: "Battle guild hunts",
     type: TaskType.GUILD,
     defaultIsSelected: true,
     isSelected: true,
   },
   {
+    fn: "battle_tr",
     name: "Battle Twisted Realm",
     type: TaskType.GUILD,
     defaultIsSelected: true,
@@ -427,12 +495,14 @@ const initialState: TaskSliceState = [
   },
 
   {
+    fn: "collect_quests",
     name: "Collect daily/weekly quests",
     type: TaskType.GENERAL,
     defaultIsSelected: true,
     isSelected: true,
   },
   {
+    fn: "collect_merchants",
     name: "Collect merchant deals/nobles",
     type: TaskType.GENERAL,
     defaultIsSelected: true,
@@ -440,12 +510,15 @@ const initialState: TaskSliceState = [
   },
 
   {
+    fn: "circus_tour",
     name: "Circus tour",
     type: TaskType.EVENT,
     defaultIsSelected: false,
     isSelected: false,
+    settings: [numberOfBattlesSetting(3)]
   },
   {
+    fn: "battle_of_blood",
     name: "Battle of blood",
     type: TaskType.EVENT,
     defaultIsSelected: false,
@@ -453,6 +526,7 @@ const initialState: TaskSliceState = [
     settings: [numberOfBattlesSetting(3)],
   },
   {
+    fn: "fight_of_fates",
     name: "Fight of fates",
     type: TaskType.EVENT,
     defaultIsSelected: false,
@@ -461,6 +535,7 @@ const initialState: TaskSliceState = [
   },
 
   {
+    fn: "use_bag_consumables",
     name: "Use bag consumables",
     type: TaskType.GENERAL,
     defaultIsSelected: false,

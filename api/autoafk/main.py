@@ -1597,12 +1597,27 @@ def setUlockedTowers():
             app.pushLocationDropdown.configure(values=towers)
 
 
+app_settings: AppSettings = {
+    "emulator_path": config.get("ADVANCED", "emulatorpath"),
+    "port": 0,
+    "debug_mode": config.getboolean("ADVANCED", "debug"),
+    "start_delay_min": 0,
+    "wait_multiplier": 1,
+    "surpress_victory_check_spam": True,
+    "victory_check_freq_min": 1,
+    "ignore_formations": True,
+    "use_popular_formations": True,
+    "copy_artifacts": False,
+    "hibernate_when_finished": False,
+}
+
+
 def headlessArgs():
     if args["dailies"]:
         dailies()
         sys.exit(0)
     if args["autotower"]:
-        connect_device()
+        connect_device(app_settings)
         formation = int(str(config.get("PUSH", "formation"))[0:1])
         duration = int(config.get("PUSH", "victoryCheck"))
         towerdays = {
@@ -1624,7 +1639,7 @@ def headlessArgs():
                 )
                 wait(3)
                 while 1:
-                    towerPusher.pushTower(tower, formation, duration)
+                    TowerPusher.push_tower(tower, formation, duration)
     if args["tower"]:
         logger.info("ok")
 
@@ -1734,25 +1749,27 @@ def activityManager():
 
     if app.activityFormationDropdown.get() == "Fight of Fates":
         buttonState("disabled")
-        connect_device()
-        handleFightOfFates(config.getint("ACTIVITY", "activitybattles"))
+        connect_device(app_settings)
+        fight_of_fates({"battles": config.getint("ACTIVITY", "activitybattles")})
         buttonState("normal")
         logger.info("")
 
     if app.activityFormationDropdown.get() == "Battle of Blood":
         buttonState("disabled")
-        connect_device()
-        handleBattleofBlood(config.getint("ACTIVITY", "activitybattles"))
+        connect_device(app_settings)
+        battle_of_blood({"battles": config.getint("ACTIVITY", "activitybattles")})
         buttonState("normal")
         logger.info("")
 
     if app.activityFormationDropdown.get() == "Arena of Heroes":
         buttonState("disabled")
-        connect_device()
+        connect_device(app_settings)
         stopButtonState("normal")
-        handleArenaOfHeroes(
-            config.getint("ACTIVITY", "activitybattles"),
-            config.getint("ARENA", "arenaopponent"),
+        challenge_arena(
+            {
+                "battles": config.getint("ACTIVITY", "activitybattles"),
+                "opponent_number": config.getint("ARENA", "arenaopponent"),
+            },
             app,
         )
         buttonState("normal")
@@ -1760,17 +1777,19 @@ def activityManager():
 
     if app.activityFormationDropdown.get() == "Arcane Labyrinth":
         buttonState("disabled")
-        connect_device()
-        handleLab()
+        connect_device(app_settings)
+        run_lab()
         buttonState("normal")
         logger.info("")
 
     if app.activityFormationDropdown.get() == "Heroes of Esperia":
         buttonState("disabled")
-        connect_device()
-        handleHeroesofEsperia(
-            config.getint("ACTIVITY", "activitybattles"),
-            config.getint("ARENA", "arenaopponent"),
+        connect_device(app_settings)
+        challenge_hoe(
+            {
+                "battles": config.getint("ACTIVITY", "activitybattles"),
+                "opponent_number": config.getint("ARENA", "arenaopponent"),
+            }
         )
         buttonState("normal")
         logger.info("")
@@ -1790,7 +1809,7 @@ def dailiesButton():
 
 def dailies():
     delayed_start(config.getint("DAILIES", "delayedstart"))
-    connect_device()
+    connect_device(app_settings)
 
     # Count as started dailies
     count_api = (
@@ -1804,23 +1823,23 @@ def dailies():
 
     while app.dailies_thread_running or args["dailies"]:
         if config.getboolean("DAILIES", "collectrewards"):
-            collectAFKRewards()
+            collect_afk_rewards()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "collectmail"):
-            collectMail()
+            collect_mail()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "companionpoints"):
-            collectCompanionPoints(config.getboolean("DAILIES", "lendmercs"))
+            send_and_receive_companion_points(config.getboolean("DAILIES", "lendmercs"))
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getint("DAILIES", "fastrewards") > 0:
-            collectFastRewards(config.getint("DAILIES", "fastrewards"))
+            collect_fast_rewards({"times": config.getint("DAILIES", "fastrewards")})
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "attemptcampaign"):
-            attemptCampaign()
+            attempt_campaign()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if (
@@ -1828,79 +1847,122 @@ def dailies():
             or config.getboolean("BOUNTIES", "dispatchteambounties")
             or config.getboolean("BOUNTIES", "dispatcheventbounties")
         ):
-            handleBounties()
+            dispatch_bounties(
+                {
+                    "event_bounties": config.getboolean(
+                        "BOUNTIES", "dispatcheventbounties"
+                    ),
+                    "solo_bounties": config.getboolean(
+                        "BOUNTIES", "dispatchsolobounties"
+                    ),
+                    "team_bounties": config.getboolean(
+                        "BOUNTIES", "dispatchteambounties"
+                    ),
+                    "dust": config.getboolean("BOUNTIES", "dispatchDust"),
+                    "diamonds": config.getboolean("BOUNTIES", "dispatchDiamonds"),
+                    "juice": config.getboolean("BOUNTIES", "dispatchJuice"),
+                    "shards": config.getboolean("BOUNTIES", "dispatchShards"),
+                    "number_remaining_to_dispatch_all": config.getint(
+                        "BOUNTIES", "remaining"
+                    ),
+                    "max_refreshes": config.getint("BOUNTIES", "refreshes"),
+                }
+            )
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("ARENA", "battlearena"):
-            handleArenaOfHeroes(
-                config.getint("ARENA", "arenabattles"),
-                config.getint("ARENA", "arenaopponent"),
+            challenge_arena(
+                {
+                    "battles": config.getint("ARENA", "arenabattles"),
+                    "opponent_number": config.getint("ARENA", "arenaopponent"),
+                },
                 app,
             )
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("ARENA", "tscollect"):
-            collectTSRewards()
+            collect_ts_rewards()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("ARENA", "gladiatorcollect"):
-            collectGladiatorCoins()
+            collect_gladiator_coins()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "fountainoftime"):
-            collectFountainOfTime()
+            collect_fountain_of_time()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "kingstower"):
-            handleKingsTower()
+            attempt_kt()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "collectinn"):
-            collectInnGifts()
+            collect_inn_gifts()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "guildhunt"):
-            handleGuildHunts()
+            battle_guild_hunts()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "storepurchases"):
-            shopPurchases(config.getint("DAILIES", "shoprefreshes"))
+            make_store_purchases(
+                {
+                    "times": config.getint("DAILIES", "shoprefreshes"),
+                    "diamonds__baits": config.getboolean("SHOP", "baits"),
+                    "diamonds__cores": config.getboolean("SHOP", "cores"),
+                    "diamonds__dust": config.getboolean("SHOP", "dust_diamond"),
+                    "diamonds__elite_soulstone": config.getboolean(
+                        "SHOP", "elite_soulstone"
+                    ),
+                    "diamonds__staffs": config.getboolean("SHOP", "arcanestaffs"),
+                    "diamonds__superb_soulstone": config.getboolean(
+                        "SHOP", "superb_soulstone"
+                    ),
+                    "diamonds__timegazer": config.getboolean("SHOP", "timegazer"),
+                    "gold__dust": config.getboolean("SHOP", "dust_gold"),
+                    "gold__emblems": config.getboolean("SHOP", "gold_emblem"),
+                    "gold__poe": config.getboolean("SHOP", "poe"),
+                    "gold__shards": config.getboolean("SHOP", "shards_gold"),
+                    "gold__silver_emblems": config.getboolean("SHOP", "silver_emblem"),
+                    "quick_buy": config.getboolean("SHOP", "quick"),
+                }
+            )
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "twistedrealm"):
-            handleTwistedRealm()
+            battle_tr()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("EVENTS", "fightoffates"):
-            handleFightOfFates()
+            fight_of_fates({"battles": config.getint("ACTIVITY", "activitybattles")})
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("EVENTS", "battleofblood"):
-            handleBattleofBlood()
+            battle_of_blood({"battles": config.getint("ACTIVITY", "activitybattles")})
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("EVENTS", "circusTour"):
-            handleCircusTour()
+            circus_tour({"battles": config.getint("ACTIVITY", "activitybattles")})
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "runLab"):
-            handleLab()
+            run_lab()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("EVENTS", "heroesofesperia"):
-            handleHeroesofEsperia(3, 4)
+            challenge_hoe({"battles": 3, "opponent_number": 4})
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "collectquests"):
-            collectQuests()
+            collect_quests()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "collectmerchants"):
-            clearMerchant()
+            collect_merchants()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         if config.getboolean("DAILIES", "usebagconsumables"):
-            useBagConsumables()
+            use_bag_consumables()
             if pauseOrStopEventCheck(app.dailies_pause_event, app.dailies_stop_event):
                 break  # Exit the loop if stop event is set
         logger.info("Dailies done!")
@@ -1921,11 +1983,13 @@ def dailies():
 
 
 def push():
-    connect_device()
+    connect_device(app_settings)
     buttonState("disabled")
-    formation = int(
-        str(app.pushFormationDropdown.get())[0:1]
-    )  # to str first so we can take first character, then int
+    settings: PushSettings = {
+        "formation": int(str(app.pushFormationDropdown.get())[0:1]),
+        "copy_artifacts": config.getboolean("PUSH", "useartifacts"),
+    }  # to str first so we can take first character, then int
+    app_settings = {"victory_check_freq_min": int(config.get("PUSH", "victoryCheck"))}
     stopButtonState("normal")
     if app.pushLocationDropdown.get() == "Campaign":
         logger.info(
@@ -1933,19 +1997,20 @@ def push():
             + str(app.pushFormationDropdown.get())
             + " formation"
         )
-        confirmLocation("campaign", region=boundaries["campaignSelect"])
+        confirm_loc("campaign", region=boundaries["campaignSelect"])
         if str(app.pushFormationDropdown.get()) != config.get("PUSH", "formation"):
             config.set("PUSH", "formation", app.pushFormationDropdown.get())
         updateSettings()
-        pushCampaign(
-            formation=formation,
-            duration=int(config.get("PUSH", "victoryCheck")),
-            app=app,
+        push_campaign(
+            settings,
+            app_settings,
+            app,
         )
     else:
+        tower = str(app.pushLocationDropdown.get())
         logger.info(
             "Auto-Pushing "
-            + str(app.pushLocationDropdown.get())
+            + tower
             + " using using the "
             + str(app.pushFormationDropdown.get())
             + " formation"
@@ -1953,12 +2018,7 @@ def push():
         if str(app.pushFormationDropdown.get()) != config.get("PUSH", "formation"):
             config.set("PUSH", "formation", app.pushFormationDropdown.get())
         updateSettings()
-        towerPusher.pushTower(
-            tower=app.pushLocationDropdown.get(),
-            formation=formation,
-            duration=int(config.get("PUSH", "victoryCheck")),
-            app=app,
-        )
+        TowerPusher.push_tower(tower, settings, app_settings, app)
     logger.info("Auto Push stopped!")
     buttonState("normal")
 

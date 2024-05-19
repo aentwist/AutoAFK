@@ -1,5 +1,6 @@
 import configparser
 from textwrap import dedent
+from typing import TypedDict
 
 import requests
 
@@ -26,12 +27,24 @@ class Telegram(object):
         )
 
 
-if config.has_section("TELEGRAM") and config.getboolean("TELEGRAM", "enable"):
+class TelegramSettings(TypedDict):
+    enable_telegram: bool
+    token: str
+    chat_id: int
+
+
+telegram_settings: TelegramSettings = {
+    "enable_telegram": config.getboolean("TELEGRAM", "enable"),
+    "token": config.get("TELEGRAM", "token"),
+    "chat_id": config.getint("TELEGRAM", "chat_id"),
+}
+
+if config.has_section("TELEGRAM") and telegram_settings["enable_telegram"]:
 
     # Initialize the Telegram object
     telegram = Telegram(
-        chat_id=config.getint("TELEGRAM", "chat_id"),
-        token=config.get("TELEGRAM", "token"),
+        telegram_settings["chat_id"],
+        telegram_settings["token"],
     )
 
     # TODO: Remove
