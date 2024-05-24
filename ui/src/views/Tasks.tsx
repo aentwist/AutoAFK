@@ -14,7 +14,11 @@ import {
 import TaskListItem from "../components/TaskListItem";
 import { useAppDispatch, useAppSelector } from "../stores";
 import { selectAppSettings } from "../stores/setting";
-import { TaskType, setIsAllSelected } from "../stores/task";
+import {
+  TaskType,
+  selectSelectedTaskData,
+  setIsAllSelected,
+} from "../stores/task";
 
 const snakeToLowerCase = (str: string) =>
   str.replaceAll("_", " ").toLowerCase();
@@ -39,6 +43,12 @@ export default function Tasks() {
   const isAllSelected = tasks.every((task) => task.disabled || task.isSelected);
   const handleSelectAll = () =>
     dispatch(setIsAllSelected({ isSelected: !isAllSelected }));
+  const selectedTaskData = useAppSelector(selectSelectedTaskData);
+  const handleRunSelected = () =>
+    window.electronApi?.run({
+      tasks: selectedTaskData,
+      app_settings: appSettings,
+    });
 
   // Programmatically create a list of the task types to use for the categories
   const taskTypes: string[] = [];
@@ -89,7 +99,7 @@ export default function Tasks() {
               </IconButton>
             </Tooltip>
             <Tooltip title="Run Selected">
-              <IconButton>
+              <IconButton onClick={handleRunSelected}>
                 <Icon path={mdiPlay} color="green" />
               </IconButton>
             </Tooltip>
