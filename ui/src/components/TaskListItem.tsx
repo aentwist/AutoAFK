@@ -17,9 +17,13 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
-import { useAppDispatch } from "../stores";
+import { useAppDispatch, useAppSelector, useAppStore } from "../stores";
+import { selectAppSettings } from "../stores/setting";
 import type { Task } from "../stores/task";
-import { setIsSelected as setIsSelectedPersistent } from "../stores/task";
+import {
+  selectTaskData,
+  setIsSelected as setIsSelectedPersistent,
+} from "../stores/task";
 import SettingListItem from "./SettingListItem";
 
 type TaskListItemProps = {
@@ -27,6 +31,7 @@ type TaskListItemProps = {
 };
 
 export default function TaskListItem({ task }: TaskListItemProps) {
+  const store = useAppStore();
   const dispatch = useAppDispatch();
 
   const [isSelected, setIsSelected] = useState(task.isSelected);
@@ -43,6 +48,14 @@ export default function TaskListItem({ task }: TaskListItemProps) {
 
   const [showSettings, setShowSettings] = useState(false);
   const closeSettings = () => setShowSettings(false);
+
+  const taskData = useAppSelector(() =>
+    selectTaskData(store.getState(), task.name),
+  );
+  const appSettings = useAppSelector(selectAppSettings);
+  const handleRunTask = () => {
+    window.electronApi?.run({ tasks: [taskData], app_settings: appSettings });
+  };
 
   return (
     <>
@@ -61,7 +74,11 @@ export default function TaskListItem({ task }: TaskListItemProps) {
               </Tooltip>
             )}
             <Tooltip title={`Run ${task.name.toLowerCase()}`}>
-              <IconButton edge="end" disabled={task.disabled}>
+              <IconButton
+                edge="end"
+                disabled={task.disabled}
+                onClick={handleRunTask}
+              >
                 <Icon
                   className={task.disabled && "opacity-35"}
                   path={mdiPlay}

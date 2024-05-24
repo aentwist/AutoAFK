@@ -1,4 +1,5 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
+import { Temporal } from "temporal-polyfill";
 import { createAppSlice } from "./createAppSlice";
 import type { Setting, SettingValue } from "./setting";
 
@@ -20,6 +21,29 @@ export interface Task {
 }
 
 export type TaskSliceState = Task[];
+
+// TODO: Move / use this. Towers should be disabled if not available.
+enum Tower {
+  LB,
+  MAULER,
+  WILDER,
+  GB,
+  CELE,
+  HYPO,
+}
+const TOWERS_BY_DAY = [
+  [Tower.LB, Tower.MAULER, Tower.WILDER, Tower.GB, Tower.CELE, Tower.HYPO],
+  [Tower.LB],
+  [Tower.MAULER],
+  [Tower.WILDER, Tower.CELE],
+  [Tower.GB, Tower.HYPO],
+  [Tower.LB, Tower.MAULER, Tower.CELE],
+  [Tower.WILDER, Tower.GB, Tower.HYPO],
+];
+const isTowerOpen = (tower: Tower): boolean => {
+  const dayIdx = Temporal.Now.plainDateISO().dayOfWeek - 1;
+  return dayIdx === 0 || TOWERS_BY_DAY[dayIdx].includes(tower);
+};
 
 const numberOfBattlesSetting = (num: number) => ({
   key: "battles",
@@ -336,10 +360,7 @@ const initialState: TaskSliceState = [
     type: TaskType.ARENA_OF_HEROES,
     defaultIsSelected: true,
     isSelected: true,
-    settings: [
-      numberOfBattlesSetting(1),
-      opponentNumberSetting(),
-    ],
+    settings: [numberOfBattlesSetting(1), opponentNumberSetting()],
   },
   {
     fn: "collect_gladiator_coins",
@@ -515,7 +536,7 @@ const initialState: TaskSliceState = [
     type: TaskType.EVENT,
     defaultIsSelected: false,
     isSelected: false,
-    settings: [numberOfBattlesSetting(3)]
+    settings: [numberOfBattlesSetting(3)],
   },
   {
     fn: "battle_of_blood",
@@ -587,7 +608,27 @@ export const taskSlice = createAppSlice({
       },
     ),
   }),
+
+  selectors: {
+    selectTaskData: (tasks, taskName) => {
+      const task = tasks.find((task) => task.name === taskName);
+      if (!task) return undefined;
+
+      const taskData = {
+        fn: task.fn,
+        name: task.name,
+      };
+      if (task.settings) {
+        const s: Record<string, SettingValue> = {};
+        task.settings.forEach((setting) => (s[setting.key] = setting.value));
+        taskData.settings = s;
+      }
+
+      return taskData;
+    },
+  },
 });
 
 export const { setIsSelected, setIsAllSelected, setSettingValue } =
   taskSlice.actions;
+export const { selectTaskData } = taskSlice.selectors;

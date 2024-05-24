@@ -8,6 +8,7 @@ from pythonjsonlogger import jsonlogger
 
 
 logger = logging.getLogger("autoafk")
+logger.setLevel(logging.DEBUG)
 
 
 def setup_logging() -> None:
@@ -31,8 +32,7 @@ def setup_logging() -> None:
     # atexit.register(queue_listener.stop)
 
     logging.basicConfig(
-        # encoding="utf-8", level=logging.INFO, handlers=[stdout_handler, queue_handler]
+        # encoding="utf-8", handlers=[stdout_handler, queue_handler]
         encoding="utf-8",
-        level=logging.INFO,
         handlers=[stdout_handler],
     )

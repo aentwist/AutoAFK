@@ -5,5 +5,5 @@ opencv-python
 plyer
 psutil
 pure-python-adb
-PyScreeze
+PyScreeze==0.1.29
 python-json-logger

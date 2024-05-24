@@ -1,2 +1,2 @@
 export { asyncMakeStore, type RootState } from "./store";
-export { useAppDispatch, useAppSelector } from "./hooks";
+export { useAppDispatch, useAppSelector, useAppStore } from "./hooks";

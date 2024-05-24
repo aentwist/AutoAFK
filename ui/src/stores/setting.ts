@@ -1,4 +1,5 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
+import type { AppSettings } from "../api";
 import { createAppSlice } from "./createAppSlice";
 
 export type SettingValue = boolean | number | string;
@@ -86,7 +87,7 @@ const initialState: SettingSliceState = {
       name: "Chat ID",
       value: 0,
     },
-  ]
+  ],
 };
 
 export const settingSlice = createAppSlice({
@@ -105,6 +106,22 @@ export const settingSlice = createAppSlice({
       },
     ),
   }),
+  selectors: {
+    selectAppSettings: (settings) => {
+      const s: AppSettings = {};
+      settings.clientSettings.forEach(
+        (setting) => (s[setting.key] = setting.value),
+      );
+      settings.automationSettings.forEach(
+        (setting) => (s[setting.key] = setting.value),
+      );
+      settings.telegramSettings.forEach(
+        (setting) => (s[setting.key] = setting.value),
+      );
+      return s;
+    },
+  },
 });
 
 export const { setValue } = settingSlice.actions;
+export const { selectAppSettings } = settingSlice.selectors;
