@@ -6,6 +6,8 @@
 #
 adbutils==2.6.2
     # via -r requirements.in
+altgraph==0.17.4
+    # via pyinstaller
 apkutils2==1.0.0
     # via adbutils
 attrs==23.2.0
@@ -68,6 +70,8 @@ packaging==24.0
     #   customtkinter
     #   deprecation
     #   pipdeptree
+    #   pyinstaller
+    #   pyinstaller-hooks-contrib
 pathspec==0.12.1
     # via
     #   black
@@ -92,6 +96,10 @@ py==1.11.0
     # via retry
 pyelftools==0.31
     # via apkutils2
+pyinstaller==6.7.0
+    # via -r dev-requirements.in
+pyinstaller-hooks-contrib==2024.6
+    # via pyinstaller
 pyproject-hooks==1.1.0
     # via
     #   build
