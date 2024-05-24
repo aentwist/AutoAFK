@@ -9,13 +9,12 @@ from subprocess import PIPE, Popen
 
 import numpy as np
 import psutil
-import scrcpy
-import settings
-from logger import logger
 from PIL import Image
-
 from ppadb.client import Client
 from pyscreeze import locate
+
+from autoafk import scrcpy, settings
+from autoafk.logger import logger
 
 cwd = os.path.dirname(__file__)  # variable for current directory of AutoAFK.exe
 connected = False

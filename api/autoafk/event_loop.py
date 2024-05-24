@@ -4,12 +4,10 @@ import sys
 import threading
 from typing import TypedDict
 
-import activities
-import settings
-import thread_state
-from logger import logger, setup_logging
-from thread_state import handle_pause_and_stop_events, pause_event, stop_event
-from tools import connect_device
+from autoafk import activities, settings, thread_state
+from autoafk.logger import logger, setup_logging
+from autoafk.thread_state import handle_pause_and_stop_events, pause_event, stop_event
+from autoafk.tools import connect_device
 
 
 class MessageType(enum.Enum):
@@ -86,7 +84,7 @@ def stop() -> None:
     stop_event.set()
 
 
-if __name__ == "__main__":
+def main() -> None:
     setup_logging()
 
     while True:

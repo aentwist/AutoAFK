@@ -1,7 +1,7 @@
 import threading
 from time import sleep
 
-from logger import logger
+from autoafk.logger import logger
 
 
 # Offload tasks onto a separate thread so we can continue to receive commands

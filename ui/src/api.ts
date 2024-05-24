@@ -11,7 +11,7 @@ export class Api {
   private static instance = new Api();
 
   private bin = "../api/.venv/bin/python";
-  private args = ["../api/autoafk/main.py"];
+  private args = ["../api/main.py"];
   private api;
 
   private constructor() {
