@@ -1,25 +1,20 @@
 import { spawn } from "child_process";
 import type { BrowserWindow } from "electron";
-import { ipcMain } from "electron";
+import { app, ipcMain } from "electron";
+import path from "path";
 import type { CommandData, Message, RunData, SettingsData } from "./types";
 import { CommandType } from "./types";
-
-// import { dirname } from "path";
-// import { fileURLToPath } from "url";
 
 export class Api {
   private static instance = new Api();
 
-  private bin = "../api/.venv/bin/python";
-  private args = ["../api/main.py"];
+  private bin = app.isPackaged
+    ? path.join(process.resourcesPath, "main/main")
+    : "../api/.venv/bin/python";
+  private args = app.isPackaged ? undefined : ["../api/main.py"];
   private api;
 
   private constructor() {
-    // TODO: Add packaged config
-    // const __filename = fileURLToPath(import.meta.url);
-    // const __dirname = dirname(__filename);
-    // console.log(__dirname);
-
     this.api = spawn(this.bin, this.args);
 
     this.api.on("close", (code) => {
