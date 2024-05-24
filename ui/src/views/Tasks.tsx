@@ -1,9 +1,9 @@
 import { css } from "@emotion/react";
-import { mdiPlay } from "@mdi/js";
+import { mdiCellphoneLink, mdiPlay } from "@mdi/js";
 import Icon from "@mdi/react";
 import {
-  Button,
   Checkbox,
+  IconButton,
   List,
   ListItem,
   ListItemText,
@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import TaskListItem from "../components/TaskListItem";
 import { useAppDispatch, useAppSelector } from "../stores";
+import { selectAppSettings } from "../stores/setting";
 import { TaskType, setIsAllSelected } from "../stores/task";
 
 const snakeToLowerCase = (str: string) =>
@@ -28,6 +29,11 @@ export default function Tasks() {
   const scrollOffset = css`
     scroll-margin-top: calc(2 * (${toolbar?.minHeight}px - 16px));
   `;
+
+  const appSettings = useAppSelector(selectAppSettings);
+  const handleConnect = () => {
+    window.electronApi?.connect({ app_settings: appSettings });
+  };
 
   const tasks = useAppSelector((state) => state.task);
   const isAllSelected = tasks.every((task) => task.disabled || task.isSelected);
@@ -75,10 +81,19 @@ export default function Tasks() {
           <Tooltip title="Select All">
             <Checkbox checked={isAllSelected} onClick={handleSelectAll} />
           </Tooltip>
-          <Button>
-            Run Selected
-            <Icon path={mdiPlay} color="green" />
-          </Button>
+
+          <div>
+            <Tooltip title="Connect">
+              <IconButton onClick={handleConnect}>
+                <Icon path={mdiCellphoneLink} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Run Selected">
+              <IconButton>
+                <Icon path={mdiPlay} color="green" />
+              </IconButton>
+            </Tooltip>
+          </div>
         </Toolbar>
 
         <div>

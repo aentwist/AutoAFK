@@ -1,6 +1,7 @@
 import { BrowserWindow, app, ipcMain, shell } from "electron";
 import fs from "fs/promises";
 import path from "path";
+import { Api } from "./api";
 import type { RootState } from "./stores";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -34,6 +35,9 @@ const createWindow = () => {
     shell.openExternal(url);
     return { action: "deny" };
   });
+
+  // Receive incoming messages
+  Api.getInstance().registerReceivers(mainWindow);
 };
 
 // This method will be called when Electron has finished
@@ -68,9 +72,12 @@ const statePath = path.join(app.getPath("userData"), "state.json");
 
 // Function signatures here should match those in preload.ts
 function registerHandlers(): void {
-  ipcMain.handle("save-state", async (_, state: RootState): Promise<void> => {
-    await fs.writeFile(statePath, JSON.stringify(state));
-  });
+  ipcMain.handle(
+    "save-state",
+    async (_, state: Partial<RootState>): Promise<void> => {
+      await fs.writeFile(statePath, JSON.stringify(state));
+    },
+  );
 
   ipcMain.handle("load-state", async (): Promise<undefined | RootState> => {
     let data: string;
@@ -82,4 +89,7 @@ function registerHandlers(): void {
     }
     return JSON.parse(data);
   });
+
+  // Send outgoing messages
+  Api.getInstance().registerCommands();
 }

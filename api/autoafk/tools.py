@@ -1,5 +1,5 @@
 # Imports
-import configparser, datetime, os, sys, time
+import datetime, os, sys, time
 import io
 import os
 import random
@@ -10,21 +10,14 @@ from subprocess import PIPE, Popen
 import numpy as np
 import psutil
 import scrcpy
-from activities import AppSettings
+import settings
 from logger import logger
-from main import args, settings
 from PIL import Image
 
-from plyer import notification
 from ppadb.client import Client
 from pyscreeze import locate
 
-
-# Configs/settings
-config = configparser.ConfigParser()
-config.read(settings)  # load settings
 cwd = os.path.dirname(__file__)  # variable for current directory of AutoAFK.exe
-os.system("color")  # So colourful text works
 connected = False
 connect_counter = 1
 max_fps = 5
@@ -37,12 +30,12 @@ adb = Client(host="127.0.0.1", port=5037)
 # Connects to the ADB device using PPADB, allowing us to send commands via Python
 # Then connects scrcpy for screen reading
 # On success we go through our startup checks to make sure we are starting from the same point each time, and can recognise the template images
-def connect_device(app_settings: AppSettings) -> None:
+def connect_device() -> None:
     global device
     global connect_counter
     global connected  # So we don't reconnect with every new activity in the same session
-    global config
-    config.read(settings)  # Load settings
+
+    app_settings = settings.app_settings
 
     if (
         app_settings["emulator_path"]
@@ -62,7 +55,7 @@ def connect_device(app_settings: AppSettings) -> None:
         return
 
     # Run through the various methods to find the ADB device of the emulator, and point PPADB to the found device
-    device = configure_adb(app_settings)
+    device = configure_adb()
 
     # PPADB can throw errors occasionally for no good reason, here we try and catch them and retry for stability
     while connect_counter <= 3:
@@ -113,7 +106,7 @@ def connect_device(app_settings: AppSettings) -> None:
             wait(3)
             connect_counter += 1
             if connect_counter <= 3:
-                device = configure_adb(app_settings)
+                device = configure_adb()
         else:
             if device is not None:
                 connected = True
@@ -159,9 +152,8 @@ def connect_device(app_settings: AppSettings) -> None:
 # This function manages the ADB connection to Bluestacks.
 # First it restarts ADB then checks for a port in settings.ini, after that we check for existing connected ADB devices
 # If neither are found we run port_scan() to find the active port and connect using that
-def configure_adb(app_settings: AppSettings):
-    # Load any new values (ie port changed and saved) into memory
-    config.read(settings)
+def configure_adb():
+    app_settings = settings.app_settings
 
     adbpath = os.path.join(cwd, "adb.exe")  # Locate adb.exe in working directory
     if not os.path.exists(adbpath) and system() != "Windows":
@@ -261,12 +253,10 @@ def expand_menus() -> None:
 
 # Checks if AFK Arena process is running, if not we launch it
 def run_afk_arena(debug: bool = False) -> None:
-    if args["test"]:
-        # logger.error('AFK Arena Test Server is not running, launching..')
-        device.shell("monkey -p  com.lilithgames.hgame.gp.id 1")
-    elif not args["test"]:
-        # logger.error('AFK Arena is not running, launching..')
-        device.shell("monkey -p com.lilithgame.hgame.gp 1")
+    # logger.error('AFK Arena Test Server is not running, launching..')
+    # device.shell("monkey -p  com.lilithgames.hgame.gp.id 1")
+    # logger.error('AFK Arena is not running, launching..')
+    device.shell("monkey -p com.lilithgame.hgame.gp 1")
     if debug:
         logger.debug("Game check passed\n")
 
@@ -277,10 +267,8 @@ def wait_until_game_active() -> None:
     logger.warning("Searching for Campaign screen..")
     loadingcounter = 0
     timeoutcounter = 0
-    if args["dailies"]:
-        loaded = 3  # If we're running unattended we want to make real sure there's no delayed popups
-    else:
-        loaded = 1
+    # loaded = 3  # If we're running unattended we want to make real sure there's no delayed popups
+    loaded = 1
 
     while loadingcounter < loaded:
         click_xy(
@@ -376,7 +364,7 @@ def save_scrcpy_screenshot(name) -> None:
 # 2.0 will run with 200% of the default wait times
 # This is handy for slower machines where we need to wait for sections/images to load
 def wait(seconds=1) -> None:
-    time.sleep(seconds * float(config.get("ADVANCED", "loadingMuliplier")))
+    time.sleep(seconds * float(settings.app_settings["wait_multiplier"]))
 
 
 # Performs a swipe from X1/Y1 to X2/Y2 at the speed defined in duration
@@ -437,7 +425,7 @@ def is_visible(
         wait(seconds)
         return True
     else:
-        if suppress is not True and config.getboolean("ADVANCED", "debug"):
+        if suppress is not True and settings.app_settings["debug_mode"]:
             logger.warning(
                 "Image:" + image + " not found on screen, saving screenshot."
             )
@@ -479,10 +467,12 @@ def click(
     region=(0, 0, 1080, 1920),
     xyshift=None,
 ) -> None:
+    logger.debug(f"Clicking {image}")
+
     counter = 0
     screenshot = get_frame()
 
-    if config.getboolean("ADVANCED", "debug") is True:
+    if settings.app_settings["debug_mode"]:
         suppress = False
 
     search = Image.open(os.path.join(cwd, "img", image + ".png"))
@@ -527,7 +517,7 @@ def click(
         device.input_tap(x_center, y_center)
         wait(seconds)
     else:
-        if suppress is not True and config.getboolean("ADVANCED", "debug"):
+        if suppress is not True and settings.app_settings["debug_mode"]:
             logger.warning(
                 "Image:" + image + " not found on screen, saving screenshot."
             )
