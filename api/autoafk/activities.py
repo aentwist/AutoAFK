@@ -1,10 +1,10 @@
 import datetime
 from typing import TypedDict
 
-import settings as app_settings_h
-from logger import logger
-from thread_state import handle_pause_and_stop_events
-from tools import (
+from autoafk import settings as app_settings_h
+from autoafk.logger import logger
+from autoafk.thread_state import handle_pause_and_stop_events
+from autoafk.tools import (
     check_pixel,
     click,
     click_while_visible,

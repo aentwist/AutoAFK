@@ -2,7 +2,8 @@ from textwrap import dedent
 from typing import TypedDict
 
 import requests
-import settings
+
+from autoafk import settings
 
 
 class Telegram(object):

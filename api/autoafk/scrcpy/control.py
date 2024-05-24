@@ -3,8 +3,8 @@ import socket
 import struct
 from time import sleep
 
-import scrcpy
-from scrcpy import const
+from autoafk import scrcpy
+from autoafk.scrcpy import const
 
 
 def inject(control_type: int):
