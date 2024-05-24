@@ -626,9 +626,28 @@ export const taskSlice = createAppSlice({
 
       return taskData;
     },
+
+    selectSelectedTaskData: (tasks) =>
+      tasks
+        .filter((task) => task.isSelected)
+        .map((task) => {
+          const taskData = {
+            fn: task.fn,
+            name: task.name,
+          };
+          if (task.settings) {
+            const s: Record<string, SettingValue> = {};
+            task.settings.forEach(
+              (setting) => (s[setting.key] = setting.value),
+            );
+            taskData.settings = s;
+          }
+
+          return taskData;
+        }),
   },
 });
 
 export const { setIsSelected, setIsAllSelected, setSettingValue } =
   taskSlice.actions;
-export const { selectTaskData } = taskSlice.selectors;
+export const { selectTaskData, selectSelectedTaskData } = taskSlice.selectors;
