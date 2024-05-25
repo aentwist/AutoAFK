@@ -1,5 +1,5 @@
 # Imports
-import datetime, os, sys, time
+import datetime, sys, time
 import io
 import os
 import random
@@ -13,7 +13,7 @@ from PIL import Image
 from ppadb.client import Client
 from pyscreeze import locate
 
-from autoafk import scrcpy, settings
+from autoafk import PROJECT_DIR, scrcpy, settings
 from autoafk.logger import logger
 
 cwd = os.path.dirname(__file__)  # variable for current directory of AutoAFK.exe
@@ -154,7 +154,8 @@ def connect_device() -> None:
 def configure_adb():
     app_settings = settings.app_settings
 
-    adbpath = os.path.join(cwd, "adb.exe")  # Locate adb.exe in working directory
+    base_path = getattr(sys, "_MEIPASS", PROJECT_DIR)
+    adbpath = os.path.join(base_path, "adb")
     if not os.path.exists(adbpath) and system() != "Windows":
         adbpath = which(
             "adb"
