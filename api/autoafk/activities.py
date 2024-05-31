@@ -1,27 +1,26 @@
-import datetime
-from typing import TypedDict
+from datetime import datetime
+from typing import Literal, TypedDict
 
 from autoafk import settings as app_settings_h
 from autoafk.logger import logger
 from autoafk.thread_state import handle_pause_and_stop_events
 from autoafk.tools import (
     check_pixel,
-    click,
-    click_while_visible,
-    click_xy,
-    confirm_loc,
+    drag_wait,
     expand_menus,
     get_dispatch_btns,
-    is_visible,
-    recover,
-    secure_click,
+    locate_img,
+    reset_to_screen,
+    Screen,
     select_opponent,
-    swipe,
+    touch_escape_wait,
+    touch_img_wait,
+    touch_img_while_other_visible,
+    touch_img_while_visible,
+    touch_xy_wait,
     wait,
 )
 
-
-d = datetime.datetime.now()
 
 boundaries = {
     # locate
@@ -72,56 +71,62 @@ boundaries = {
 
 
 def collect_afk_rewards() -> None:
-    logger.info("Attempting AFK Reward collection")
-    confirm_loc("campaign", region=boundaries["campaignSelect"])
-    if is_visible("buttons/campaign_selected", region=boundaries["campaignSelect"]):
-        click_xy(550, 1550)
-        click("buttons/collect", 0.8, region=boundaries["collectAfk"])
-        click_xy(550, 1800, seconds=1)  # Click campaign in case we level up
-        click_xy(550, 1800, seconds=1)  # again for the time limited deal popup
-        click_xy(550, 1800, seconds=1)  # 3rd to be safe
-        logger.info("    AFK Rewards collected!")
-    else:
-        logger.error("AFK Rewards chests not found, recovering and will try again")
-        recover()
-        collect_afk_rewards()  # In case there was a popup to trial new hero
+    logger.info("Collecting AFK rewards...")
+    reset_to_screen()
+
+    if not locate_img("buttons/campaign_selected", boundaries["campaignSelect"]):
+        logger.error("AFK rewards button not found")
+        return
+
+    touch_xy_wait(550, 1550)
+    touch_img_wait("buttons/collect", boundaries["collectAfk"], 0.8)
+    touch_xy_wait(550, 1800)  # Click campaign in case we level up
+    touch_xy_wait(550, 1800)  # again for the time limited deal popup
+    logger.info("AFK rewards collected!")
 
 
 def collect_mail() -> None:
-    logger.info("Attempting mail collection")
-    if is_visible("buttons/mail", region=boundaries["mailLocate"]):
-        wait()
-        # if (check_pixel(1012, 610, 0) > 240): # We check if the pixel where the notification sits has a red value of higher than 240
-        click_xy(960, 630, seconds=2)  # Click Mail
-        click("buttons/collect_all", seconds=3, region=boundaries["collectMail"])
-        click_xy(550, 1600)  # Clear any popups
-        click("buttons/back", region=boundaries["backMenu"])
-        logger.info("    Mail collected!")
-        # else:
-        #     logger.warning('    Mail notification not found')
-    else:
-        logger.error("Mail icon not found!")
+    logger.info("Collecting mail...")
+    reset_to_screen()
+
+    if not locate_img("buttons/mail", boundaries["mailLocate"]):
+        logger.error("Mail button not found")
+        return
+
+    touch_xy_wait(960, 630, seconds=2)  # Click Mail
+    touch_img_wait("buttons/collect_all", boundaries["collectMail"], seconds=3)
+    touch_xy_wait(550, 1600)  # Clear any popups
+    logger.info("Mail collected!")
+
+    touch_img_wait("buttons/back", region=boundaries["backMenu"])
 
 
 def send_and_receive_companion_points(mercs=False) -> None:
-    logger.info("Attempting to send/receive companion points")
-    if is_visible("buttons/friends", region=boundaries["friends"]):
-        if (
-            check_pixel(1012, 790, 0) > 240
-        ):  # We check if the pixel where the notification sits has a red value of higher than 240
-            click_xy(960, 810)
-            click("buttons/sendandreceive", region=boundaries["sendrecieve"])
-            if mercs is True:
-                click_xy(720, 1760)  # Short term
-                click_xy(990, 190)  # Manage
-                click_xy(630, 1590)  # Apply
-                click_xy(750, 1410)  # Auto lend
-                click("buttons/exitmenu", region=boundaries["exitMerc"])
-                logger.info("    Mercenaries lent out")
-            click("buttons/back", region=boundaries["backMenu"])
-            logger.info("    Friends Points Sent")
-        else:
-            logger.warning("    Friends notification not found")
+    logger.info("Sending/receiving companion points...")
+    reset_to_screen()
+
+    if not locate_img("buttons/friends", boundaries["friends"]):
+        logger.error("Friends button not found")
+        return
+
+    # We check if the pixel where the notification sits has a red value of higher than 240
+    if not check_pixel(1012, 790, 0) > 240:
+        logger.info("No companion points to send/receive or mercs to lend")
+        return
+
+    touch_xy_wait(960, 810)
+    touch_img_wait("buttons/sendandreceive", region=boundaries["sendrecieve"])
+    logger.info("Companion points sent/received")
+
+    if mercs is True:
+        touch_xy_wait(720, 1760)  # Short term
+        touch_xy_wait(990, 190)  # Manage
+        touch_xy_wait(630, 1590)  # Apply
+        touch_xy_wait(750, 1410)  # Auto lend
+        touch_img_wait("buttons/exitmenu", region=boundaries["exitMerc"])
+        logger.info("Mercenaries lent out")
+
+    touch_img_wait("buttons/back", region=boundaries["backMenu"])
 
 
 class CollectFastRewardsSettings(TypedDict):
@@ -129,76 +134,63 @@ class CollectFastRewardsSettings(TypedDict):
 
 
 def collect_fast_rewards(settings: CollectFastRewardsSettings) -> None:
-    logger.info(
-        "Attempting to collecting Fast Rewards " + str(settings["times"]) + "x times"
-    )
-    counter = 0
-    confirm_loc("campaign", region=boundaries["campaignSelect"])
-    if is_visible("buttons/fastrewards", region=boundaries["fastrewards"]):
-        if (
-            check_pixel(980, 1620, 0) > 220
-        ):  # We check if the pixel where the notification sits has a red value of higher than 240
-            click_xy(950, 1660)
-            while counter < settings["times"]:
-                click_xy(710, 1260, seconds=3)
-                click_xy(550, 1800)
-                counter = counter + 1
-            click("buttons/close", region=boundaries["closeFR"])
-            logger.info("    Fast Rewards Done")
-        else:
-            logger.warning("    Fast Rewards already done")
-    else:
-        logger.error("    Fast Rewards icon not found!")
+    t = settings["times"]
+    logger.info(f"Collecting fast rewards {t} times...")
+    reset_to_screen()
+
+    if not locate_img("buttons/fastrewards", region=boundaries["fastrewards"]):
+        logger.error("Fast rewards button not found")
+        return
+
+    # Check whether the pixel where the notification dot is has a high enough red value
+    if not check_pixel(980, 1620, 0) > 220:
+        logger.warning("Fast Rewards already done")
+        return
+
+    touch_xy_wait(950, 1660)
+    for i in range(settings["times"]):
+        touch_xy_wait(710, 1260, seconds=3)
+        touch_xy_wait(550, 1800)
+    logger.info("Fast rewards collected")
+
+    touch_img_wait("buttons/close", region=boundaries["closeFR"])
 
 
 # Loads and exits a campaign abttle for dailies quest
 def attempt_campaign() -> None:
-    logger.info("Attempting Campaign battle")
-    confirm_loc("campaign", region=boundaries["campaignSelect"])
-    click("buttons/begin", seconds=2, retry=3, region=boundaries["begin"])
+    logger.info("Attempting campaign battle...")
+    reset_to_screen()
+
+    touch_img_wait("buttons/begin", boundaries["begin"], seconds=2, retry=3)
     # Check if we're multi or single stage
-    multi = is_visible("buttons/begin", 0.7, retry=3, region=boundaries["multiBegin"])
+    multi = locate_img("buttons/begin", boundaries["multiBegin"], 0.7, retry=3)
+    logger.debug(f"{'Multi' if multi else 'Single'} stage detected")
     if multi:
-        logger.info("    Multi stage detected")
-        click(
-            "buttons/begin", 0.7, retry=5, seconds=2, region=boundaries["multiBegin"]
-        )  # Second button to enter multi
-    else:
-        logger.info("    Single stage detected")
-    # Start and exit battle
-    # Weird amount of retries as when loading the game for the first time this screen can take a while to load, so it acts as a counter
-    if is_visible(
-        "buttons/heroclassselect", retry=20, region=boundaries["heroclassselect"]
-    ):  # Confirm we're on the hero selection screen
-        if multi:  # Multi has different button for reasons
-            click(
-                "buttons/beginbattle",
-                0.7,
-                retry=3,
-                seconds=3,
-                region=boundaries["battle"],
-            )
-        else:
-            click(
-                "buttons/battle", 0.8, retry=3, seconds=3, region=boundaries["battle"]
-            )
-        # Actions to exit an active fight and back out to the Campaign screen
-        click(
-            "buttons/pause", retry=3, region=boundaries["pauseBattle"]
-        )  # 3 retries as ulting heroes can cover the button
-        click("buttons/exitbattle", retry=3, region=boundaries["exitBattle"])
-        click(
-            "buttons/back",
-            retry=3,
-            seconds=3,
-            suppress=True,
-            region=boundaries["backMenu"],
+        # Second button to enter multi
+        touch_img_wait(
+            "buttons/begin", boundaries["multiBegin"], 0.7, seconds=2, retry=5
         )
-        if confirm_loc("campaign", bool=True, region=boundaries["campaignSelect"]):
-            logger.info("    Campaign attempted successfully")
+
+    # Many retries since on initial load this screen can take a while. Use
+    # error handling due to the level of uncertainty.
+    if not locate_img(
+        "buttons/heroclassselect", retry=20, region=boundaries["heroclassselect"]
+    ):
+        logger.error("Hero class select button not found")
+        reset_to_screen()
+        return
+
+    # Start and exit battle
+    if multi:  # Multi has a different button for reasons
+        touch_img_wait("buttons/beginbattle", boundaries["battle"], 0.7, seconds=4)
     else:
-        logger.error("    Something went wrong, attempting to recover")
-        recover()
+        touch_img_wait("buttons/battle", boundaries["battle"], 0.8, seconds=4)
+    # Actions to exit an active fight and back out to the Campaign screen
+    # 3 retries as ulting heroes can cover the button
+    touch_img_wait("buttons/pause", boundaries["pauseBattle"], retry=3)
+    touch_img_wait("buttons/exitbattle", boundaries["exitBattle"])
+    touch_img_wait("buttons/back", boundaries["backMenu"], seconds=3, retry=3)
+    logger.info("Campaign battle attempted")
 
 
 class SoloBountySettings(TypedDict):
@@ -221,105 +213,92 @@ class DispatchBountiesSettings(DispatchSoloBountiesSettings):
 
 # Handles the Bounty Board, calls dispatch_solo_bounties() to handle solo dust/diamond recognition and dispatching
 def dispatch_bounties(settings: DispatchBountiesSettings) -> None:
-    logger.info("Handling Bounty Board")
-    confirm_loc("darkforest", region=boundaries["darkforestSelect"])
-    click_xy(600, 1320)
-    if is_visible("labels/bountyboard", retry=3):
+    logger.info("Dispatching bounties...")
+    reset_to_screen(Screen.DARK_FOREST)
 
-        if settings["solo_bounties"]:
-            click_xy(650, 1700)  # Solo tab
-            is_visible("buttons/collect_all", seconds=3, click=True)
-            dispatch_solo_bounties(settings)
+    touch_xy_wait(600, 1320)  # ???
 
-        if settings["team_bounties"]:
-            click_xy(950, 1700)  # Team tab
-            click("buttons/collect_all", seconds=2, suppress=True)
-            click("buttons/dispatch", confidence=0.8, suppress=True, grayscale=True)
-            click("buttons/confirm", suppress=True)
+    if not locate_img("labels/bountyboard", retry=3):
+        logger.error("Bounty board not found")
+        reset_to_screen(Screen.DARK_FOREST)
+        return
 
-        if settings["event_bounties"]:
-            if is_visible("labels/event_bounty", click=True):
-                click("buttons/collect_all", seconds=2, suppress=True)
-                while is_visible("buttons/dispatch_bounties", click=True) == True:
-                    click_xy(530, 1030, seconds=2)
-                    click_xy(120, 1500)
-                    click("buttons/dispatch", confidence=0.8, grayscale=True)
+    if settings["solo_bounties"]:
+        touch_xy_wait(650, 1700)  # Solo tab
+        touch_img_wait("buttons/collect_all", seconds=3)
+        dispatch_solo_bounties(settings)
 
-        click("buttons/back", region=boundaries["backMenu"])
-        logger.info("    Bounties attempted successfully")
-    else:
-        logger.error("    Bounty Board not found, attempting to recover")
-        recover()
+    if settings["team_bounties"]:
+        touch_xy_wait(950, 1700)  # Team tab
+        touch_img_wait("buttons/collect_all", seconds=2)
+        touch_img_wait("buttons/dispatch", confidence=0.8, grayscale=True)
+        touch_img_wait("buttons/confirm")
+
+    if settings["event_bounties"]:
+        if touch_img_wait("labels/event_bounty"):
+            touch_img_wait("buttons/collect_all", seconds=2)
+            while touch_img_wait("buttons/dispatch_bounties"):
+                touch_xy_wait(530, 1030, seconds=2)
+                touch_xy_wait(120, 1500)
+                touch_img_wait("buttons/dispatch", confidence=0.8, grayscale=True)
+
+    logger.info("Bounties dispatched")
+
+    touch_img_wait("buttons/back", boundaries["backMenu"])
 
 
 # Loops through the bounty board returning found Dispatch buttons for dispatcher() to handle
 # maxrefreshes is how many times to refresh before hitting dispatch all
 # remaining is how many leftover bounties we should use dispatch all on rather than refresh again
 def dispatch_solo_bounties(settings: DispatchSoloBountiesSettings) -> None:
-    refreshes = 0
-    while refreshes <= settings["max_refreshes"]:
-        if refreshes > 0:
-            logger.warning("    Board refreshed (#" + str(refreshes) + ")")
-        dispatcher(
-            get_dispatch_btns(), settings
-        )  # Send the list to the function to dispatch
-        swipe(550, 800, 550, 500, duration=200, seconds=2)  # scroll down
-        dispatcher(
-            get_dispatch_btns(scrolled=True), settings
-        )  # Send the list to the function to dispatch
+    for i in range(settings["max_refreshes"] + 1):
+        # Send the list to the function to dispatch
+        dispatcher(get_dispatch_btns(), settings)
+        drag_wait((550, 800), (550, 500), duration=200, seconds=2)  # scroll down
+        dispatcher(get_dispatch_btns(scrolled=True), settings)
+
         if (
-            refreshes >= 1
-        ):  # quick read to see how many are left after the last dispatch, else we refresh the board needlessly before we do it
-            if (
-                len(get_dispatch_btns(scrolled=True))
-                <= settings["number_remaining_to_dispatch_all"]
-            ):  # if <=remaining bounties left we just dispatch all and continue
-                logger.warning(
-                    "  "
-                    + str(settings["number_remaining_to_dispatch_all"])
-                    + " or less bounties remaining, dispatching.."
-                )
-                click("buttons/dispatch", confidence=0.8, suppress=True, grayscale=True)
-                click("buttons/confirm", suppress=True)
-                return
-        if refreshes < settings["max_refreshes"]:
-            click_xy(90, 250)
-            click_xy(700, 1250)
-        refreshes += 1
-    logger.info(
-        "    "
-        + str(settings["max_refreshes"])
-        + " refreshes done, dispatching remaining.."
-    )
-    click("buttons/dispatch", confidence=0.8, suppress=True, grayscale=True)
-    click("buttons/confirm", suppress=True)
+            len(get_dispatch_btns(scrolled=True))
+            <= settings["number_remaining_to_dispatch_all"]
+        ):
+            t = settings["number_remaining_to_dispatch_all"]
+            logger.info(f"{t} or less bounties remaining, dispatching...")
+            break
+
+        if i != settings["max_refreshes"]:
+            touch_xy_wait(90, 250)
+            touch_xy_wait(700, 1250)
+    else:
+        t = settings["max_refreshes"]
+        logger.info(f"{t} refreshes done, dispatching remaining...")
+
+    touch_img_wait("buttons/dispatch", confidence=0.8, grayscale=True)
+    touch_img_wait("buttons/confirm")
 
 
 # Recieves a list of Dispatch buttons Y coordinates and checks/dispatches the resource
 def dispatcher(dispatches, settings: SoloBountySettings) -> None:
+    # Names and Buttons
+    bounty_types = {
+        "dust": "labels/bounties/dust",
+        "diamonds": "labels/bounties/diamonds",
+        "juice": "labels/bounties/juice",
+        "shards": "labels/bounties/shards",
+        # "gold": "labels/bounties/gold",
+        # "soulstone": "labels/bounties/soulstone",
+    }
+
     # For loop over each button passed to the function
     for button in dispatches:
-        # Names and Buttons
-        bounty_types = {
-            "dust": "labels/bounties/dust",
-            "diamonds": "labels/bounties/diamonds",
-            "juice": "labels/bounties/juice",
-            "shards": "labels/bounties/shards",
-            "gold": "labels/bounties/gold",
-            "soulstone": "labels/bounties/soulstone",
-        }
-        # For each button we use `region=` to only check the resource in bounds to the left of it
         for resource, image in bounty_types.items():
-            if is_visible(image, region=(30, button - 100, 140, 160), seconds=0):
-                if (
-                    resource != "gold" and resource != "soulstone"
-                ):  # because there's no setting for these
-                    if settings[resource]:  # If it's enabled dispatch
-                        logger.info("Dispatching " + resource.title())
-                        click_xy(900, button)
-                        click_xy(350, 1150)
-                        click_xy(750, 1150)
-                break  # Once resource is found and actions taken move onto the next button to save unnecessary checks
+            # For each button we use `region=` to only check the resource in bounds to the left of it
+            # There are no settings for gold or soulstones
+            if settings[resource] and locate_img(image, (30, button - 100, 140, 160)):
+                logger.info(f"Dispatching {resource}")
+                touch_xy_wait(900, button)
+                touch_xy_wait(350, 1150)
+                touch_xy_wait(750, 1150)
+                break  # done processing this dispatch button
 
 
 class ChallengeSettings(TypedDict):
@@ -331,103 +310,115 @@ class ChallengeOpponentSettings(ChallengeSettings):
 
 
 def challenge_arena(settings: ChallengeOpponentSettings) -> None:
-    counter = 0
-    logger.info("Battling Arena of Heroes " + str(settings["battles"]) + " times")
-    confirm_loc("darkforest", region=boundaries["darkforestSelect"])
-    click_xy(740, 1050)
-    click_xy(550, 50)
-    if is_visible("labels/arenaofheroes_new"):  # The label font changes for reasons
-        click("labels/arenaofheroes_new", suppress=True)
-        click(
-            "buttons/challenge", retry=3, region=boundaries["challengeAoH"]
-        )  # retries for animated button
-        while counter < settings["battles"]:
-            wait(1)  # To avoid error when clickMultipleChoice returns no results
-            select_opponent(choice=settings["opponent_number"])
-            # clickMultipleChoice('buttons/arenafight', count=4, confidence=0.98, region=boundries['attackAoH'], seconds=3) # Select 4th opponent
-            while is_visible(
-                "buttons/heroclassselect", retry=3, region=boundaries["heroclassselect"]
-            ):  # This is rather than Battle button as that is animated and hard to read
-                click_xy(550, 1800)
-            click(
-                "buttons/skip",
-                retry=5,
-                confidence=0.8,
-                suppress=True,
-                region=boundaries["skipAoH"],
-            )  # Retries as ulting heros can cover the button
-            if get_battle_results(type="arena"):
-                logger.info("    Battle #" + str(counter + 1) + " Victory!")
-                click_xy(600, 550)  # Clear loot popup
-            else:
-                logger.error("    Battle #" + str(counter + 1) + " Defeat!")
-            click_xy(600, 550)  # Back to opponent selection
-            counter = counter + 1
-            handle_pause_and_stop_events()
-        click("buttons/exitmenu", region=boundaries["exitAoH"])
-        click("buttons/back", retry=3, region=boundaries["backMenu"])
-        click("buttons/back", retry=3, region=boundaries["backMenu"])
-        logger.info("    Arena battles complete")
-    else:
+    t = settings["battles"]
+    logger.info(f"Battling Arena of Heroes {t} times")
+    reset_to_screen(Screen.DARK_FOREST)
+
+    touch_xy_wait(740, 1050)
+    touch_xy_wait(550, 50)
+
+    if not touch_img_wait(
+        "labels/arenaofheroes_new"
+    ):  # The label font changes for reasons
         logger.error("Arena of Heroes not found, attempting to recover")
-        recover()
+        reset_to_screen(Screen.DARK_FOREST)
+        return
+
+    # retries for animated button
+    touch_img_wait("buttons/challenge", boundaries["challengeAoH"], retry=3)
+
+    for i in range(settings["battles"]):
+        select_opponent(choice=settings["opponent_number"])
+        # This is rather than Battle button as that is animated and hard to read
+        while locate_img(
+            "buttons/heroclassselect", boundaries["heroclassselect"], retry=3
+        ):
+            touch_xy_wait(550, 1800)
+        # Retries as ulting heros can cover the button
+        touch_img_wait("buttons/skip", boundaries["skipAoH"], 0.8, retry=5)
+        if get_battle_results(type="arena"):
+            logger.info(f"Battle #{i + 1} victory!")
+            touch_xy_wait(600, 550)  # Clear loot popup
+        else:
+            logger.error(f"Battle #{i + 1} defeat!")
+        touch_xy_wait(600, 550)  # Back to opponent selection
+
+        handle_pause_and_stop_events()
+
+    logger.info("Arena battles completed")
+
+    touch_img_wait("buttons/exitmenu", region=boundaries["exitAoH"])
+    touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
+    touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
 
 
 def collect_gladiator_coins() -> None:
-    logger.info("Collecting Gladiator Coins")
-    confirm_loc("darkforest", region=boundaries["darkforestSelect"])
-    click_xy(740, 1050)
-    click_xy(550, 50)
-    swipe(550, 800, 550, 500, duration=200, seconds=2)  # scroll down
-    if is_visible("labels/legendstournament_new"):  # The label font changes for reasons
-        click("labels/legendstournament_new", suppress=True)
-        click_xy(550, 300, seconds=2)
-        click_xy(50, 1850)
-        click("buttons/back", region=boundaries["backMenu"])
-        click("buttons/back", region=boundaries["backMenu"])
-        logger.info("    Gladiator Coins collected")
-    else:
-        logger.error("    Legends Tournament not found, attempting to recover")
-        recover()
+    logger.info("Collecting gladiator coins...")
+    reset_to_screen(Screen.DARK_FOREST)
+
+    touch_xy_wait(740, 1050)
+    touch_xy_wait(550, 50)
+    drag_wait((550, 800), (550, 500), duration=200, seconds=2)  # scroll down
+
+    # The label font changes for reasons
+    if not touch_img_wait("labels/legendstournament_new"):
+        logger.error("Legends Tournament not found")
+        reset_to_screen(Screen.DARK_FOREST)
+        return
+
+    touch_xy_wait(550, 300, seconds=2)
+    touch_xy_wait(50, 1850)
+    logger.info("Gladiator coins collected")
+
+    touch_img_wait("buttons/back", region=boundaries["backMenu"])
+    touch_img_wait("buttons/back", region=boundaries["backMenu"])
 
 
 def use_bag_consumables() -> None:
-    crashcounter = 0  # So we don't get stuck forever in the Use button loop
-    logger.info("Using consumables from bag")
-    click_xy(1000, 500, seconds=3)
-    if is_visible("buttons/batchselect", click=True, retry=3):
-        if is_visible("buttons/confirm_grey"):
-            logger.warning("Nothing selected/available! Returning..")
-            click("buttons/back", region=boundaries["backMenu"])
+    logger.info("Using bag consumables...")
+
+    touch_xy_wait(1000, 500, seconds=3)
+
+    if not touch_img_wait("buttons/batchselect", retry=3):
+        logger.error("Bag not found, attempting to recover")
+        reset_to_screen()
+        return
+
+    if locate_img("buttons/confirm_grey"):
+        logger.warning("Nothing selected/available! Returning...")
+        touch_img_wait("buttons/back", region=boundaries["backMenu"])
+        return
+
+    touch_xy_wait(550, 1650, seconds=2)
+
+    crash_counter = 0  # So we don't get stuck forever in the Use button loop
+    while not locate_img("buttons/use_batch"):
+        touch_xy_wait(550, 1800)
+
+        crash_counter += 1
+        if crash_counter > 30:
+            logger.error(
+                "Something went wrong (normally gear chests being selected), returning..."
+            )
+            touch_img_wait("buttons/back", region=boundaries["backMenu"])
+            touch_img_wait("buttons/back", region=boundaries["backMenu"])
             return
-        click_xy(550, 1650, seconds=2)
-        while not is_visible("buttons/use_batch"):
-            click_xy(
-                550, 1800, seconds=0
-            )  # 1 second check above is plenty so this is 0
-            crashcounter += 1
-            if crashcounter > 30:
-                logger.error(
-                    "Something went wrong (normally gear chests being selected), returning.."
-                )
-                click("buttons/back", region=boundaries["backMenu"])
-                click("buttons/back", region=boundaries["backMenu"])
-                return
-        click_xy(550, 1800)  # Use
-        click_xy(950, 1700)  # 'All' Bag button to clear loot
-        click("buttons/back", region=boundaries["backMenu"], suppress=True)
-        logger.info("    Bag consumables used!")
-    else:
-        logger.error("    Bag not found, attempting to recover")
-        recover()
+
+    touch_xy_wait(550, 1800)  # Use
+    touch_xy_wait(950, 1700)  # 'All' Bag button to clear loot
+    logger.info("Bag consumables used")
+
+    touch_img_wait("buttons/back", region=boundaries["backMenu"])
 
 
 # TODO Get image for the fire debuff banner
 def collect_ts_rewards() -> None:
-    logger.info("Collecting Treasure Scramble daily loot")
-    confirm_loc("darkforest", region=boundaries["darkforestSelect"])
-    click_xy(740, 1050)  # open Arena of Heroes
-    click_xy(550, 50)  # Clear Arena Tickets
+    logger.info("Collecting daily TS loot...")
+    reset_to_screen(Screen.DARK_FOREST)
+
+    touch_xy_wait(740, 1050)  # open Arena of Heroes
+    touch_xy_wait(550, 50)  # Clear Arena Tickets
+
     ts_banners = [
         "labels/tsbanner_forest",
         "labels/tsbanner_ice",
@@ -435,71 +426,73 @@ def collect_ts_rewards() -> None:
         "labels/tsbanner_volcano",
     ]
     for banner in ts_banners:  # Check the 4 debuffs
-        if is_visible(banner, click=True):
-            wait(2)
-            if is_visible("buttons/ts_path", click=True):
-                click_xy(370, 945)  # Choose path
-                click_xy(520, 1700)  # Confirm path
-                click("buttons/back", retry=3, region=boundaries["backMenu"])
-                click("buttons/back", retry=3, region=boundaries["backMenu"])
-                return
+        if touch_img_wait(banner, seconds=2):
+            if touch_img_wait("buttons/ts_path"):
+                touch_xy_wait(370, 945)  # Choose path
+                touch_xy_wait(520, 1700)  # Confirm path
+                touch_img_wait("buttons/back", boundaries["backMenu"], retry=3)
+                touch_img_wait("buttons/back", boundaries["backMenu"], retry=3)
             else:
-                click_xy(400, 50, seconds=2)  # Clear Rank Up
-                click_xy(400, 50, seconds=2)  # Clear Loot
-                click("buttons/back", retry=3, region=boundaries["backMenu"])
-                click("buttons/back", retry=3, region=boundaries["backMenu"])
+                touch_xy_wait(400, 50, seconds=2)  # Clear Rank Up
+                touch_xy_wait(400, 50, seconds=2)  # Clear Loot
+                touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
+                touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
                 logger.info("    Treasure Scramble daily loot collected!")
-            return
+            break
     else:
-        logger.error("    Treasure Scramble not found, attempting to recover")
-        recover()
+        logger.error("Treasure Scramble not found")
+        reset_to_screen(Screen.DARK_FOREST)
 
 
 def collect_fountain_of_time() -> None:
-    logger.info("Collecting Fountain of Time")
-    confirm_loc("darkforest", region=boundaries["darkforestSelect"])
-    click_xy(800, 700, seconds=6)
-    click_xy(800, 700, seconds=1)
-    if is_visible("labels/temporalrift"):
-        click_xy(550, 1800)
-        click_xy(250, 1300)
-        click_xy(700, 1350)  # Collect
-        click_xy(550, 1800, seconds=3)  # Clear level up
-        click_xy(550, 1800, seconds=3)  # Clear limited deal
-        click_xy(550, 1800, seconds=3)  # Clear newly unlocked
-        click("buttons/back", region=boundaries["backMenu"])
-        logger.info("    Fountain of Time collected")
-    else:
-        logger.error("    Temporal Rift not found, attempting to recover")
-        recover()
+    logger.info("Collecting Fountain of Time...")
+    reset_to_screen(Screen.DARK_FOREST)
+
+    touch_xy_wait(800, 700, seconds=6)
+    touch_xy_wait(800, 700)
+
+    if not locate_img("labels/temporalrift"):
+        logger.error("Temporal Rift not found")
+        reset_to_screen()
+        return
+
+    touch_xy_wait(550, 1800)
+    touch_xy_wait(250, 1300)
+    touch_xy_wait(700, 1350)  # Collect
+    touch_xy_wait(550, 1800, seconds=3)  # Clear level up
+    touch_xy_wait(550, 1800, seconds=3)  # Clear limited deal
+    touch_xy_wait(550, 1800, seconds=3)  # Clear newly unlocked
+    logger.info("Fountain of Time collected")
+
+    touch_img_wait("buttons/back", region=boundaries["backMenu"])
 
 
 def open_tower(name) -> None:
-    logger.info("Opening " + name + ".")
-    confirm_loc("darkforest", region=boundaries["darkforestSelect"])
-    wait(3)  # Medium wait to make sure tower button is active when we click
-    click_xy(500, 870, seconds=3)  # Long pause for animation opening towers
-    if is_visible(
-        "labels/kingstower",
-        region=boundaries["kingstowerLabel"],
-        retry=3,
-        confidence=0.85,
+    logger.info(f"Opening {name}...")
+    reset_to_screen(Screen.DARK_FOREST)
+
+    wait(3)  # Medium wait to make sure tower button is active
+    touch_xy_wait(500, 870, seconds=3)  # Long pause for animation opening towers
+
+    if not locate_img(
+        "labels/kingstower", boundaries["kingstowerLabel"], 0.85, retry=3
     ):
-        towers = {
-            "King's Tower": [500, 870],
-            "Lightbearer Tower": [300, 1000],
-            "Wilder Tower": [800, 600],
-            "Mauler Tower": [400, 1200],
-            "Graveborn Tower": [800, 1200],
-            "Hypogean Tower": [600, 1500],
-            "Celestial Tower": [300, 500],
-        }
-        for tower, location in towers.items():
-            if tower == name:
-                click_xy(location[0], location[1], seconds=3)
-    else:
-        logger.error("Tower selection screen not found.")
-        recover()
+        logger.error("Tower selection screen not found")
+        reset_to_screen()
+        return
+
+    towers = {
+        "King's Tower": [500, 870],
+        "Lightbearer Tower": [300, 1000],
+        "Wilder Tower": [800, 600],
+        "Mauler Tower": [400, 1200],
+        "Graveborn Tower": [800, 1200],
+        "Hypogean Tower": [600, 1500],
+        "Celestial Tower": [300, 500],
+    }
+    for tower, location in towers.items():
+        if tower == name:
+            touch_xy_wait(location[0], location[1], seconds=3)
 
 
 class PushSettings(TypedDict):
@@ -524,32 +517,29 @@ class TowerPusher:
         challengetimer = 0
         autobattletimer = 0
         # Challenge button
-        while is_visible(
+        while locate_img(
             "buttons/challenge_plain",
-            confidence=0.8,
-            retry=3,
+            boundaries["challengeTower"],
+            0.8,
             seconds=2,
-            region=boundaries["challengeTower"],
+            retry=3,
         ):
             challengetimer += 1
             if challengetimer >= 2:
-                click(
+                touch_img_wait(
                     "buttons/challenge_plain",
-                    confidence=0.8,
-                    retry=3,
+                    boundaries["challengeTower"],
+                    0.8,
                     seconds=3,
-                    region=boundaries["challengeTower"],
+                    retry=3,
                 )
                 config_battle_formation(settings)
                 challengetimer = 0
         # Autobattle button
-        while is_visible(
-            "buttons/autobattle",
-            0.92,
-            retry=3,
-            seconds=2,
-            region=boundaries["autobattle"],
-        ):  # higher confidence so we don't find it in the background
+        # higher confidence so we don't find it in the background
+        while locate_img(
+            "buttons/autobattle", boundaries["autobattle"], 0.92, seconds=2, retry=3
+        ):
             autobattletimer += 1
             if autobattletimer >= 2:
                 config_battle_formation(settings)
@@ -557,112 +547,82 @@ class TowerPusher:
 
         app_settings = app_settings_h.app_settings
 
-        # We wait for the given duration (minus some time for configuring teams) then click_xy() to prompt the AutoBattle notice and check for victory
+        # We wait for the given duration (minus some time for configuring teams) then touch_xy_wait() to prompt the AutoBattle notice and check for victory
         wait((app_settings["victory_check_freq_min"] * 60) - 30)
 
         handle_pause_and_stop_events()
 
-        click_xy(550, 1750)
+        touch_xy_wait(550, 1750)
 
         # Make sure the AutoBattle notice screen is visible
-        if is_visible(
-            "labels/autobattle", retry=2, region=boundaries["autobattleLabel"]
-        ):  # Make sure the popup is visible
+        # Make sure the popup is visible
+        if locate_img("labels/autobattle", boundaries["autobattleLabel"], retry=2):
             # If it's 0 assume we haven't passed (not that bold an assumption..)
-            if is_visible(
-                "labels/autobattle_0", retry=3, region=boundaries["autobattle0"]
-            ):
+            if locate_img("labels/autobattle_0", boundaries["autobattle0"], retry=3):
                 if not app_settings["surpress_victory_check_spam"]:
-                    logger.warning(
-                        "No victory found, checking again in "
-                        + str(app_settings["victory_check_freq_min"] + " minutes.")
-                    )
-                click(
-                    "buttons/cancel",
-                    retry=3,
-                    suppress=True,
-                    region=boundaries["cancelAB"],
-                )
-            else:  # If we don't see 0 we assume victory. We exit the battle, clear victory screen and clear time limited rewards screen
+                    t = app_settings["victory_check_freq_min"]
+                    logger.info(f"No victory found, checking again in {t} minutes.")
+
+                touch_img_wait("buttons/cancel", boundaries["cancelAB"], retry=3)
+            # If we don't see 0 we assume victory. We exit the battle, clear
+            # victory screen and clear time limited rewards screen
+            else:
+                t = settings["formation"]
                 logger.info(
-                    "Victory found! Loading the "
-                    + str(settings["formation"] + " formation for the current stage..")
+                    f"Victory found! Loading the {t} formation for the current stage.."
                 )
-                click(
-                    "buttons/exit",
-                    retry=3,
-                    suppress=True,
-                    region=boundaries["exitAB"],
-                )
-                click(
-                    "buttons/pause",
-                    0.8,
-                    retry=3,
-                    suppress=True,
-                    region=boundaries["pauseBattle"],
-                )  # 3 retries as ulting heroes can cover the button
-                click(
-                    "buttons/exitbattle",
-                    retry=2,
-                    suppress=True,
-                    region=boundaries["exitBattle"],
-                )
-                click(
+
+                touch_img_wait("buttons/exit", boundaries["exitAB"], retry=3)
+                # 3 retries as ulting heroes can cover the button
+                touch_img_wait("buttons/pause", boundaries["pauseBattle"], 0.8, retry=3)
+                touch_img_wait("buttons/exitbattle", boundaries["exitBattle"], retry=2)
+                touch_img_wait(
                     "labels/taptocontinue",
+                    boundaries["taptocontinue"],
+                    0.8,
+                    seconds=4,
                     retry=2,
-                    confidence=0.8,
-                    suppress=True,
                     grayscale=True,
-                    region=boundaries["taptocontinue"],
                 )
-                wait(3)
-                click_xy(
-                    550, 1750
-                )  # To clear the Limited Rewards pop up every 20 stages
-        else:  # If after clicking we don't get the Auto Battle notice pop up something has gone wrong so we recover() and load push_tower() again
-            logger.warning("AutoBattle screen not found, reloading auto-push..")
-            if recover() is True:
-                TowerPusher.tower_open = False
-                open_tower(tower)
-                TowerPusher.tower_open = True
+                # To clear the Limited Rewards pop up every 20 stages
+                touch_xy_wait(550, 1750)
+        # If after touching we don't get the Auto Battle notice pop up, then
+        # something has gone wrong so we reset and load push_tower again
+        else:
+            logger.warning("Autobattle screen not found, reloading auto-push...")
+            reset_to_screen()
+            TowerPusher.tower_open = False
+            open_tower(tower)
+            TowerPusher.tower_open = True
 
 
 def push_campaign(settings: PushSettings) -> None:
-    while True:
-        app_settings = app_settings_h.app_settings
+    app_settings = app_settings_h.app_settings
 
-        if not is_visible("buttons/begin", 0.7, retry=3, click=True):
-            if is_visible(
-                "buttons/autobattle",
-                0.95,
-                retry=3,
-                seconds=2,
-                region=boundaries["autobattle"],
-            ) and not is_visible("labels/autobattle"):
+    while True:
+        if not touch_img_wait("buttons/begin", confidence=0.7, retry=3):
+            if locate_img(
+                "buttons/autobattle", boundaries["autobattle"], 0.95, seconds=2, retry=3
+            ) and not locate_img("labels/autobattle"):
                 config_battle_formation(settings)
             else:
                 handle_pause_and_stop_events()
-                click_xy(550, 1750)  # Click to prompt the AutoBattle popup
-                if is_visible("labels/autobattle"):
-                    if is_visible(
-                        "labels/autobattle_0", region=boundaries["autobattle0"]
-                    ):  # If it's 0 continue
+                touch_xy_wait(550, 1750)  # Click to prompt the AutoBattle popup
+
+                if not locate_img("labels/autobattle"):
+                    reset_to_screen()
+                else:
+                    # If it's 0 continue
+                    if locate_img("labels/autobattle_0", boundaries["autobattle0"]):
                         if not app_settings["surpress_victory_check_spam"]:
+                            t = app_settings["victory_check_freq_min"]
                             logger.warning(
-                                "No victory found, checking again in "
-                                + str(
-                                    app_settings["victory_check_freq_min"] + " minutes."
-                                )
+                                f"No victory found, checking again in {t} minutes."
                             )
-                        click(
-                            "buttons/cancel",
-                            retry=3,
-                            suppress=True,
-                            region=boundaries["cancelAB"],
+                        touch_img_wait(
+                            "buttons/cancel", boundaries["cancelAB"], retry=3
                         )
-                        wait(
-                            (app_settings["victory_check_freq_min"] * 60) - 30
-                        )  # Sleep for the wait duration
+                        wait((app_settings["victory_check_freq_min"] * 60) - 30)
                     else:  # If it's not 0 we have passed a stage
                         logger.info(
                             "Victory found! Loading the "
@@ -671,150 +631,128 @@ def push_campaign(settings: PushSettings) -> None:
                                 + " formation for the current stage.."
                             )
                         )
-                        click(
-                            "buttons/exit",
-                            suppress=True,
-                            retry=3,
-                            region=boundaries["exitAB"],
+                        touch_img_wait("buttons/exit", boundaries["exitAB"], retry=3)
+                        # 3 retries as ulting heroes can cover the button
+                        touch_img_wait(
+                            "buttons/pause", boundaries["pauseBattle"], 0.8, retry=3
                         )
-                        click(
-                            "buttons/pause",
-                            confidence=0.8,
-                            retry=3,
-                            suppress=True,
-                            region=boundaries["pauseBattle"],
-                        )  # 3 retries as ulting heroes can cover the button
-                        click(
-                            "buttons/exitbattle",
-                            suppress=True,
-                            retry=3,
-                            region=boundaries["exitBattle"],
+                        touch_img_wait(
+                            "buttons/exitbattle", boundaries["exitBattle"], retry=3
                         )
-                        click(
+                        touch_img_wait(
                             "labels/taptocontinue",
-                            confidence=0.8,
-                            suppress=True,
+                            boundaries["taptocontinue"],
+                            0.8,
                             grayscale=True,
-                            region=boundaries["taptocontinue"],
                         )
-                else:
-                    recover()
 
 
 def config_battle_formation(settings: PushSettings) -> None:
     app_settings = app_settings_h.app_settings
 
-    artifacts = None
-    counter = 0
     if app_settings["ignore_formations"]:
         logger.warning("ignoreformations enabled, skipping formation selection")
-        click(
+        touch_img_wait(
             "buttons/autobattle",
             suppress=True,
             retry=3,
             region=boundaries["autobattle"],
         )  # So we don't hit it in the background while autobattle is active
-        secure_click(
+        touch_img_while_other_visible(
             "buttons/activate",
             "labels/autobattle",
             region=boundaries["activateAB"],
             secureregion=boundaries["autobattleLabel"],
         )
         return
-    elif is_visible("buttons/formations", region=boundaries["formations"]):
-        click("buttons/formations", seconds=3, retry=3, region=boundaries["formations"])
+    elif touch_img_wait(
+        "buttons/formations", boundaries["formations"], seconds=3, retry=3
+    ):
         if app_settings["use_popular_formations"]:  # Use popular formations tab
-            click_xy(800, 1650, seconds=2)  # Change to 'Popular' tab
-        click_xy(850, 425 + (settings["formation"] * 175), seconds=2)
-        click("buttons/use", retry=3, region=boundaries["useAB"], seconds=2)
+            touch_xy_wait(800, 1650, seconds=2)  # Change to 'Popular' tab
+        touch_xy_wait(850, 425 + (settings["formation"] * 175), seconds=2)
+        touch_img_wait("buttons/use", boundaries["useAB"], seconds=2, retry=3)
 
         # Configure Artifacts
-        while (
-            artifacts is None and counter <= 5
-        ):  # loop because sometimes isVisible returns None here
-            artifacts = is_visible(
-                "buttons/checkbox_checked", region=(230, 1100, 80, 80)
-            )  # Check checkbox status
+        # loop because sometimes isVisible returns None here
+        counter = 0
+        artifacts = None
+        while artifacts is None and counter <= 5:
+            # Check checkbox status
+            artifacts = locate_img("buttons/checkbox_checked", (230, 1100, 80, 80))
             counter += 1
-        if (
-            counter >= 5
-        ):  # If still None after 5 tries give error and contiue without configuring
+        # If still None after 5 tries give error and contiue without configuring
+        if counter >= 5:
             logger.error("Couldn't read artifact status")
+
         if artifacts is not app_settings["copy_artifacts"] and artifacts is not None:
             if app_settings["copy_artifacts"]:
                 logger.info("Enabling Artifact copying")
             else:
                 logger.info("Disabling Artifact copying")
-            click_xy(
-                275, 1150
-            )  # click_xy not ideal here but my brain is fried so it'll do for now
+            touch_xy_wait(275, 1150)
 
-        click("buttons/confirm_small", retry=3, region=boundaries["confirmAB"])
-        click(
-            "buttons/autobattle", retry=3, region=boundaries["autobattle"]
-        )  # So we don't hit it in the background while autobattle is active
-        secure_click(
+        touch_img_wait("buttons/confirm_small", boundaries["confirmAB"], retry=3)
+        # So we don't hit it in the background while autobattle is active
+        touch_img_wait("buttons/autobattle", boundaries["autobattle"], retry=3)
+        touch_img_while_other_visible(
             "buttons/activate",
             "labels/autobattle",
-            region=boundaries["activateAB"],
-            secureregion=boundaries["autobattleLabel"],
+            boundaries["activateAB"],
+            boundaries["autobattleLabel"],
         )
     else:
         logger.warning("Could not find Formations button")
 
 
 def attempt_kt() -> None:
-    logger.info("Attempting Kings Tower battle")
-    confirm_loc("darkforest", region=boundaries["darkforestSelect"])
-    click_xy(500, 870, seconds=3)  # Long pause for animation
-    if is_visible("labels/kingstower"):
-        click_xy(555, 585)
-        click(
-            "buttons/challenge_plain", 0.7, retry=5, suppress=True, seconds=5
-        )  # lower confidence and retries for animated button
-        # For reasons sometimes this button is 'beginbattle' and sometimes it is 'begin', so we use click_xy
-        click_xy(700, 1850, seconds=2)
-        # click('buttons/beginbattle', 0.8, seconds=3, retry=5)
-        click("buttons/pause", 0.8, retry=5, suppress=True)
-        click("buttons/exitbattle")
-        click("buttons/back", retry=3, region=boundaries["backMenu"])
-        click("buttons/back", retry=3, region=boundaries["backMenu"])
-        if is_visible("buttons/back", retry=3, region=boundaries["backMenu"]):
-            click(
-                "buttons/back", region=boundaries["backMenu"]
-            )  # Last one only needed for multifights
-        logger.info("    Tower attempted successfully")
-    else:
-        logger.error("Tower screen not found, attempting to recover")
-        recover()
+    logger.info("Attempting Kings Tower battle...")
+    reset_to_screen(Screen.DARK_FOREST)
+
+    touch_xy_wait(500, 870, seconds=3)  # Long pause for animation
+
+    if not locate_img("labels/kingstower"):
+        logger.error("Tower screen not found")
+        reset_to_screen(Screen.DARK_FOREST)
+        return
+
+    touch_xy_wait(555, 585)
+    # lower confidence and retries for animated button
+    touch_img_wait("buttons/challenge_plain", confidence=0.7, seconds=5, retry=5)
+    # For reasons sometimes this button is 'beginbattle' and sometimes it is
+    # 'begin', so we use touch_xy_wait
+    touch_xy_wait(700, 1850, seconds=2)
+    touch_img_wait("buttons/pause", confidence=0.8, retry=5)
+    touch_img_wait("buttons/exitbattle")
+    touch_img_wait("buttons/back", boundaries["backMenu"], retry=3)
+    touch_img_wait("buttons/back", boundaries["backMenu"], retry=3)
+    # Last one only needed for multifights
+    touch_img_wait("buttons/back", region=boundaries["backMenu"], retry=3)
+    logger.info("Tower attempted successfully")
 
 
 def collect_inn_gifts() -> None:
-    checks = 0
-    logger.info("Attempting daily Inn gift collection")
-    confirm_loc("ranhorn", region=boundaries["ranhornSelect"])
-    wait()
-    click_xy(500, 200, seconds=4)
-    if is_visible("buttons/manage"):
-        while checks < 3:
-            if is_visible(
-                "buttons/inn_gift",
-                confidence=0.75,
-                click=True,
-                region=boundaries["inngiftarea"],
-                seconds=2,
-            ):
-                click_xy(550, 1400, seconds=0.5)  # Clear loot
-                click_xy(550, 1400, seconds=0.5)  # Clear loot
-                continue
-            checks += 1
-            wait()
-        click("buttons/back", region=boundaries["backMenu"])
-        logger.info("    Inn Gifts collected.")
-        wait(2)  # wait before next task as loading ranhorn can be slow
-    else:
-        logger.error("    Inn not found, attempting to recover")
-        recover()
+    logger.info("Collecting Inn gifts...")
+    reset_to_screen(Screen.RANHORN)
+
+    touch_xy_wait(500, 200, seconds=4)
+
+    if not locate_img("buttons/manage"):
+        logger.error("Inn not found")
+        reset_to_screen(Screen.RANHORN)
+        return
+
+    for i in range(3):  # ???
+        if touch_img_wait(
+            "buttons/inn_gift", boundaries["inngiftarea"], 0.75, seconds=2
+        ):
+            touch_xy_wait(550, 1400, seconds=0.5)  # Clear loot
+            touch_xy_wait(550, 1400, seconds=0.5)  # Clear loot
+
+    logger.info("Inn Gifts collected.")
+
+    # wait before next task as loading ranhorn can be slow
+    touch_img_wait("buttons/back", boundaries["backMenu"], seconds=2)
 
 
 class MakeStorePurchasesSettings(TypedDict):
@@ -880,338 +818,355 @@ def make_store_purchases_h(counter, settings: MakeStorePurchasesSettings) -> Non
             ) and counter > 2:  # only three shards/staffs
                 continue
             logger.info("    Buying: " + item_name_map[item])
-            click_xy(pos[0], pos[1])
-            click("buttons/shop/purchase", suppress=True)
-            click_xy(550, 1220, seconds=2)
+            touch_xy_wait(pos[0], pos[1])
+            touch_img_wait("buttons/shop/purchase")
+            touch_xy_wait(550, 1220, seconds=2)
 
     # Scroll down so bottom row is visible
-    swipe(550, 1500, 550, 1200, 500, seconds=5)
+    drag_wait((550, 1500), (550, 1200), 500, seconds=5)
 
     # Purchase bottom 4 rows
     for item, button in bottomrow.items():
         if settings[item]:
-            if is_visible(button, 0.95, click=True):
-                logger.info("    Buying: " + item_name_map[item])
-                click("buttons/shop/purchase", suppress=True)
-                click_xy(550, 1220)
-    wait(3)  # Long wait else Twisted Realm isn't found after if enabled in Dailies
+            if touch_img_wait(button, confidence=0.95):
+                logger.info("Buying: " + item_name_map[item])
+                touch_img_wait("buttons/shop/purchase")
+                touch_xy_wait(550, 1220)
+
+    # Long wait else Twisted Realm isn't found after if enabled in Dailies
+    wait(3)
 
 
 def make_store_purchases(settings: MakeStorePurchasesSettings, skipQuick=0) -> None:
     if settings["quick_buy"] and skipQuick == 0:
         make_store_purchases_quick(settings)
         return
+
     t = settings["times"]
-    logger.info(f"Attempting store purchases {t} times")
-    confirm_loc("ranhorn", region=boundaries["ranhornSelect"])
-    wait(2)
-    click_xy(300, 1725, seconds=5)
-    if is_visible("labels/store"):
-        # First purchases
-        make_store_purchases_h(counter, settings)
-        counter = 1
-        # refresh purchases
-        while counter < settings["times"]:
-            click_xy(1000, 300)
-            click("buttons/confirm", suppress=True, seconds=5)
-            counter += 1
-            logger.info("    Refreshed store " + str(counter) + " times.")
-            make_store_purchases_h(counter, settings)
-        click("buttons/back")
-        logger.info("    Store purchases attempted.")
-        wait(2)  # wait before next task as loading ranhorn can be slow
-    else:
+    logger.info(f"Making store purchases {t} times...")
+    reset_to_screen(Screen.RANHORN)
+
+    touch_xy_wait(300, 1725, seconds=5)
+
+    if not locate_img("labels/store"):
         logger.error("Store not found, attempting to recover")
-        recover()
+        reset_to_screen(Screen.RANHORN)
+        return
+
+    i = 1
+    # First purchases
+    make_store_purchases_h(i, settings)
+    # refresh purchases
+    while i < settings["times"]:
+        touch_xy_wait(1000, 300)
+        touch_img_wait("buttons/confirm", seconds=5)
+        i += 1
+        logger.info("Refreshed store {i} times.")
+        make_store_purchases_h(i, settings)
+    logger.info("    Store purchases attempted.")
+
+    # wait before next task as loading ranhorn can be slow
+    touch_img_wait("buttons/back", seconds=2)
 
 
 def make_store_purchases_quick(settings: MakeStorePurchasesSettings) -> None:
     t = settings["times"]
-    logger.info(f"Attempting {t} store quick buys")
-    confirm_loc("ranhorn")
-    wait(2)
-    click_xy(300, 1725, seconds=5)
-    if is_visible("labels/store"):
-        if is_visible("buttons/quickbuy", click=True):
-            wait(1)
-            click("buttons/purchase", seconds=5)
-            click_xy(970, 90, seconds=2)
-            counter = 1
-            while counter < settings["times"]:
-                click_xy(1000, 300)
-                click("buttons/confirm", suppress=True, seconds=2)
-                click("buttons/quickbuy", seconds=2)
-                click("buttons/purchase", seconds=2)
-                click_xy(970, 90)
-                counter += 1
-            click("buttons/back")
-            logger.info("Store purchases attempted.")
-        else:
-            logger.info("Quickbuy not found, switching to old style")
-            click("buttons/back")
-            make_store_purchases(settings, 1)
+    logger.info(f"Making {t} store quick buys...")
+    reset_to_screen(Screen.RANHORN)
 
+    touch_xy_wait(300, 1725, seconds=5)
+
+    if not locate_img("labels/store"):
+        logger.error("Store not found")
+        reset_to_screen(Screen.RANHORN)
+        return
+
+    if not touch_img_wait("buttons/quickbuy", seconds=2):
+        logger.info("Quickbuy not found, switching to old style")
+        touch_img_wait("buttons/back")
+        make_store_purchases(settings, 1)
     else:
-        logger.error("Store not found, attempting to recover")
-        recover()
+        touch_img_wait("buttons/purchase", seconds=5)
+        touch_xy_wait(970, 90, seconds=2)
+        counter = 1
+        while counter < settings["times"]:
+            touch_xy_wait(1000, 300)
+            touch_img_wait("buttons/confirm", seconds=2)
+            touch_img_wait("buttons/quickbuy", seconds=2)
+            touch_img_wait("buttons/purchase", seconds=2)
+            touch_xy_wait(970, 90)
+            counter += 1
+        logger.info("Store purchases attempted.")
+
+        touch_img_wait("buttons/back")
 
 
 def battle_guild_hunts() -> None:
-    logger.info("Attempting to run Guild Hunts")
-    confirm_loc("ranhorn", region=boundaries["ranhornSelect"])
-    click_xy(380, 360)
-    wait(6)
-    click_xy(550, 1800)  # Clear chests
+    logger.info("Battling guild hunts...")
+    reset_to_screen(Screen.RANHORN)
+
+    touch_xy_wait(380, 360, seconds=6)
+    touch_xy_wait(550, 1800)  # Clear chests
     # Collect any guild reward chests we have
-    click("buttons/guild_chests", seconds=2)
-    if is_visible("buttons/collect_guildchest"):
-        click("buttons/collect_guildchest")
-        click_xy(550, 1300)
-        click_xy(900, 550)
-        click_xy(550, 1800)  # Clear window
-        wait(1)
+    touch_img_wait("buttons/guild_chests", seconds=2)
+    if touch_img_wait("buttons/collect_guildchest"):
+        touch_xy_wait(550, 1300)
+        touch_xy_wait(900, 550)
+        touch_xy_wait(550, 1800, seconds=2)  # Clear window
     else:
-        click_xy(550, 1800)  # Clear window
-    click_xy(290, 860)
+        touch_xy_wait(550, 1800)  # Clear window
+    touch_xy_wait(290, 860)
+
+    if not locate_img("labels/wrizz"):
+        logger.error("Error opening guild hunts")
+        reset_to_screen(Screen.RANHORN)
+
     # Wrizz check
-    if is_visible("labels/wrizz"):
-        if is_visible("buttons/quickbattle"):
-            logger.info("    Wrizz Found, collecting")
-            click("buttons/quickbattle")
-            click_xy(725, 1300)
-            # So we don't get stuck on capped resources screen
-            if is_visible("buttons/confirm"):
-                click("buttons/confirm")
-            click_xy(550, 500)
-            click_xy(550, 500, seconds=2)
-        else:
-            logger.warning("    Wrizz quick battle not found")
-        # Soren Check
-        click_xy(970, 890)
-        if is_visible("buttons/quickbattle"):
-            logger.info("    Soren Found, collecting")
-            click("buttons/quickbattle")
-            click_xy(725, 1300)
-            # So we don't get stuck on capped resources screen
-            if is_visible("buttons/confirm"):
-                click("buttons/confirm")
-            click_xy(550, 500)
-            click_xy(550, 500, seconds=2)
-        else:
-            logger.warning("    Soren quick battle not found")
-        click_xy(70, 1810)
-        click_xy(70, 1810)
-        logger.info("    Guild Hunts checked successfully")
+    if not touch_img_wait("buttons/quickbattle"):
+        logger.warning("Wrizz quick battle not found")
     else:
-        logger.error("    Error opening Guild Hunts, attempting to recover")
-        recover()
+        logger.info("Wrizz found, collecting...")
+        touch_xy_wait(725, 1300)
+        # So we don't get stuck on capped resources screen
+        touch_img_wait("buttons/confirm")
+        touch_xy_wait(550, 500)
+        touch_xy_wait(550, 500, seconds=2)
+
+    # Soren Check
+    touch_xy_wait(970, 890)
+    if not touch_img_wait("buttons/quickbattle"):
+        logger.warning("Soren quick battle not found")
+    else:
+        logger.info("Soren found, collecting...")
+        touch_xy_wait(725, 1300)
+        # So we don't get stuck on capped resources screen
+        touch_img_wait("buttons/confirm")
+        touch_xy_wait(550, 500)
+        touch_xy_wait(550, 500, seconds=2)
+
+    logger.info("Guild hunts battled")
+
+    touch_xy_wait(70, 1810)
+    touch_xy_wait(70, 1810)
 
 
-# Checks for completed quests and collects, then clicks the open chect and clears rewards
+# Checks for completed quests and collects, then touch_img_waits the open chect and clears rewards
 # Once for Dailies once for Weeklies
 def collect_quests() -> None:
-    logger.info("Attempting to collect quest chests")
-    click_xy(960, 250)
-    if is_visible("labels/quests"):
-        click_xy(400, 1650)  # Dailies
-        if is_visible("labels/questcomplete"):
-            logger.info("    Daily Quest(s) found, collecting..")
-            click_xy(930, 680, seconds=4)  # Click top quest
-            click("buttons/fullquestchest", seconds=3, retry=3, suppress=True)
-            click_xy(400, 1650)
-        click_xy(600, 1650)  # Weeklies
-        if is_visible("labels/questcomplete"):
-            logger.info("    Weekly Quest(s) found, collecting..")
-            click_xy(930, 680, seconds=4)  # Click top quest
-            click("buttons/fullquestchest", seconds=3, retry=3, suppress=True)
-            click_xy(600, 1650, seconds=2)
-            click_xy(600, 1650)  # Second in case we get Limited Rewards popup
-        click("buttons/back", retry=3)
-        logger.info("    Quests collected")
-    else:
-        logger.error("    Quests screen not found, attempting to recover")
-        recover()
+    logger.info("Collecting quests...")
+
+    touch_xy_wait(960, 250)
+
+    if not locate_img("labels/quests"):
+        logger.error("Quests not found")
+        reset_to_screen()
+        return
+
+    touch_xy_wait(400, 1650)  # Dailies
+    if locate_img("labels/questcomplete"):
+        logger.info("Daily Quest(s) found, collecting..")
+        touch_xy_wait(930, 680, seconds=4)  # Click top quest
+        touch_img_wait("buttons/fullquestchest", seconds=3, retry=3)
+        touch_xy_wait(400, 1650)
+    touch_xy_wait(600, 1650)  # Weeklies
+    if locate_img("labels/questcomplete"):
+        logger.info("Weekly Quest(s) found, collecting..")
+        touch_xy_wait(930, 680, seconds=4)  # Click top quest
+        touch_img_wait("buttons/fullquestchest", seconds=3, retry=3)
+        touch_xy_wait(600, 1650, seconds=2)
+        touch_xy_wait(600, 1650)  # Second in case we get Limited Rewards popup
+    logger.info("Quests collected")
+
+    touch_img_wait("buttons/back", retry=3)
 
 
 def collect_merchants() -> None:
-    logger.info("Attempting to collect merchant deals")
-    click_xy(120, 300, seconds=5)
-    if is_visible("buttons/funinthewild", click=True, seconds=2):
-        click_xy(250, 1820, seconds=2)  # Ticket
-        click_xy(250, 1820, seconds=2)  # Reward
-    swipe(1000, 1825, 100, 1825, 500)
-    swipe(1000, 1825, 100, 1825, 500, seconds=3)
-    if is_visible("buttons/noblesociety"):
-        logger.info("    Collecting Nobles")
-        # Nobles
-        click_xy(675, 1825)
-        if is_visible("buttons/confirm_nobles", 0.8, retry=2):
-            logger.warning(
-                "Noble resource collection screen found, skipping Noble collection"
-            )
-            click_xy(70, 1810)
-        else:
-            # Champion
-            click_xy(750, 1600)  # Icon
-            click_xy(440, 1470, seconds=0.5)
-            click_xy(440, 1290, seconds=0.5)
-            click_xy(440, 1100, seconds=0.5)
-            click_xy(440, 915, seconds=0.5)
-            click_xy(440, 725, seconds=0.5)
-            click_xy(750, 1600)  # Icon
-            # Twisted
-            click_xy(600, 1600)  # Icon
-            click_xy(440, 1470, seconds=0.5)
-            click_xy(440, 1290, seconds=0.5)
-            click_xy(440, 1100, seconds=0.5)
-            click_xy(440, 915, seconds=0.5)
-            click_xy(440, 725, seconds=0.5)
-            click_xy(600, 1600)  # Icon
-            # Regal
-            click_xy(450, 1600)  # Icon
-            click_xy(440, 1470, seconds=0.5)
-            click_xy(440, 1290, seconds=0.5)
-            click_xy(440, 1100, seconds=0.5)
-            click_xy(440, 915, seconds=0.5)
-            click_xy(440, 725, seconds=0.5)
-            click_xy(450, 1600)  # Icon
-        # Monthly Cards
-        logger.info("    Collecting Monthly Cards")
-        click_xy(400, 1825)
-        # Monthly
-        click_xy(300, 1000, seconds=3)
-        click_xy(560, 430)
-        # Deluxe Monthly
-        click_xy(850, 1000, seconds=3)
-        click_xy(560, 430)
-        # Daily Deals
-        swipe(200, 1825, 450, 1825, 1000, seconds=2)
-        click_xy(400, 1825)
-        # Special Deal, no check as its active daily
-        logger.info("    Collecting Special Deal")
-        click("buttons/dailydeals")
-        click_xy(150, 1625)
-        click_xy(150, 1625)
-        # Daily Deal
-        if is_visible("buttons/merchant_daily", confidence=0.8, retry=2, click=True):
-            logger.info("    Collecting Daily Deal")
-            swipe(550, 1400, 550, 1200, 500, seconds=3)
-            click("buttons/dailydeals", confidence=0.8, retry=2)
-            click_xy(400, 1675, seconds=2)
-        # Biweeklies
-        if d.isoweekday() == 3:  # Wednesday
-            if is_visible(
-                "buttons/merchant_biweekly", confidence=0.8, retry=2, click=True
-            ):
-                logger.info("    Collecting Bi-weekly Deal")
-                swipe(300, 1400, 200, 1200, 500, seconds=3)
-                click_xy(200, 1200)
-                click_xy(550, 1625, seconds=2)
-        # Yuexi
-        if d.isoweekday() == 1:  # Monday
-            logger.info("    Collecting Yuexi")
-            click_xy(200, 1825)
-            click_xy(240, 880)
-            click_xy(150, 1625, seconds=2)
-        # Clear Rhapsody bundles notification
-        logger.info("    Clearing Rhapsody bundles notification")
-        swipe(200, 1825, 1000, 1825, 450, seconds=2)
-        if is_visible("labels/wishing_ship", confidence=0.8, retry=2, click=True):
-            click_xy(620, 1600)
-            click_xy(980, 200)
-            click_xy(70, 1810)
-            click_xy(70, 1810)
-        logger.info("    Merchant deals collected")
-        recover(True)
+    logger.info("Collecting merchant deals...")
+
+    touch_xy_wait(120, 300, seconds=5)
+
+    if touch_img_wait("buttons/funinthewild", seconds=2):
+        touch_xy_wait(250, 1820, seconds=2)  # Ticket
+        touch_xy_wait(250, 1820, seconds=2)  # Reward
+    drag_wait((1000, 1825), (100, 1825), 500)
+    drag_wait((1000, 1825), (100, 1825), 500, seconds=3)
+
+    if not locate_img("buttons/noblesociety"):
+        logger.error("Nobles not found")
+        reset_to_screen()
+        return
+
+    logger.info("Collecting nobles...")
+    touch_xy_wait(675, 1825)
+    if not locate_img("buttons/confirm_nobles", confidence=0.8, retry=2):
+        logger.warning("Noble resource collection screen not found, skipping")
+        touch_xy_wait(70, 1810)
     else:
-        logger.error("    Noble screen not found, attempting to recover")
-        recover()
+        # Champion
+        touch_xy_wait(750, 1600)  # Icon
+        touch_xy_wait(440, 1470, seconds=0.5)
+        touch_xy_wait(440, 1290, seconds=0.5)
+        touch_xy_wait(440, 1100, seconds=0.5)
+        touch_xy_wait(440, 915, seconds=0.5)
+        touch_xy_wait(440, 725, seconds=0.5)
+        touch_xy_wait(750, 1600)  # Icon
+        # Twisted
+        touch_xy_wait(600, 1600)  # Icon
+        touch_xy_wait(440, 1470, seconds=0.5)
+        touch_xy_wait(440, 1290, seconds=0.5)
+        touch_xy_wait(440, 1100, seconds=0.5)
+        touch_xy_wait(440, 915, seconds=0.5)
+        touch_xy_wait(440, 725, seconds=0.5)
+        touch_xy_wait(600, 1600)  # Icon
+        # Regal
+        touch_xy_wait(450, 1600)  # Icon
+        touch_xy_wait(440, 1470, seconds=0.5)
+        touch_xy_wait(440, 1290, seconds=0.5)
+        touch_xy_wait(440, 1100, seconds=0.5)
+        touch_xy_wait(440, 915, seconds=0.5)
+        touch_xy_wait(440, 725, seconds=0.5)
+        touch_xy_wait(450, 1600)  # Icon
+    # Monthly Cards
+    logger.info("Collecting monthly cards...")
+    touch_xy_wait(400, 1825)
+    # Monthly
+    touch_xy_wait(300, 1000, seconds=3)
+    touch_xy_wait(560, 430)
+    # Deluxe Monthly
+    touch_xy_wait(850, 1000, seconds=3)
+    touch_xy_wait(560, 430)
+    # Daily Deals
+    drag_wait((200, 1825), (450, 1825), 1000, seconds=2)
+    touch_xy_wait(400, 1825)
+    # Special Deal, no check as its active daily
+    logger.info("Collecting special deals...")
+    touch_img_wait("buttons/dailydeals")
+    touch_xy_wait(150, 1625)
+    touch_xy_wait(150, 1625)
+    # Daily Deal
+    if touch_img_wait("buttons/merchant_daily", confidence=0.8, retry=2):
+        logger.info("Collecting daily deals...")
+        drag_wait((550, 1400), (550, 1200), 500, seconds=3)
+        touch_img_wait("buttons/dailydeals", confidence=0.8, retry=2)
+        touch_xy_wait(400, 1675, seconds=2)
+
+    d = datetime.now()
+    # Biweeklies
+    if d.isoweekday() == 3:  # Wednesday
+        if touch_img_wait(
+            "buttons/merchant_biweekly",
+            confidence=0.8,
+            retry=2,
+        ):
+            logger.info("Collecting bi-weekly deals...")
+            drag_wait((300, 1400), (200, 1200), 500, seconds=3)
+            touch_xy_wait(200, 1200)
+            touch_xy_wait(550, 1625, seconds=2)
+    # Yuexi
+    if d.isoweekday() == 1:  # Monday
+        logger.info("Collecting Yuexi...")
+        touch_xy_wait(200, 1825)
+        touch_xy_wait(240, 880)
+        touch_xy_wait(150, 1625, seconds=2)
+    # Clear Rhapsody bundles notification
+    logger.info("Clearing rhapsody bundles notification...")
+    drag_wait((200, 1825), (1000, 1825), 450, seconds=2)
+    if touch_img_wait("labels/wishing_ship", confidence=0.8, retry=2):
+        touch_xy_wait(620, 1600)
+        touch_xy_wait(980, 200)
+        touch_xy_wait(70, 1810)
+        touch_xy_wait(70, 1810)
+
+    logger.info("Merchant deals collected")
+
+    reset_to_screen()
 
 
 # Opens Twisted Realm and runs it once with whatever formation is loaded
 def battle_tr() -> None:
-    logger.info("Attempting to run Twisted Realm")
-    confirm_loc("ranhorn", region=boundaries["ranhornSelect"])
-    click_xy(380, 360, seconds=6)
-    click_xy(550, 1800)  # Clear chests
-    click_xy(775, 875, seconds=2)
-    click_xy(550, 600, seconds=3)
-    if is_visible("buttons/nextboss"):
-        logger.info("    Twisted Realm found, battling")
-        if is_visible("buttons/challenge_tr", retry=3, confidence=0.8):
-            click_xy(550, 1850, seconds=2)
-            click("buttons/autobattle", retry=3, seconds=2)
-            if is_visible("buttons/checkbox_blank"):
-                click_xy(300, 975)  # Activate Skip Battle Animations
-            click_xy(700, 1300, seconds=6)
-            click_xy(550, 1300)
-            click_xy(550, 1800)
-            click_xy(70, 1800)
-            click_xy(70, 1800)
-            click_xy(70, 1800)
-            logger.info("    Twisted Realm attempted successfully")
-            wait(3)  # wait before next task as loading ranhorn can be slow
-            recover(True)
-        else:
-            click_xy(70, 1800)
-            click_xy(70, 1800)
-            logger.error("    Challenge button not found, attempting to recover")
-            recover()
-    else:
-        logger.error("    Error opening Twisted Realm, attempting to recover")
+    logger.info("Battling Twisted Realm...")
+    reset_to_screen(Screen.RANHORN)
+
+    touch_xy_wait(380, 360, seconds=6)
+    touch_xy_wait(550, 1800)  # Clear chests
+    touch_xy_wait(775, 875, seconds=2)
+    touch_xy_wait(550, 600, seconds=3)
+
+    if not locate_img("buttons/nextboss"):
+        logger.error("Error opening Twisted Realm")
         # TODO Add 'Calculating' confirmation to exit safely
-        recover()
+        reset_to_screen(Screen.RANHORN)
+        return
+
+    if not locate_img("buttons/challenge_tr", confidence=0.8, retry=3):
+        logger.error("Challenge button not found, attempting to recover")
+        touch_xy_wait(70, 1800)
+        touch_xy_wait(70, 1800)
+        reset_to_screen(Screen.RANHORN)
+        return
+
+    touch_xy_wait(550, 1850, seconds=2)
+    touch_img_wait("buttons/autobattle", seconds=2, retry=3)
+    if locate_img("buttons/checkbox_blank"):
+        touch_xy_wait(300, 975)  # Activate Skip Battle Animations
+    touch_xy_wait(700, 1300, seconds=6)
+    touch_xy_wait(550, 1300)
+    touch_xy_wait(550, 1800)
+    touch_xy_wait(70, 1800)
+    touch_xy_wait(70, 1800)
+    # wait before next task as loading ranhorn can be slow
+    touch_xy_wait(70, 1800, seconds=4)
+    logger.info("Twisted Realm attempted successfully")
+
+    reset_to_screen(Screen.RANHORN)
 
 
-# Opens a Fight of Fates battle and then cycles between dragging heroes and dragging skills until we see the battle end screen
+# Opens a Fight of Fates battle and then cycles between drag_waitging heroes and drag_waitging skills until we see the battle end screen
 # Collects quests at the end
 def fight_of_fates(settings: ChallengeSettings) -> None:
-    logger.info(
-        "Attempting to run Fight of Fates " + str(settings["battles"]) + " times"
-    )
-    counter = 0
-    expand_menus()  # Expand left menu again as it can shut after other dailies activities
-    click("buttons/fightoffates", confidence=0.8, retry=5, seconds=3)
-    if is_visible("labels/fightoffates"):
-        while counter < settings["battles"]:
-            click(
-                "buttons/challenge_tr",
-                confidence=0.8,
-                suppress=True,
-                retry=3,
-                seconds=15,
-            )
-            while not is_visible("labels/fightoffates", confidence=0.95):
-                # Hero
-                swipe(200, 1700, 290, 975, 200)
-                # Skill 1
-                swipe(450, 1700, 550, 950, 200)
-                # Hero
-                swipe(200, 1700, 290, 975, 200)
-                # Skill 2
-                swipe(600, 1700, 550, 950, 200)
-                # Hero
-                swipe(200, 1700, 290, 975, 200)
-                # Skill 3
-                swipe(800, 1700, 550, 950, 200)
-            counter = counter + 1
-            logger.info("    Fight of Fates Battle #" + str(counter) + " complete")
-        # Click quests
-        click_xy(975, 125, seconds=2)
-        # select dailies tab
-        click_xy(650, 1650, seconds=1)
-        # Collect Dailies
-        click_xy(940, 680, seconds=2)
-        click_xy(980, 435, seconds=2)
-        # clear loot
-        click_xy(550, 250, seconds=2)
-        # Back twice to exit
-        click_xy(70, 1650, seconds=1)
-        click_xy(70, 1810, seconds=1)
-        logger.info("    Fight of Fates attempted successfully")
-    else:
-        logger.warning("Fight of Fates not found, recovering..")
-        recover()
+    t = settings["battles"]
+    logger.info(f"Battling Fight of Fates {t} times")
+    expand_menus()
+
+    touch_img_wait("buttons/fightoffates", confidence=0.8, retry=5, seconds=3)
+
+    if not locate_img("labels/fightoffates"):
+        logger.warning("Fight of Fates not found")
+        reset_to_screen()
+        return
+
+    for i in range(settings["battles"]):
+        touch_img_wait("buttons/challenge_tr", confidence=0.8, seconds=15, retry=3)
+        while not locate_img("labels/fightoffates", confidence=0.95):
+            # Hero
+            drag_wait((200, 1700), (290, 975), 200)
+            # Skill 1
+            drag_wait((450, 1700), (550, 950), 200)
+            # Hero
+            drag_wait((200, 1700), (290, 975), 200)
+            # Skill 2
+            drag_wait((600, 1700), (550, 950), 200)
+            # Hero
+            drag_wait((200, 1700), (290, 975), 200)
+            # Skill 3
+            drag_wait((800, 1700), (550, 950), 200)
+
+        logger.info(f"Fight of Fates Battle #{i} complete")
+
+    # Click quests
+    touch_xy_wait(975, 125, seconds=2)
+    # select dailies tab
+    touch_xy_wait(650, 1650, seconds=1)
+    # Collect Dailies
+    touch_xy_wait(940, 680, seconds=2)
+    touch_xy_wait(980, 435, seconds=2)
+    # clear loot
+    touch_xy_wait(550, 250, seconds=2)
+    logger.info("Fight of Fates battled")
+
+    # Back twice to exit
+    touch_xy_wait(70, 1650, seconds=1)
+    touch_xy_wait(70, 1810, seconds=1)
 
 
 # Basic support for dailies quests, we simply choose the 5 cards from the top row of our hand
@@ -1219,653 +1174,498 @@ def fight_of_fates(settings: ChallengeSettings) -> None:
 # Timeout is probably 10 seconds longer than the stage timer so if we exceed that something has gone wrong
 # A round can take between 40 seconds or over 2 minutes depending on if our opponent is afk or not, at the end we collect daily quests
 def battle_of_blood(settings: ChallengeSettings) -> None:
-    logger.info(
-        "Attempting to run Battle of Blood " + str(settings["battles"]) + " times"
-    )
-    battlecounter = 0  # Number of battles we want to run
+    t = settings["battles"]
+    logger.info(f"Battling Battle of Blood {t} times...")
+    expand_menus()
+
+    touch_img_wait("buttons/events", confidence=0.8, seconds=3, retry=3)
+
+    if not touch_img_wait("labels/battleofblood_event_banner"):
+        logger.warning("Battle of Blood not found")
+        reset_to_screen()
+        return
+
     bob_timeout = 0  # Timer for tracking if something has gone wrong with placing cards
-    expand_menus()  # Expand left menu again as it can shut after other dailies activities
-    click("buttons/events", confidence=0.8, retry=3, seconds=3)
-    if is_visible("labels/battleofblood_event_banner", click=True):
-        while battlecounter < settings["battles"]:
-            click(
-                "buttons/challenge_tr",
-                confidence=0.8,
-                suppress=True,
-                retry=3,
-                seconds=7,
-            )
-            # Place cards 1-2, click ready
-            while not is_visible(
-                "labels/battleofblood_stage1", region=(465, 20, 150, 55)
-            ):
-                wait(1)
-                bob_timeout += 1
-                if bob_timeout > 30:
-                    logger.error("Battle of Blood timeout!")
-                    recover()
-                    return
-            else:
-                wait(4)  # For the card animations
-                bob_timeout = 0  # reset timer
-                click_xy(550, 1250, seconds=1)
-                click_xy(350, 1250, seconds=1)
-                click_xy(550, 1850, seconds=1)
-            if is_visible(
-                "buttons/confirm_small", retry=3, region=(600, 1220, 200, 80)
-            ):
-                click_xy(325, 1200)
-                click_xy(700, 1270)
-            # Place cards 3-4, click ready
-            while not is_visible(
-                "labels/battleofblood_stage2", region=(465, 20, 150, 55)
-            ):
-                wait(1)
-                bob_timeout += 1
-                if bob_timeout > 30:
-                    logger.error("Battle of Blood timeout!")
-                    recover()
-                    return
-            else:
-                wait(4)  # For the card animations
-                bob_timeout = 0  # reset timer
-                click_xy(550, 1250, seconds=1)
-                click_xy(350, 1250, seconds=1)
-                click_xy(550, 1850, seconds=1)
-            # Place card 5, click ready
-            while not is_visible(
-                "labels/battleofblood_stage3",
-                region=(465, 20, 150, 55),
-                confidence=0.95,
-            ):  # higher confidence so we don't get confused with battleofblood_stage2.png
-                wait(1)
-                bob_timeout += 1
-                if bob_timeout > 30:
-                    logger.error("Battle of Blood timeout!")
-                    recover()
-                    return
-            else:
-                wait(4)  # For the card animations
-                bob_timeout = 0  # reset timer
-                click_xy(550, 1250, seconds=1)
-                click_xy(550, 1850, seconds=8)
-                # Return Battle Report
-                battlecounter += 1
-                result = get_battle_results("BoB")
-                if result is True:
-                    logger.info(
-                        "    Victory! Battle of Blood Battle #"
-                        + str(battlecounter)
-                        + " complete"
-                    )
-                else:
-                    logger.error(
-                        "    Defeat! Battle of Blood Battle #"
-                        + str(battlecounter)
-                        + " complete"
-                    )
-        # Click quests
-        wait(2)  # wait for animations to settle from exting last battle
-        click_xy(150, 230, seconds=2)
-        # select dailies tab
-        click_xy(650, 1720, seconds=1)
-        # Collect Dailies
-        click_xy(850, 720, seconds=3)
-        click_xy(920, 525, seconds=2)
-        click_xy(920, 525, seconds=2)
-        # clear loot
-        click_xy(550, 250, seconds=2)
-        # Back twice to exit
-        click_xy(70, 1810, seconds=1)  # Exit Quests
-        click_xy(70, 1810, seconds=1)  # Exit BoB
-        click_xy(70, 1810, seconds=1)  # Exit Events screen
-        if confirm_loc("ranhorn", bool=True, region=boundaries["ranhornSelect"]):
-            logger.info("    Battle of Blood attempted successfully")
+    for i in range(settings["battles"]):
+        touch_img_wait("buttons/challenge_tr", confidence=0.8, seconds=7, retry=3)
+        # Place cards 1-2, touch_img_wait ready
+        while not locate_img("labels/battleofblood_stage1", (465, 20, 150, 55)):
+            wait(1)
+            bob_timeout += 1
+            if bob_timeout > 30:
+                logger.error("Battle of Blood timeout!")
+                reset_to_screen()
+                return
         else:
-            logger.warning("Issue exiting Battle of Blood, recovering..")
-            recover()
-    else:
-        logger.warning("Battle of Blood not found, recovering..")
-        recover()
+            wait(4)  # For the card animations
+            bob_timeout = 0  # reset timer
+            touch_xy_wait(550, 1250, seconds=1)
+            touch_xy_wait(350, 1250, seconds=1)
+            touch_xy_wait(550, 1850, seconds=1)
+        if locate_img("buttons/confirm_small", (600, 1220, 200, 80), retry=3):
+            touch_xy_wait(325, 1200)
+            touch_xy_wait(700, 1270)
+        # Place cards 3-4, touch_img_wait ready
+        while not locate_img("labels/battleofblood_stage2", (465, 20, 150, 55)):
+            wait(1)
+            bob_timeout += 1
+            if bob_timeout > 30:
+                logger.error("Battle of Blood timeout!")
+                reset_to_screen()
+                return
+        else:
+            wait(4)  # For the card animations
+            bob_timeout = 0  # reset timer
+            touch_xy_wait(550, 1250, seconds=1)
+            touch_xy_wait(350, 1250, seconds=1)
+            touch_xy_wait(550, 1850, seconds=1)
+        # Place card 5, touch_img_wait ready
+        # higher confidence so we don't get confused with battleofblood_stage2.png
+        while not locate_img("labels/battleofblood_stage3", (465, 20, 150, 55), 0.95):
+            wait(1)
+            bob_timeout += 1
+            if bob_timeout > 30:
+                logger.error("Battle of Blood timeout!")
+                reset_to_screen()
+                return
+        else:
+            wait(4)  # For the card animations
+            bob_timeout = 0  # reset timer
+            touch_xy_wait(550, 1250, seconds=1)
+            touch_xy_wait(550, 1850, seconds=8)
+
+            # Return Battle Report
+            if get_battle_results("BoB"):
+                logger.info(f"Victory! Battle of Blood Battle #{i + 1} complete")
+            else:
+                logger.warning(f"Defeat! Battle of Blood Battle #{i + 1} complete")
+
+    # Click quests
+    wait(2)  # wait for animations to settle from exting last battle
+    touch_xy_wait(150, 230, seconds=2)
+    # select dailies tab
+    touch_xy_wait(650, 1720, seconds=1)
+    # Collect Dailies
+    touch_xy_wait(850, 720, seconds=3)
+    touch_xy_wait(920, 525, seconds=2)
+    touch_xy_wait(920, 525, seconds=2)
+    # clear loot
+    touch_xy_wait(550, 250, seconds=2)
+    # Back twice to exit
+    touch_xy_wait(70, 1810, seconds=1)  # Exit Quests
+    touch_xy_wait(70, 1810, seconds=1)  # Exit BoB
+    touch_xy_wait(70, 1810, seconds=1)  # Exit Events screen
+    logger.info("Battle of Blood battled")
+
+    reset_to_screen()
 
 
 def circus_tour(settings: ChallengeSettings) -> None:
-    battlecounter = 1
-    logger.info("Attempting to run Circus Tour battles")
-    confirm_loc(
-        "ranhorn", region=boundaries["ranhornSelect"]
-    )  # Trying to fix 'buttons/events not found' error
+    logger.info("Battling Circus Tour...")
+    reset_to_screen(Screen.RANHORN)
+
     expand_menus()  # Expand left menu again as it can shut after other dailies activities
-    click("buttons/events", confidence=0.8, retry=3, seconds=3)
-    if is_visible("labels/circustour", retry=3, click=True):
-        while battlecounter < settings["battles"]:
-            logger.info("    Circus Tour battle #" + str(battlecounter))
-            click(
-                "buttons/challenge_tr",
-                confidence=0.8,
-                retry=3,
-                suppress=True,
-                seconds=3,
-            )
-            if battlecounter == 1:
-                # If Challenge is covered by text we clear it
-                while is_visible(
-                    "labels/dialogue_left", retry=2, region=boundaries["dialogue_left"]
-                ):
-                    logger.warning("    Clearing dialogue..")
-                    click_xy(550, 900)  # Clear dialogue box on new boss rotation
-                    click_xy(550, 900)  # Only need to do this on the first battle
-                    click_xy(550, 900)
-                    click_xy(550, 900)
-                    click_xy(550, 900)
-                    click_xy(550, 900, seconds=2)
-                    click(
-                        "buttons/challenge_tr",
-                        confidence=0.8,
-                        retry=3,
-                        suppress=True,
-                        seconds=3,
-                    )
-            click(
-                "buttons/battle_large",
-                confidence=0.8,
-                retry=3,
-                suppress=True,
-                seconds=5,
-            )
-            click("buttons/skip", confidence=0.8, retry=5, seconds=5)
-            click_xy(550, 1800)  # Clear loot
-            battlecounter += 1
-        wait(3)
-        click_xy(500, 1600)  # First chest
-        click_xy(500, 1600)  # Twice to clear loot popup
-        click_xy(900, 1600)  # Second chest
-        click_xy(900, 1600)  # Twice to clear loot popup
-        # Back twice to exit
-        click_xy(70, 1810, seconds=1)
-        click_xy(70, 1810, seconds=1)
-        if confirm_loc("ranhorn", bool=True, region=boundaries["ranhornSelect"]):
-            logger.info("    Circus Tour attempted successfully")
-        else:
-            logger.warning("Issue exiting Circus Tour, recovering..")
-            recover()
-    else:
+    touch_img_wait("buttons/events", confidence=0.8, retry=3, seconds=3)
+    if not touch_img_wait("labels/circustour", retry=3):
         logger.warning("Circus Tour not found, recovering..")
-        recover()
+        reset_to_screen()
+        return
+
+    for i in range(settings["battles"]):
+        touch_img_wait("buttons/challenge_tr", confidence=0.8, seconds=3, retry=3)
+
+        if i == 1:
+            # If Challenge is covered by text we clear it
+            while locate_img(
+                "labels/dialogue_left", boundaries["dialogue_left"], retry=2
+            ):
+                logger.warning("Clearing dialogue..")
+                touch_xy_wait(550, 900)  # Clear dialogue box on new boss rotation
+                touch_xy_wait(550, 900)  # Only need to do this on the first battle
+                touch_xy_wait(550, 900)
+                touch_xy_wait(550, 900)
+                touch_xy_wait(550, 900)
+                touch_xy_wait(550, 900, seconds=2)
+                touch_img_wait(
+                    "buttons/challenge_tr", confidence=0.8, seconds=3, retry=3
+                )
+
+        touch_img_wait("buttons/battle_large", confidence=0.8, seconds=5, retry=3)
+        touch_img_wait("buttons/skip", confidence=0.8, seconds=5, retry=5)
+        touch_xy_wait(550, 1800)  # Clear loot
+
+    wait(3)
+    touch_xy_wait(500, 1600)  # First chest
+    touch_xy_wait(500, 1600)  # Twice to clear loot popup
+    touch_xy_wait(900, 1600)  # Second chest
+    touch_xy_wait(900, 1600)  # Twice to clear loot popup
+
+    logger.info("Circus Tour attempted successfully")
+
+    # Back twice to exit
+    touch_xy_wait(70, 1810, seconds=1)
+    touch_xy_wait(70, 1810, seconds=1)
+    reset_to_screen()
 
 
 def run_lab() -> None:
-    logger.info("Attempting to run Arcane Labyrinth")
-    lowerdirection = ""  # for whether we go left or right for the first battle
-    upperdirection = (
-        ""  # For whether we go left or right to get the double battle at the end
-    )
-    confirm_loc("darkforest", region=boundaries["darkforestSelect"])
-    wait()
-    click_xy(400, 1150, seconds=3)
-    if is_visible("labels/labfloor3", retry=3, confidence=0.8, seconds=3):
+    logger.info("Running Arcane Labyrinth...")
+    reset_to_screen(Screen.DARK_FOREST)
+
+    touch_xy_wait(400, 1150, seconds=3)
+
+    if locate_img("labels/labfloor3", confidence=0.8, retry=3):
         logger.info("Lab already open! Continuing..")
-        click_xy(50, 1800, seconds=2)  # Exit Lab Menu
+        touch_xy_wait(50, 1800, seconds=2)  # Exit Lab Menu
         return
-    if is_visible("labels/lablocked", confidence=0.8, seconds=3):
+    if locate_img("labels/lablocked", confidence=0.8):
         logger.info("Dismal Lab not unlocked! Continuing..")
-        click_xy(50, 1800, seconds=2)  # Exit Lab Menu
+        touch_xy_wait(50, 1800, seconds=2)  # Exit Lab Menu
         return
-    if is_visible("labels/lab", retry=3):
+
+    # for whether we go left or right for the first battle
+    lowerdirection = ""
+    # For whether we go left or right to get the double battle at the end
+    upperdirection = ""
+    if locate_img("labels/lab", retry=3):
         # Check for Swept
-        if is_visible("labels/labswept", retry=3, confidence=0.8, seconds=3):
+        if locate_img("labels/labswept", confidence=0.8, retry=3):
             logger.info("Lab already swept! Continuing..")
-            click_xy(50, 1800, seconds=2)  # Exit Lab Menu
+            touch_xy_wait(50, 1800, seconds=2)  # Exit Lab Menu
             return
         # Check for Sweep
-        if is_visible(
-            "buttons/labsweep", retry=3, confidence=0.8, click=True, seconds=3
-        ):
-            logger.info("    Sweep Available!")
-            if is_visible(
-                "buttons/labsweepbattle", retry=3, confidence=0.8, click=True, seconds=3
+        if touch_img_wait("buttons/labsweep", confidence=0.8, seconds=3, retry=3):
+            logger.info("Sweep available!")
+            if touch_img_wait(
+                "buttons/labsweepbattle", confidence=0.8, seconds=3, retry=3
             ):
-                click_xy(720, 1450, seconds=3)  # Click Confirm
-                click_xy(550, 1550, seconds=3)  # Clear Rewards
-                if is_visible(
-                    "labels/notice", retry=3, seconds=3
-                ):  # And again for safe measure
-                    click_xy(550, 1250)
-                click_xy(
-                    550, 1550, seconds=5
-                )  # Clear Roamer Deals, long wait for the Limited Offer to pop up for Lab completion
-                click_xy(550, 1650)  # Clear Limited Offer
-                logger.info("    Lab Swept!")
+                touch_xy_wait(720, 1450, seconds=3)  # Click Confirm
+                touch_xy_wait(550, 1550, seconds=3)  # Clear Rewards
+                # And again for safe measure
+                if locate_img("labels/notice", retry=3):
+                    touch_xy_wait(550, 1250)
+                # Clear Roamer Deals, long wait for the Limited Offer to pop up for Lab completion
+                touch_xy_wait(550, 1550, seconds=5)
+                touch_xy_wait(550, 1650)  # Clear Limited Offer
+                logger.info("Lab swept!")
                 return
         else:  # Else we run lab manually
-            logger.info("    Sweep not found, attempting manual Lab run..")
+            logger.info("Sweep not found, running manually...")
 
             # Pre-run set up
-            logger.info("    Entering Lab")
-            click_xy(750, 1100, seconds=2)  # Center of Dismal
-            click_xy(550, 1475, seconds=2)  # Challenge
-            click_xy(550, 1600, seconds=2)  # Begin Adventure
-            click_xy(700, 1250, seconds=6)  # Confirm
-            click_xy(550, 1600, seconds=3)  # Clear Debuff
+            logger.info("Entering Lab")
+            touch_xy_wait(750, 1100, seconds=2)  # Center of Dismal
+            touch_xy_wait(550, 1475, seconds=2)  # Challenge
+            touch_xy_wait(550, 1600, seconds=2)  # Begin Adventure
+            touch_xy_wait(700, 1250, seconds=6)  # Confirm
+            touch_xy_wait(550, 1600, seconds=3)  # Clear Debuff
             # TODO Check Dismal Floor 1 text
-            logger.info("    Sweeping to 2nd Floor")
-            click_xy(950, 1600, seconds=2)  # Level Sweep
-            click_xy(550, 1550, seconds=8)  # Confirm, long wait for animations
-            click_xy(550, 1600, seconds=2)  # Clear Resources Exceeded message
-            click_xy(550, 1600, seconds=2)  # And again for safe measure
-            click_xy(550, 1600, seconds=3)  # Clear Loot
-            click_xy(550, 1250, seconds=5)  # Abandon Roamer
-            logger.info("    Choosing relics")
-            click_xy(550, 900)  # Relic 1
-            click_xy(550, 1325, seconds=3)  # Choose
-            click_xy(550, 900)  # Relic 2
-            click_xy(550, 1325, seconds=3)  # Choose
-            click_xy(550, 900)  # Relic 3
-            click_xy(550, 1325, seconds=3)  # Choose
-            click_xy(550, 900)  # Relic 4
-            click_xy(550, 1325, seconds=3)  # Choose
-            click_xy(550, 900)  # Relic 5
-            click_xy(550, 1325, seconds=3)  # Choose
-            click_xy(550, 900)  # Relic 6
-            click_xy(550, 1325, seconds=3)  # Choose
-            logger.info("    Entering 3rd Floor")
-            click_xy(550, 550, seconds=2)  # Portal to 3rd Floor
-            click_xy(550, 1200, seconds=5)  # Enter
-            click_xy(550, 1600, seconds=2)  # Clear Debuff
+            logger.info("Sweeping to 2nd Floor")
+            touch_xy_wait(950, 1600, seconds=2)  # Level Sweep
+            touch_xy_wait(550, 1550, seconds=8)  # Confirm, long wait for animations
+            touch_xy_wait(550, 1600, seconds=2)  # Clear Resources Exceeded message
+            touch_xy_wait(550, 1600, seconds=2)  # And again for safe measure
+            touch_xy_wait(550, 1600, seconds=3)  # Clear Loot
+            touch_xy_wait(550, 1250, seconds=5)  # Abandon Roamer
+            logger.info("Choosing relics")
+            for _ in range(6):
+                touch_xy_wait(550, 900)  # Relic i
+                touch_xy_wait(550, 1325, seconds=3)  # Choose
+            logger.info("Entering 3rd Floor")
+            touch_xy_wait(550, 550, seconds=2)  # Portal to 3rd Floor
+            touch_xy_wait(550, 1200, seconds=5)  # Enter
+            touch_xy_wait(550, 1600, seconds=2)  # Clear Debuff
             # TODO Check Dismal Floor 3 text
 
             # Check which route we are taking, as to avoid the cart
-            click_xy(400, 1400, seconds=2)  # Open first tile on the left
-            if is_visible("labels/labguard", retry=2):
-                logger.warning("    Loot Route: Left")
+            touch_xy_wait(400, 1400, seconds=2)  # Open first tile on the left
+            if locate_img("labels/labguard", retry=2):
+                logger.warning("Loot Route: Left")
                 lowerdirection = "left"
             else:
-                logger.warning("    Loot Route: Right")
+                logger.warning("Loot Route: Right")
                 lowerdirection = "right"
-                click_xy(550, 50, seconds=3)  # Back to Lab screen
+                touch_xy_wait(550, 50, seconds=3)  # Back to Lab screen
 
             # 1st Row (single)
-            handle_lab_tile("lower", lowerdirection, "1")
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
+            handle_lab_tile(1, lowerdirection)
+            # Check we're at the battle screen
+            if locate_img("buttons/heroclassselect", retry=3):
                 config_lab_teams(1)
-                click_xy(550, 1850, seconds=4)  # Battle
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
-            if get_battle_results(type="lab") is False:
+            if get_battle_results(type="lab") == False:
                 return
 
             # 2nd Row (multi)
-            handle_lab_tile("lower", lowerdirection, "2")
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
-                click_xy(550, 1850, seconds=4)  # Battle
+            handle_lab_tile(2, lowerdirection)
+            # Check we're at the battle screen
+            if locate_img("buttons/heroclassselect", retry=3):
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
             if get_battle_results(type="lab", firstOfMulti=True) is False:
                 return
-            click_xy(750, 1725, seconds=4)  # Continue to second battle
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
+            touch_xy_wait(750, 1725, seconds=4)  # Continue to second battle
+            # Check we're at the battle screen
+            if locate_img("buttons/heroclassselect", retry=3):
                 config_lab_teams(2)
-                click_xy(550, 1850, seconds=4)  # Battle
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
             if get_battle_results(type="lab") is False:
                 return
 
             # 3rd Row (single relic)
-            handle_lab_tile("lower", lowerdirection, "3")
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
-                click_xy(550, 1850, seconds=4)  # Battle
+            handle_lab_tile(3, lowerdirection)
+            # Check we're at the battle screen
+            if locate_img("buttons/heroclassselect", retry=3):
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
             if get_battle_results(type="lab") is False:
                 return
-            click_xy(550, 1350, seconds=2)  # Clear Relic reward
+            touch_xy_wait(550, 1350, seconds=2)  # Clear Relic reward
 
             # 4th Row (multi)
-            handle_lab_tile("lower", lowerdirection, "4")
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
-                click_xy(550, 1850, seconds=4)  # Battle
+            handle_lab_tile(4, lowerdirection)
+            # Check we're at the battle screen
+            if locate_img("buttons/heroclassselect", retry=3):
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
             if get_battle_results(type="lab", firstOfMulti=True) is False:
                 return
-            click_xy(750, 1725, seconds=4)  # Continue to second battle
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
-                click_xy(550, 1850, seconds=4)  # Battle
+            touch_xy_wait(750, 1725, seconds=4)  # Continue to second battle
+            # Check we're at the battle screen
+            if locate_img("buttons/heroclassselect", retry=3):
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
             if get_battle_results(type="lab") is False:
                 return
 
             # 5th Row (single)
-            handle_lab_tile("lower", lowerdirection, "5")
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
-                click_xy(550, 1850, seconds=4)  # Battle
+            handle_lab_tile(5, lowerdirection)
+            # Check we're at the battle screen
+            if locate_img("buttons/heroclassselect", retry=3):
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
             if get_battle_results(type="lab") is False:
                 return
 
             # 6th Row (single relic)
-            handle_lab_tile("lower", lowerdirection, "6")
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
-                click_xy(550, 1850, seconds=4)  # Battle
+            handle_lab_tile(6, lowerdirection)
+            # Check we're at the battle screen
+            if locate_img("buttons/heroclassselect", retry=3):
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
             if get_battle_results(type="lab") is False:
                 return
-            click_xy(550, 1350, seconds=2)  # Clear Relic reward
+            touch_xy_wait(550, 1350, seconds=2)  # Clear Relic reward
 
             # Check which route we are taking for the upper tiles
-            swipe(550, 200, 550, 1800, duration=1000)
-            click_xy(400, 1450, seconds=2)  # First tile on the left
-            if is_visible("labels/labpraeguard", retry=2):
-                logger.warning("    Loot Route: Left")
+            drag_wait((550, 200), (550, 1800), duration=1000)
+            touch_xy_wait(400, 1450, seconds=2)  # First tile on the left
+            if locate_img("labels/labpraeguard", retry=2):
+                logger.warning("Loot Route: Left")
                 upperdirection = "left"
             else:
-                logger.warning("    Loot Route: Right")
+                logger.warning("Loot Route: Right")
                 upperdirection = "right"
-                click_xy(550, 50, seconds=2)  # Back to Lab screen
+                touch_xy_wait(550, 50, seconds=2)  # Back to Lab screen
 
             # 7th Row (multi)
-            handle_lab_tile("upper", upperdirection, "7")
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
-                click_xy(550, 1850, seconds=4)  # Battle
+            handle_lab_tile(7, upperdirection)
+            if locate_img("buttons/heroclassselect", retry=3):
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
             if get_battle_results(type="lab", firstOfMulti=True) is False:
                 return
-            click_xy(750, 1725, seconds=4)  # Continue to second battle
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
-                click_xy(550, 1850, seconds=4)  # Battle
+            touch_xy_wait(750, 1725, seconds=4)  # Continue to second battle
+            if locate_img("buttons/heroclassselect", retry=3):
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
             if get_battle_results(type="lab") is False:
                 return
 
             # 8th Row (multi)
-            handle_lab_tile("upper", upperdirection, "8")
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
-                click_xy(550, 1850, seconds=4)  # Battle
+            handle_lab_tile(8, upperdirection)
+            if locate_img("buttons/heroclassselect", retry=3):
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
             if get_battle_results(type="lab", firstOfMulti=True) is False:
                 return
-            click_xy(750, 1725, seconds=4)  # Continue to second battle
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
+            touch_xy_wait(750, 1725, seconds=4)  # Continue to second battle
+            if locate_img("buttons/heroclassselect", retry=3):
                 # config_lab_teams(2, pet=False)  # We've lost heroes to Thoran etc by now, so lets re-pick 5 strongest heroes
-                click_xy(550, 1850, seconds=4)  # Battle
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
             if get_battle_results(type="lab") is False:
                 return
 
             # 9th Row (witches den or fountain)
-            handle_lab_tile("upper", upperdirection, "9")
-            if is_visible("labels/labwitchsden", retry=3):
+            handle_lab_tile(9, upperdirection)
+            if locate_img("labels/labwitchsden", retry=3):
                 logger.warning("    Clearing Witch's Den")
-                click_xy(550, 1500, seconds=3)  # Go
-                click_xy(300, 1600, seconds=4)  # Abandon
-            if is_visible("labels/labfountain", retry=3):
+                touch_xy_wait(550, 1500, seconds=3)  # Go
+                touch_xy_wait(300, 1600, seconds=4)  # Abandon
+            if locate_img("labels/labfountain", retry=3):
                 logger.warning("    Clearing Divine Fountain")
-                click_xy(725, 1250, seconds=3)  # Confirm
-                click_xy(725, 1250, seconds=2)  # Go
+                touch_xy_wait(725, 1250, seconds=3)  # Confirm
+                touch_xy_wait(725, 1250, seconds=2)  # Go
 
             # 10th row (single boss)
-            handle_lab_tile("upper", upperdirection, "10")
-            if is_visible(
-                "buttons/heroclassselect", retry=3
-            ):  # Check we're at the battle screen
+            handle_lab_tile(10, upperdirection)
+            if locate_img("buttons/heroclassselect", retry=3):
                 config_lab_teams(
                     1, pet=False
                 )  # We've lost heroes to Thoran etc by now, so lets re-pick 5 strongest heroes
-                click_xy(550, 1850, seconds=4)  # Battle
+                touch_xy_wait(550, 1850, seconds=4)  # Battle
             else:
                 logger.error("Battle Screen not found! Exiting")
-                recover()
+                reset_to_screen()
                 return
             if get_battle_results(type="lab") is False:
                 return
 
             wait(6)  # Long pause for Value Bundle to pop up
-            click_xy(550, 1650, seconds=3)  # Clear Value Bundle for completing lab
-            click_xy(550, 550, seconds=3)  # Loot Chest
-            click_xy(550, 1650, seconds=2)  # Clear Loot
-            click_xy(550, 1650, seconds=2)  # Clear Notice
-            click_xy(550, 1650, seconds=2)  # One more for safe measure
-            click_xy(50, 1800, seconds=2)  # Click Back to Exit
+            touch_xy_wait(550, 1650, seconds=3)  # Clear Value Bundle for completing lab
+            touch_xy_wait(550, 550, seconds=3)  # Loot Chest
+            touch_xy_wait(550, 1650, seconds=2)  # Clear Loot
+            touch_xy_wait(550, 1650, seconds=2)  # Clear Notice
+            touch_xy_wait(550, 1650, seconds=2)  # One more for safe measure
+            touch_xy_wait(50, 1800, seconds=2)  # Click Back to Exit
             logger.info("    Manual Lab run complete!")
     else:
         logger.error("Can't find Lab screen! Exiting..")
-        recover()
+        reset_to_screen()
 
 
 # Clears selected team and replaces it with top5 heroes, and 6th-10th for team2, selects pets from the first and second slots
-def config_lab_teams(team, pet=True) -> None:
+def config_lab_teams(team: Literal[1, 2], pet=True) -> None:
     if team == 1:
-        click_xy(1030, 1100, seconds=2)  # Clear Team
-        click_xy(550, 1250, seconds=2)  # Confirm
-        click_xy(
-            930, 1300
-        )  # Slot 5 (Reverse order as our top heroes tend to be squishy so they get back line)
-        click_xy(730, 1300)  # Slot 4
-        click_xy(530, 1300)  # Slot 3
-        click_xy(330, 1300)  # Slot 2
-        click_xy(130, 1300)  # Slot 1
-        if pet is True:
-            if is_visible(
-                "buttons/pet_empty",
-                confidence=0.75,
-                retry=3,
-                click=True,
-                region=(5, 210, 140, 100),
-            ):
-                click_xy(150, 1250, seconds=2)  # First Pet
-                click_xy(750, 1800, seconds=4)  # Confirm
-    if team == 2:
-        click_xy(1030, 1100, seconds=2)  # Clear Team
-        click_xy(550, 1250, seconds=2)  # Confirm
-        click_xy(130, 1550)  # Slot 1
-        click_xy(330, 1550)  # Slot 2
-        click_xy(530, 1550)  # Slot 3
-        click_xy(730, 1550)  # Slot 4
-        click_xy(930, 1550)  # Slot 5
-        if pet is True:
-            if is_visible(
-                "buttons/pet_empty",
-                confidence=0.75,
-                retry=3,
-                click=True,
-                region=(5, 210, 140, 100),
-            ):
-                click_xy(350, 1250, seconds=2)  # Second Pet
-                click_xy(750, 1800, seconds=4)  # Confirm
+        hero_y = 1300
+        pet_x = 150
+    else:
+        hero_y = 1550
+        pet_x = 350
+
+    touch_xy_wait(1030, 1100, seconds=2)  # Clear Team
+    touch_xy_wait(550, 1250, seconds=2)  # Confirm
+
+    # Populate hero slots 5-1. Go in reverse order since top heroes tend to be
+    # squishier so they get back line.
+    for i in reversed(range(5)):
+        touch_xy_wait(130 + i * 200, hero_y)  # Select
+    # Choose pet
+    if pet:
+        if touch_img_wait("buttons/pet_empty", (5, 210, 140, 100), 0.75, retry=3):
+            touch_xy_wait(pet_x, 1250, seconds=2)  # Select
+            touch_xy_wait(750, 1800, seconds=4)  # Confirm
 
 
 # Will select the correct Lab tile and take us to the battle screen
 # Elevation is either Upper or Lower dependon on whether we have scrolled the screen up or not for the scond half
 # Side is left or right, we choose once at the start and once after scrolling up to get both multi fights
 # Tile is the row of the tile we're aiming for, from 1 at the bottom to 10 at the final boss
-def handle_lab_tile(elevation, side, tile) -> None:
-    if tile == "4" or tile == "6" or tile == "10":
-        logger.info("    Battling " + elevation.capitalize() + " Tile " + tile)
+def handle_lab_tile(tile: int, side: Literal["right", "left"]) -> None:
+    elevation = "upper" if tile > 6 else "lower"
+    if tile in (4, 6, 10):
+        logger.info(f"Battling {elevation} tile {tile}")
     else:
-        logger.info(
-            "    Battling "
-            + elevation.capitalize()
-            + " "
-            + side.capitalize()
-            + " Tile "
-            + tile
-        )
-    wait(1)
-    if elevation == "lower":
-        if side == "left":
-            if tile == "1":  # Single
-                click_xy(400, 1450, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Go
-            if tile == "2":  # Multi
-                click_xy(250, 1250, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Click Go
-                if is_visible(
-                    "labels/notice", confidence=0.8, retry=3
-                ):  # 'High Difficulty popup at first multi'
-                    click_xy(450, 1150, seconds=2)  # Don't show this again
-                    click_xy(725, 1250, seconds=4)  # Go
-                click_xy(750, 1500, seconds=4)  # Click Begin Battle
-            if tile == "3":  # Single
-                click_xy(400, 1050, seconds=2)  # Tile
-                click_xy(550, 1600, seconds=4)  # Go (lower for relic)
-            if tile == "4":  # Multi
-                click_xy(550, 850, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Click Go
-                click_xy(750, 1500, seconds=4)  # Click Begin Battle
-            if tile == "5":  # Single
-                click_xy(400, 650, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Go
-            if tile == "6":  # Single
-                click_xy(550, 450, seconds=2)  # Tile
-                click_xy(550, 1600, seconds=4)  # Go (lower for relic)
-        if side == "right":
-            if tile == "1":  # Single
-                click_xy(700, 1450, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Go
-            if tile == "2":  # Multi
-                click_xy(800, 1225, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Click Go
-                if is_visible(
-                    "labels/notice", confidence=0.8, retry=3
-                ):  # 'High Difficulty popup at first multi'
-                    click_xy(450, 1150, seconds=2)  # Don't show this again
-                    click_xy(725, 1250, seconds=4)  # Go
-                click_xy(750, 1500, seconds=4)  # Click Begin Battle
-            if tile == "3":  # Single
-                click_xy(700, 1050, seconds=2)  # Tile
-                click_xy(550, 1600, seconds=4)  # Go (lower for relic)
-            if tile == "4":  # Multi
-                click_xy(550, 850, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Click Go
-                click_xy(750, 1500, seconds=4)  # Click Begin Battle
-            if tile == "5":  # Single
-                click_xy(700, 650, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Go
-            if tile == "6":
-                click_xy(550, 450, seconds=2)  # Tile
-                click_xy(550, 1600, seconds=4)  # Go (lower for relic)
-    if elevation == "upper":
-        if side == "left":
-            if tile == "7":  # Multi
-                click_xy(400, 1450, seconds=2)  # Tile
-                # No Go as we opened the tile to check direction
-                click_xy(750, 1500, seconds=4)  # Click Begin Battle
-            if tile == "8":  # Multi
-                click_xy(250, 1250, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Go
-                click_xy(750, 1500, seconds=4)  # Click Begin Battle
-            if tile == "9":  # Witches Den or Well
-                click_xy(400, 1100, seconds=2)  # Tile
-            if tile == "10":  # Single
-                click_xy(550, 900, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Go
-        if side == "right":
-            if tile == "7":  # Multi
-                click_xy(700, 1450, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Go
-                click_xy(750, 1500, seconds=4)  # Click Begin Battle
-            if tile == "8":  # Multi
-                click_xy(800, 1225, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Go
-                click_xy(750, 1500, seconds=4)  # Click Begin Battle
-            if tile == "9":  # Witches Den or Well
-                click_xy(700, 1100, seconds=2)  # Tile
-            if tile == "10":  # Single
-                click_xy(550, 850, seconds=2)  # Tile
-                click_xy(550, 1500, seconds=4)  # Go
+        logger.info(f"Battling {elevation} {side} tile {tile}")
+
+    MULTI_TILES = (2, 4, 7, 8)
+    RELIC_TILES = (3, 6)
+
+    TILE_X_COEFF = (1, 2, 1, 0, 1, 0, 1, 2, 1, 0)
+    tile_x_side_coeff = -1 if side == "left" else 1
+    tile_x = 550 + tile_x_side_coeff * TILE_X_COEFF[tile - 1] * 150
+    tile_y = 1450 - ((tile - 1) % 6) * 200
+
+    touch_xy_wait(tile_x, tile_y, seconds=2)  # Tile
+    # Not Witches Den or Well
+    if tile != 9:
+        # Not the 7th left, as there is no Go since we opened the tile to check
+        # direction
+        if not (tile == 7 and side == "left"):
+            # Go slightly lower for relic tiles
+            touch_xy_wait(550, 1600 if tile in RELIC_TILES else 1500, seconds=4)  # Go
+        # Handle High Difficulty popup at first multi
+        if tile == MULTI_TILES[0] and locate_img(
+            "labels/notice", confidence=0.8, retry=3
+        ):
+            touch_xy_wait(450, 1150, seconds=2)  # Don't show this again
+            touch_xy_wait(725, 1250, seconds=4)  # Go
+        if tile in MULTI_TILES:
+            touch_xy_wait(750, 1500, seconds=4)  # Begin Battle
 
 
 # Returns result of a battle, diferent types for the different types of post-battle screens, count for number of battles in Arena
-# firstOfMulti is so we don't click to clear loot after a lab battle, which would exit us from the battle screen for the second fight
+# firstOfMulti is so we don't touch_img_wait to clear loot after a lab battle, which would exit us from the battle screen for the second fight
 def get_battle_results(type, firstOfMulti=False) -> None:
     counter = 0
 
     if type == "BoB":
         while counter < 30:
-            if is_visible("labels/victory"):
-                # logger.info('    Battle of Blood Victory!')
-                click_xy(550, 1850, seconds=3)  # Clear window
+            if locate_img("labels/victory"):
+                touch_xy_wait(550, 1850, seconds=3)  # Clear window
                 return True
-            if is_visible("labels/defeat"):
-                # logger.error('    Battle of Blood Defeat!')
-                click_xy(550, 1850, seconds=3)  # Clear window
+            if locate_img("labels/defeat"):
+                touch_xy_wait(550, 1850, seconds=3)  # Clear window
                 return False
             counter += 1
         logger.error("Battletimer expired")
-        recover()
+        reset_to_screen()
         return False
 
-    # Here we don't clear the result by clicking at the bottom as there is the battle report there
+    # Here we don't clear the result by touch_img_waiting at the bottom as there is the battle report there
     if type == "HoE":
         while counter < 10:
             # Clear Rank Up message
-            if is_visible(
+            if locate_img(
                 "labels/hoe_ranktrophy", retry=5, region=(150, 900, 350, 250)
             ):
-                click_xy(550, 1200)
-            if is_visible("labels/victory"):
+                touch_xy_wait(550, 1200)
+            if locate_img("labels/victory"):
                 # logger.info('    Battle of Blood Victory!')
-                click_xy(550, 700, seconds=3)  # Clear window
+                touch_xy_wait(550, 700, seconds=3)  # Clear window
                 return True
-            if is_visible("labels/defeat"):
+            if locate_img("labels/defeat"):
                 # logger.error('    Battle of Blood Defeat!')
-                click_xy(550, 700, seconds=3)  # Clear window
+                touch_xy_wait(550, 700, seconds=3)  # Clear window
                 return False
             counter += 1
         logger.error("Battletimer expired")
@@ -1874,32 +1674,32 @@ def get_battle_results(type, firstOfMulti=False) -> None:
     if type == "lab":
         while counter < 15:
             # For 'resources exceeded' message
-            if is_visible("labels/notice"):
-                click_xy(550, 1250)
-            if is_visible("labels/victory"):
+            if locate_img("labels/notice"):
+                touch_xy_wait(550, 1250)
+            if locate_img("labels/victory"):
                 logger.info("    Lab Battle Victory!")
                 if (
                     firstOfMulti is False
                 ):  # Else we exit before second battle while trying to collect loot
-                    click_xy(
+                    touch_xy_wait(
                         550, 1850, seconds=5
                     )  # Clear loot popup and wait for Lab to load again
                 return
-            if is_visible("labels/defeat"):
+            if locate_img("labels/defeat"):
                 # TODO Use Duras Tears so we can continue
                 logger.error("    Lab Battle  Defeat! Exiting..")
-                recover()
+                reset_to_screen()
                 return False
             counter += 1
         logger.error("Battletimer expired")
-        recover()
+        reset_to_screen()
         return False
 
     if type == "arena":
         while counter < 10:
-            if is_visible("labels/rewards"):
+            if locate_img("labels/rewards"):
                 return True
-            if is_visible("labels/defeat"):
+            if locate_img("labels/defeat"):
                 return False
             wait(1)
             counter += 1
@@ -1907,10 +1707,10 @@ def get_battle_results(type, firstOfMulti=False) -> None:
         return False
 
     if type == "campaign":
-        if is_visible("labels/victory", confidence=0.75, retry=2):
+        if locate_img("labels/victory", confidence=0.75, retry=2):
             logger.info("    Victory!")
             return True
-        elif is_visible("labels/defeat", confidence=0.8):
+        elif locate_img("labels/defeat", confidence=0.8):
             logger.error("    Defeat!")
             return False
         else:
@@ -1918,90 +1718,83 @@ def get_battle_results(type, firstOfMulti=False) -> None:
 
 
 def challenge_hoe(settings: ChallengeOpponentSettings) -> None:
-    counter = 0
-    errorcounter = 0
-    logger.info("Battling Heroes of Esperia " + str(settings["battles"]) + " times")
+    t = settings["battles"]
+    logger.info(f"Battling Heroes of Esperia {t} times...")
     logger.warning("Note: this currently won't work in the Legends Tower")
-    confirm_loc("darkforest", region=boundaries["darkforestSelect"])
-    click_xy(740, 1050)  # Open Arena of Heroes
-    click_xy(550, 50)  # Clear Tickets Popup
-    if is_visible("labels/heroesofesperia", click=True, seconds=3):
-        # Check if we've opened it yet
-        if is_visible("buttons/join_hoe", 0.8, retry=3, region=(420, 1780, 250, 150)):
-            logger.warning("Heroes of Esperia not opened! Entering..")
-            click_xy(550, 1850)  # Clear Info
-            click_xy(550, 1850, seconds=6)  # Click join
-            click_xy(550, 1140, seconds=3)  # Clear Placement
-            click_xy(1000, 1650, seconds=8)  # Collect all and wait for scroll
-            click_xy(550, 260, seconds=5)  # Character portrait to clear Loot
-            click_xy(550, 260, seconds=5)  # Character portrait to scroll back up
-        # Start battles
-        if is_visible(
-            "buttons/fight_hoe",
-            retry=10,
-            seconds=3,
-            click=True,
-            region=(400, 200, 400, 1500),
-        ):
-            while counter < settings["battles"]:
-                select_opponent(choice=settings["opponent_number"], hoe=True)
-                if is_visible(
-                    "labels/hoe_buytickets", region=(243, 618, 600, 120)
-                ):  # Check for ticket icon pixel
-                    logger.error("Ticket Purchase screen found, exiting")
-                    recover()
-                    return
-                while is_visible(
-                    "buttons/heroclassselect", region=boundaries["heroclassselect"]
-                ):  # This is rather than Battle button as that is animated and hard to read
-                    click_xy(550, 1800, seconds=0)
-                click_while_visible(
-                    "buttons/skip", confidence=0.8, region=boundaries["skipAoH"]
-                )
-                if get_battle_results(type="HoE"):
-                    logger.info("    Battle #" + str(counter + 1) + " Victory!")
-                else:
-                    logger.error("    Battle #" + str(counter + 1) + " Defeat!")
+    reset_to_screen(Screen.DARK_FOREST)
 
-                # Lots of things/animations can happen after a battle so we keep clicking until we see the fight button again
-                while not is_visible(
-                    "buttons/fight_hoe",
-                    seconds=3,
-                    click=True,
-                    region=(400, 200, 400, 1500),
-                ):
-                    if errorcounter < 6:
-                        click_xy(420, 50)  # Neutral location
-                        click_xy(550, 1420)  # Rank up confirm button
-                        errorcounter += 1
-                    else:
-                        logger.error("Something went wrong post-battle, recovering")
-                        recover()
-                        return
-                errorcounter = 0
-                counter += 1
-        else:
-            logger.error("Heroes of Esperia Fight button not found! Recovering")
-            recover()
+    touch_xy_wait(740, 1050)  # Open Arena of Heroes
+    touch_xy_wait(550, 50)  # Clear Tickets Popup
+
+    if not touch_img_wait("labels/heroesofesperia", seconds=3):
+        logger.error("Heroes of Esperia not found")
+        reset_to_screen(Screen.DARK_FOREST)
+        return
+
+    # Check if we've opened it yet
+    if locate_img("buttons/join_hoe", (420, 1780, 250, 150), 0.8):
+        logger.warning("Heroes of Esperia not opened! Entering..")
+        touch_xy_wait(550, 1850)  # Clear Info
+        touch_xy_wait(550, 1850, seconds=6)  # Click join
+        touch_xy_wait(550, 1140, seconds=3)  # Clear Placement
+        touch_xy_wait(1000, 1650, seconds=8)  # Collect all and wait for scroll
+        touch_xy_wait(550, 260, seconds=5)  # Character portrait to clear Loot
+        touch_xy_wait(550, 260, seconds=5)  # Character portrait to scroll back up
+
+    # Start battles
+    if not touch_img_wait(
+        "buttons/fight_hoe", (400, 200, 400, 1500), seconds=3, retry=10
+    ):
+        logger.error("Heroes of Esperia Fight button not found! Recovering")
+        reset_to_screen(Screen.DARK_FOREST)
+        return
+
+    for i in range(settings["battles"]):
+        select_opponent(choice=settings["opponent_number"], hoe=True)
+        # Check for ticket icon pixel
+        if locate_img("labels/hoe_buytickets", (243, 618, 600, 120)):
+            logger.error("Ticket Purchase screen found, exiting")
+            reset_to_screen()
             return
-        click("buttons/exitmenu", region=boundaries["exitAoH"])
-        logger.info("    Collecting Quests")
-        click_xy(975, 300, seconds=2)  # Bounties
-        click_xy(975, 220, seconds=2)  # Quests
-        click_xy(850, 880, seconds=2)  # Top daily quest
-        click_xy(550, 420, seconds=2)  # Click to clear loot
-        click_xy(870, 1650, seconds=2)  # Season quests tab
-        click_xy(850, 880, seconds=2)  # Top season quest
-        click_xy(550, 420, seconds=2)  # Click to clear loot
-        click("buttons/exitmenu", region=boundaries["exitAoH"], seconds=2)
-        if check_pixel(550, 1850, 2) > 150:
-            logger.info("    Collecting Heroes of Esperia Pass loot")
-            click_xy(550, 1800, seconds=2)  # Collect all at the pass screen
-            click_xy(420, 50)  # Click to clear loot
-        click("buttons/back", retry=3, region=boundaries["backMenu"])
-        click("buttons/back", retry=3, region=boundaries["backMenu"])
-        click("buttons/back", retry=3, region=boundaries["backMenu"])
-        logger.info("    Heroes of Esperia battles complete")
-    else:
-        logger.error("Heroes of Esperia not found, attempting to recover")
-        recover()
+
+        # This is rather than Battle button as that is animated and hard to read
+        locate_img("buttons/heroclassselect", boundaries["heroclassselect"], retry=3)
+        touch_xy_wait(550, 1800)
+
+        touch_img_while_visible("buttons/skip", boundaries["skipAoH"], 0.8)
+        if get_battle_results(type="HoE"):
+            logger.info(f"Battle #{i + 1} victory!")
+        else:
+            logger.warning(f"Battle #{i + 1} defeat!")
+
+        # Lots of things/animations can happen after a battle so we keep touch_img_waiting until we see the fight button again
+        errorcounter = 0
+        while not touch_img_wait("buttons/fight_hoe", (400, 200, 400, 1500), seconds=3):
+            if errorcounter > 5:
+                logger.error("Something went wrong post-battle")
+                reset_to_screen(Screen.DARK_FOREST)
+                return
+
+            touch_escape_wait()
+            touch_xy_wait(550, 1420)  # Rank up confirm button
+            errorcounter += 1
+
+    touch_img_wait("buttons/exitmenu", region=boundaries["exitAoH"])
+    logger.info("Collecting Quests")
+    touch_xy_wait(975, 300, seconds=2)  # Bounties
+    touch_xy_wait(975, 220, seconds=2)  # Quests
+    touch_xy_wait(850, 880, seconds=2)  # Top daily quest
+    touch_xy_wait(550, 420, seconds=2)  # Click to clear loot
+    touch_xy_wait(870, 1650, seconds=2)  # Season quests tab
+    touch_xy_wait(850, 880, seconds=2)  # Top season quest
+    touch_xy_wait(550, 420, seconds=2)  # Click to clear loot
+    touch_img_wait("buttons/exitmenu", region=boundaries["exitAoH"], seconds=2)
+    if check_pixel(550, 1850, 2) > 150:
+        logger.info("Collecting Heroes of Esperia Pass loot")
+        touch_xy_wait(550, 1800, seconds=2)  # Collect all at the pass screen
+        touch_escape_wait()  # Click to clear loot
+    logger.info("Heroes of Esperia battles complete")
+
+    touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
+    touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
+    touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
