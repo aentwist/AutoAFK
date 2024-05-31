@@ -7,7 +7,7 @@ from typing import TypedDict
 from autoafk import activities, settings, thread_state
 from autoafk.logger import logger, setup_logging
 from autoafk.thread_state import handle_pause_and_stop_events, pause_event, stop_event
-from autoafk.tools import connect_device
+from autoafk.tools import connect as tools_connect
 
 
 class MessageType(enum.Enum):
@@ -38,7 +38,7 @@ class RunMessage(SettingsMessage):
 
 def connect(message: SettingsMessage) -> None:
     settings.app_settings = message["app_settings"]
-    connect_device()
+    tools_connect()
 
 
 def run_tasks(tasks: list[Task]) -> None:

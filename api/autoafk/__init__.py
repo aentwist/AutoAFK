@@ -1,4 +1,6 @@
 import os
+import sys
 
-_src_dir = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR = os.path.split(_src_dir)[0]
+
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+project_dir = getattr(sys, "_MEIPASS", os.path.split(SRC_DIR)[0])
