@@ -42,9 +42,11 @@ export default function SettingListItem({
     );
   }, 1000);
   const handleSetValue = (e: SelectChangeEvent) => {
-    const val: SettingValue = isSettingBoolean
+    let val: SettingValue = isSettingBoolean
       ? e.target.checked
       : e.target.value;
+    // Convert it to a number if that's a thing
+    val = !isNaN(Number(val)) ? Number(val) : val;
     setValue(val);
     setValueState(val);
   };
