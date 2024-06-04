@@ -1,6 +1,8 @@
 # adb binaries
 adb
 adb.exe
+AdbWinApi.dll
+AdbWinUsbApi.dll
 
 # scrcpy server
 scrcpy-server*

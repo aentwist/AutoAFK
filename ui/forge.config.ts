@@ -1,6 +1,6 @@
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import { MakerDeb } from "@electron-forge/maker-deb";
-import { MakerRpm } from "@electron-forge/maker-rpm";
+// import { MakerRpm } from "@electron-forge/maker-rpm";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
@@ -11,13 +11,17 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     executableName: "auto-afk",
-    extraResource: ["../api/dist/main"],
+    extraResource: [
+      `../api/dist/${process.env.PLATFORM ? process.env.PLATFORM + "/main" : "main"}`,
+    ],
   },
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({}),
     new MakerZIP({}, ["darwin"]),
-    new MakerRpm({}),
+    // TODO: Need package `rpm` in CI
+    // Install (custom conan recipe?) or use an rpm-based OS
+    // new MakerRpm({}),
     new MakerDeb({}),
   ],
   plugins: [

@@ -1,0 +1,345 @@
+version: 2.1
+
+.platform_params: &platform-params
+  parameters:
+    platform:
+      type: string
+
+executors:
+  linux:
+    machine:
+      image: ubuntu-2204:2024.04.4
+    resource_class: medium
+  windows:
+    machine:
+      image: windows-server-2022-gui:2024.04.1
+      shell: powershell.exe -ExecutionPolicy Bypass
+    resource_class: windows.medium
+  darwin:
+    macos:
+      xcode: "15.3.0"
+    resource_class: macos.m1.medium.gen1
+
+.docker_busybox: &docker-busybox
+  docker:
+    - image: busybox:1.36.1
+  resource_class: small
+
+jobs:
+  get_scrcpy_server:
+    <<: *docker-busybox
+    steps:
+      # TODO: cache
+      - run: >
+          wget -q
+          https://github.com/Genymobile/scrcpy/releases/download/v1.20/scrcpy-server-v1.20
+          -O scrcpy-server.jar
+      - persist_to_workspace:
+          root: "."
+          paths:
+            - scrcpy-server.jar
+
+  get_adb_server:
+    <<: *platform-params
+    <<: *docker-busybox
+    steps:
+      - run: |
+          file=platform-tools-latest-<< parameters.platform >>.zip
+          wget -q "https://dl.google.com/android/repository/$file"
+          unzip -q $file
+          cp platform-tools/adb* .
+          if [ << parameters.platform >> = "windows" ]; then
+              cp platform-tools/Adb* .
+          fi
+      - persist_to_workspace:
+          root: "."
+          paths:
+            # linux
+            # TODO: darwin's file is also called "adb" and will conflict with this
+            - adb
+            # windows
+            - adb.exe
+            - AdbWinApi.dll
+            - AdbWinUsbApi.dll
+
+  build_api:
+    <<: *platform-params
+    executor: << parameters.platform >>
+    environment:
+      PIP_CACHE_DIR: .pip
+    working_directory: ~/project/api
+    steps:
+      - when:
+          condition:
+            not:
+              equal:
+                - << parameters.platform >>
+                - windows
+          steps:
+            - restore_cache:
+                keys:
+                  - autoafk-asdf-<< parameters.platform >>-v0.14.0
+            - run:
+                working_directory: ~/
+                command: |
+                  if [ ! -d ~/.asdf ]; then
+                    git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.0
+                  fi
+                  echo '. "$HOME/.asdf/asdf.sh"' >> ~/.bashrc
+                  . ~/.bashrc
+                  asdf plugin add python
+                  # asdf plugin add conan https://github.com/amrox/asdf-pyapp.git
+            - save_cache:
+                key: autoafk-asdf-<< parameters.platform >>-v0.14.0
+                paths:
+                  - ~/.asdf
+            - run:
+                working_directory: ~/
+                command: |
+                  curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+                  eval "$(./bin/micromamba shell hook -s posix)"
+                  ./bin/micromamba shell init -s bash -p ~/micromamba
+                  source ~/.bashrc
+
+      - checkout:
+          path: ~/project
+
+      - when:
+          condition:
+            equal:
+              - << parameters.platform >>
+              - windows
+          steps:
+            - run:
+                working_directory: ~/
+                command: choco install --force -y python --version=3.10.11
+      - when:
+          condition:
+            not:
+              equal:
+                - << parameters.platform >>
+                - windows
+          steps:
+            - run: asdf install
+
+      - restore_cache:
+          keys:
+            - autoafk-pip-<< parameters.platform >>-{{ checksum "requirements.txt" }}
+      - when:
+          condition:
+            equal:
+              - << parameters.platform >>
+              - windows
+          steps:
+            - run: python -m pip install -r requirements.txt
+      - when:
+          condition:
+            not:
+              equal:
+                - << parameters.platform >>
+                - windows
+          steps:
+            # - run: |
+            #     conan profile detect --force
+            #     conan install conanfile.txt --build=missing
+            - run: micromamba create -f environment.yml
+      - save_cache:
+          key: autoafk-pip-<< parameters.platform >>-{{ checksum "requirements.txt" }}
+          paths:
+            - .pip
+
+      - attach_workspace:
+          at: "."
+      - run: mkdir -p dist/<< parameters.platform >>
+      - when:
+          condition:
+            equal:
+              - << parameters.platform >>
+              - windows
+          steps:
+            - run: >
+                pyinstaller
+                --add-binary=adb.exe:.
+                --add-binary=scrcpy-server.jar:scrcpy
+                --add-data=autoafk/img:autoafk/img/
+                --distpath=dist/<< parameters.platform >>
+                main.py
+      - when:
+          condition:
+            not:
+              equal:
+                - << parameters.platform >>
+                - windows
+          steps:
+            - run: >
+                micromamba activate autoafk
+                && pyinstaller
+                --add-binary=adb:.
+                --add-binary=scrcpy-server.jar:scrcpy
+                --add-data=autoafk/img:autoafk/img/
+                --distpath=dist/<< parameters.platform >>
+                main.py
+      - persist_to_workspace:
+          root: "."
+          paths:
+            - dist
+
+  build_ui:
+    <<: *platform-params
+    executor: << parameters.platform >>
+    environment:
+      npm_config_cache: .npm
+      PLATFORM: << parameters.platform >>
+    working_directory: ~/project/ui
+    steps:
+      - when:
+          condition:
+            equal:
+              - << parameters.platform >>
+              - linux
+          steps:
+            - restore_cache:
+                keys:
+                  - autoafk-asdf-<< parameters.platform >>-v0.14.0
+            - run:
+                working_directory: ~/
+                command: |
+                  echo '. "$HOME/.asdf/asdf.sh"' >> ~/.bashrc
+                  . ~/.bashrc
+                  asdf plugin add nodejs
+            - save_cache:
+                key: autoafk-asdf-<< parameters.platform >>-v0.14.0
+                paths:
+                  - ~/.asdf
+
+      - checkout:
+          path: ~/project
+
+      - when:
+          condition:
+            equal:
+              - << parameters.platform >>
+              - windows
+          steps:
+            - run: |
+                nvm off
+                choco install -y nodejs --version=22.1.0
+      - when:
+          condition:
+            not:
+              equal:
+                - << parameters.platform >>
+                - windows
+          steps:
+            - run: asdf install
+
+      - restore_cache:
+          keys:
+            - autoafk-npm-<< parameters.platform >>-{{ checksum "package-lock.json" }}
+      - run: npm ci
+      - save_cache:
+          key: autoafk-npm-<< parameters.platform >>-{{ checksum "package-lock.json" }}
+          paths:
+            - .npm
+
+      - attach_workspace:
+          at: ../api
+      - run: npm run make
+      - persist_to_workspace:
+          root: "."
+          paths:
+            - out
+
+  release:
+    docker:
+      - image: node:22.1.0-bookworm-slim
+    resource_class: small
+    environment:
+      npm_config_cache: .npm
+    working_directory: ~/project/ui
+    steps:
+      - run:
+          working_directory: ~/
+          command: |
+            apt update
+            apt install -y git
+
+      - checkout:
+          path: ~/project
+
+      # Sharing cache between Ubuntu and Debian should be fine
+      - restore_cache:
+          keys:
+            - autoafk-npm-linux-{{ checksum "package-lock.json" }}
+      - run: npm ci
+      - save_cache:
+          key: autoafk-npm-linux-{{ checksum "package-lock.json" }}
+          paths:
+            - .npm
+
+      - attach_workspace:
+          at: "."
+      - run: npx semantic-release
+
+workflows:
+  main:
+    when:
+      equal:
+        - << pipeline.git.branch >>
+        - master
+    jobs:
+      - get_scrcpy_server
+
+      - get_adb_server:
+          name: get_adb_server_linux
+          requires:
+            - get_scrcpy_server
+          platform: linux
+      - get_adb_server:
+          name: get_adb_server_windows
+          requires:
+            - get_scrcpy_server
+          platform: windows
+      # - get_adb_server:
+      #     name: get_adb_server_darwin
+      #     requires:
+      #       - get_scrcpy_server
+      #     platform: darwin
+
+      - build_api:
+          name: build_api_linux
+          requires:
+            - get_adb_server_linux
+          platform: linux
+      - build_api:
+          name: build_api_windows
+          requires:
+            - get_adb_server_windows
+          platform: windows
+      # - build_api:
+      #     name: build_api_darwin
+      #     # requires:
+      #     #   - get_adb_server_darwin
+      #     platform: darwin
+
+      - build_ui:
+          name: build_ui_linux
+          requires:
+            - build_api_linux
+          platform: linux
+      - build_ui:
+          name: build_ui_windows
+          requires:
+            - build_api_windows
+          platform: windows
+      # - build_ui:
+      #     name: build_ui_darwin
+      #     requires:
+      #       - build_api_darwin
+      #     platform: darwin
+
+      - release:
+          requires:
+            - build_ui_linux
+            - build_ui_windows
+            # - build_ui_darwin

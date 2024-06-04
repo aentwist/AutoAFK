@@ -14,7 +14,7 @@ apkutils2==1.0.0
     # via adbutils
 attrs==23.2.0
     # via usort
-av==9.2.0
+av==12.1.0
     # via scrcpy-client
 black==24.4.2
     # via ufmt
@@ -137,7 +137,7 @@ requests==2.31.0
     #   androidviewclient
 retry==0.9.2
     # via adbutils
-scrcpy-client==0.4.7
+scrcpy-client @ git+https://github.com/leng-yue/py-scrcpy-client@v0.4.9
     # via -r requirements.in
 six==1.16.0
     # via
