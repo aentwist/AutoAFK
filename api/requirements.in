@@ -1,5 +1,5 @@
 androidviewclient
+git+https://github.com/leng-yue/py-scrcpy-client@v0.4.9
 psutil
 PyScreeze==0.1.29
 python-json-logger
-scrcpy-client
