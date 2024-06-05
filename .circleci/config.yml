@@ -253,7 +253,7 @@ jobs:
   release:
     docker:
       - image: node:22.1.0-bookworm-slim
-    resource_class: small
+    resource_class: medium
     environment:
       npm_config_cache: .npm
     working_directory: ~/project/ui
