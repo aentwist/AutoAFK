@@ -248,7 +248,7 @@ jobs:
       - persist_to_workspace:
           root: "."
           paths:
-            - out
+            - out/make
 
   release:
     docker:
