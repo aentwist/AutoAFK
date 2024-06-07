@@ -492,6 +492,13 @@ const initialState: TaskSliceState = [
       },
     ],
   },
+  {
+    fn: "collect_inn_gifts",
+    name: "Collect Inn gifts",
+    type: TaskType.GENERAL,
+    defaultIsSelected: true,
+    isSelected: true,
+  },
 
   {
     fn: "battle_guild_hunts",
