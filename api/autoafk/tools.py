@@ -215,7 +215,7 @@ def check_pixel(x: int, y: int, c):
 
 
 def open_image(rel_path: str) -> Image:
-    return Image.open(os.path.join(SRC_DIR, "img", rel_path))
+    return Image.open(os.path.join(SRC_DIR, "img", f"{rel_path}.png"))
 
 
 def locate_img(
@@ -227,7 +227,7 @@ def locate_img(
 ):
     for i in range(retry):
         box = pyscreeze.locate(
-            open_image(f"{image}.png"),
+            open_image(image),
             get_frame(),
             region=region,
             confidence=confidence,
@@ -373,7 +373,7 @@ def touch_img_when_visible_while_visible(
 # if HoE is true we just check the blue pixel value for the 5 buttons
 def select_opponent(choice, seconds=1, hoe=False) -> None | bool:
     screenshot = get_frame()
-    search = open_image(os.path.join("buttons", "arenafight.png"))
+    search = open_image("buttons/arenafight")
 
     if hoe is False:  # Arena
         locations = {
@@ -430,7 +430,7 @@ def select_opponent(choice, seconds=1, hoe=False) -> None | bool:
 # We have two arrays as when we scroll down in the bounty list the buttons are offset compared to the unscrolled list
 def get_dispatch_btns(scrolled=False) -> list[tuple[int, int]]:
     screenshot = get_frame()
-    search = open_image(os.path.join("buttons", "dispatch_bounties.png"))
+    search = open_image("buttons/dispatch_bounties")
     locations = {
         (820, 430, 170, 120),
         (820, 650, 170, 120),

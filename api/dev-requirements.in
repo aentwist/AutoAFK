@@ -1,4 +1,5 @@
 pipdeptree
 pip-tools
 pyinstaller
+pytest
 ufmt

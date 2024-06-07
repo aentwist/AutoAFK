@@ -1,0 +1,72 @@
+{
+  "menus/quests": ["buttons/collect_quest", "buttons/back"],
+  "menus/quests2": ["buttons/fullquestchest"],
+  "menus/mail": ["buttons/collect_all", "buttons/back"],
+  "menus/friends": ["buttons/sendandreceive", "buttons/back"],
+  "menus/mercs": ["buttons/exitmenu"],
+
+  "campaign/tab": [
+    "buttons/campaign_selected",
+    "buttons/darkforest_unselected",
+    "buttons/ranhorn_unselected",
+
+    "buttons/begin",
+    "buttons/fastrewards",
+
+    "buttons/events",
+    "menus/quests",
+    "menus/bag",
+    "buttons/mail",
+    "buttons/friends"
+  ],
+  "campaign/menu-1-collapsed": ["buttons/downarrow"],
+  "campaign/menu-2-collapsed": ["buttons/downarrow"],
+  "campaign/afk-rewards": ["buttons/collect", "buttons/close"],
+  "campaign/fast-rewards": ["buttons/close"],
+  "campaign/multi-battle-preview": ["buttons/begin"],
+  "campaign/multi-battle": [
+    "buttons/heroclassselect",
+    "buttons/beginbattle",
+    "buttons/back"
+  ],
+  "campaign/single-battle": [
+    "buttons/heroclassselect",
+    "buttons/battle",
+    "buttons/back"
+  ],
+
+  "dark-forest/tab": [
+    "buttons/campaign_unselected",
+    "buttons/darkforest_selected",
+    "buttons/ranhorn_unselected",
+
+    "buildings/trift"
+  ],
+  "dark-forest/bounty-board/solo-collect": ["buttons/collect_all"],
+  "dark-forest/bounty-board/solo": [
+    "labels/bountyboard",
+    "buttons/dispatch",
+    "labels/bounties/dust",
+    "labels/bounties/diamonds",
+    "buttons/refresh",
+    "buttons/back"
+  ],
+  "dark-forest/bounty-board/solo-dispatch": ["buttons/dispatch"],
+  "dark-forest/bounty-board/team-collect": ["buttons/collect_all"],
+  "dark-forest/bounty-board/team": ["buttons/dispatch", "buttons/back"],
+  "dark-forest/bounty-board/team-dispatch": ["buttons/confirm"],
+  "dark-forest/towers/kings-tower": ["buttons/back"],
+  "dark-forest/trift": ["buttons/back"],
+  "dark-forest/arena/menu": ["buttons/back"],
+
+  "ranhorn/tab": [
+    "buttons/campaign_unselected",
+    "buttons/darkforest_unselected",
+    "buttons/ranhorn_selected",
+
+    "buildings/store"
+  ],
+
+  "misc/battle": ["buttons/pause"],
+  "misc/battle-menu": ["buttons/exitbattle"]
+}
