@@ -223,7 +223,7 @@ def locate_img(
     region=(0, 0, RESOLUTION[0], RESOLUTION[1]),
     confidence=0.9,
     retry=1,
-    grayscale=False,
+    grayscale: None | bool = None,
 ):
     for i in range(retry):
         box = pyscreeze.locate(
@@ -246,7 +246,7 @@ def wait_until_img_visible(
     region=(0, 0, RESOLUTION[0], RESOLUTION[1]),
     confidence=0.9,
     timeout_s=30,
-    grayscale=False,
+    grayscale: None | bool = None,
 ):
     """Waits until an image is visible
 
@@ -304,7 +304,7 @@ def touch_img_wait(
     confidence=0.9,
     seconds=1,
     retry=1,
-    grayscale=False,
+    grayscale: None | bool = None,
 ) -> bool:
     box = locate_img(image, region, confidence, retry, grayscale)
     if not box:
@@ -379,9 +379,7 @@ def select_opponent(choice, seconds=1, hoe=False) -> None | bool:
     # Check each location and add Y coordinate to array (as X doesnt change we don't need it)
     for loc in locations:
         if hoe is False:
-            res = pyscreeze.locate(
-                search, screenshot, grayscale=False, confidence=0.9, region=loc
-            )
+            res = pyscreeze.locate(search, screenshot, confidence=0.9, region=loc)
             if res != None:
                 battleButtons.append(
                     loc[1] + (loc[3] / 2)
@@ -438,9 +436,7 @@ def get_dispatch_btns(scrolled=False) -> list[tuple[int, int]]:
         locations = locations_scrolled
     # Check each location and add Y coordinate to array (as X doesnt change we don't need it)
     for loc in locations:
-        res = pyscreeze.locate(
-            search, screenshot, grayscale=False, confidence=0.9, region=loc
-        )
+        res = pyscreeze.locate(search, screenshot, confidence=0.9, region=loc)
         if res != None:
             dispatchButtons.append(
                 round(loc[1] + (loc[3] / 2))
