@@ -13,12 +13,17 @@ from autoafk.tools import (
     reset_to_screen,
     Screen,
     select_opponent,
+    touch_escape,
     touch_escape_wait,
+    touch_img,
     touch_img_wait,
+    touch_img_when_visible,
+    touch_img_when_visible_after_wait,
+    touch_img_when_visible_while_visible,
     touch_img_while_other_visible,
-    touch_img_while_visible,
     touch_xy_wait,
     wait,
+    wait_until_img_visible,
 )
 
 
@@ -85,40 +90,36 @@ def collect_afk_rewards() -> None:
     logger.info("AFK rewards collected!")
 
 
+# TODO: Check if mail. If not, we do not need to touch_escape.
 def collect_mail() -> None:
     logger.info("Collecting mail...")
     reset_to_screen()
 
-    if not locate_img("buttons/mail", boundaries["mailLocate"]):
-        logger.error("Mail button not found")
-        return
+    if not (
+        touch_img_when_visible("buttons/mail")
+        and touch_img_when_visible("buttons/collect_all")
+    ):
+        logger.error("Mail not found")
+    else:
+        touch_escape()
+        logger.info("Mail collected!")
 
-    touch_xy_wait(960, 630, seconds=2)  # Click Mail
-    touch_img_wait("buttons/collect_all", boundaries["collectMail"], seconds=3)
-    touch_xy_wait(550, 1600)  # Clear any popups
-    logger.info("Mail collected!")
-
-    touch_img_wait("buttons/back", region=boundaries["backMenu"])
+    touch_img_when_visible_while_visible("buttons/back")
 
 
 def send_and_receive_companion_points(mercs=False) -> None:
     logger.info("Sending/receiving companion points...")
     reset_to_screen()
 
-    if not locate_img("buttons/friends", boundaries["friends"]):
-        logger.error("Friends button not found")
-        return
+    if not (
+        touch_img_when_visible("buttons/friends")
+        and touch_img_when_visible("buttons/sendandreceive")
+    ):
+        logger.error("No friends")
+    else:
+        logger.info("Companion points sent/received")
 
-    # We check if the pixel where the notification sits has a red value of higher than 240
-    if not check_pixel(1012, 790, 0) > 240:
-        logger.info("No companion points to send/receive or mercs to lend")
-        return
-
-    touch_xy_wait(960, 810)
-    touch_img_wait("buttons/sendandreceive", region=boundaries["sendrecieve"])
-    logger.info("Companion points sent/received")
-
-    if mercs is True:
+    if mercs:
         touch_xy_wait(720, 1760)  # Short term
         touch_xy_wait(990, 190)  # Manage
         touch_xy_wait(630, 1590)  # Apply
@@ -126,7 +127,7 @@ def send_and_receive_companion_points(mercs=False) -> None:
         touch_img_wait("buttons/exitmenu", region=boundaries["exitMerc"])
         logger.info("Mercenaries lent out")
 
-    touch_img_wait("buttons/back", region=boundaries["backMenu"])
+    touch_img_when_visible_after_wait("buttons/back", seconds=0.25)
 
 
 class CollectFastRewardsSettings(TypedDict):
@@ -216,7 +217,7 @@ def dispatch_bounties(settings: DispatchBountiesSettings) -> None:
     logger.info("Dispatching bounties...")
     reset_to_screen(Screen.DARK_FOREST)
 
-    touch_xy_wait(600, 1320)  # ???
+    touch_xy_wait(600, 1320)  # Open bounty board
 
     if not locate_img("labels/bountyboard", retry=3):
         logger.error("Bounty board not found")
@@ -234,6 +235,7 @@ def dispatch_bounties(settings: DispatchBountiesSettings) -> None:
         touch_img_wait("buttons/dispatch", confidence=0.8, grayscale=True)
         touch_img_wait("buttons/confirm")
 
+    # TODO::imgs-untested
     if settings["event_bounties"]:
         if touch_img_wait("labels/event_bounty"):
             touch_img_wait("buttons/collect_all", seconds=2)
@@ -266,8 +268,8 @@ def dispatch_solo_bounties(settings: DispatchSoloBountiesSettings) -> None:
             break
 
         if i != settings["max_refreshes"]:
-            touch_xy_wait(90, 250)
-            touch_xy_wait(700, 1250)
+            touch_img_when_visible("buttons/refresh")
+            touch_img_when_visible("buttons/confirm")
     else:
         t = settings["max_refreshes"]
         logger.info(f"{t} refreshes done, dispatching remaining...")
@@ -299,6 +301,9 @@ def dispatcher(dispatches, settings: SoloBountySettings) -> None:
                 touch_xy_wait(350, 1150)
                 touch_xy_wait(750, 1150)
                 break  # done processing this dispatch button
+
+
+# TODO::imgs-untested below
 
 
 class ChallengeSettings(TypedDict):
@@ -377,12 +382,12 @@ def collect_gladiator_coins() -> None:
 def use_bag_consumables() -> None:
     logger.info("Using bag consumables...")
 
-    touch_xy_wait(1000, 500, seconds=3)
-
-    if not touch_img_wait("buttons/batchselect", retry=3):
+    if not touch_img_when_visible("menus/bag"):
         logger.error("Bag not found, attempting to recover")
         reset_to_screen()
         return
+
+    touch_img_wait("buttons/batchselect", retry=3)
 
     if locate_img("buttons/confirm_grey"):
         logger.warning("Nothing selected/available! Returning...")
@@ -448,12 +453,11 @@ def collect_fountain_of_time() -> None:
     logger.info("Collecting Fountain of Time...")
     reset_to_screen(Screen.DARK_FOREST)
 
-    touch_xy_wait(800, 700, seconds=6)
-    touch_xy_wait(800, 700)
+    touch_img_when_visible("buildings/trift")
 
-    if not locate_img("labels/temporalrift"):
+    if not wait_until_img_visible("labels/temporalrift"):
         logger.error("Temporal Rift not found")
-        reset_to_screen()
+        reset_to_screen(Screen.DARK_FOREST)
         return
 
     touch_xy_wait(550, 1800)
@@ -464,7 +468,7 @@ def collect_fountain_of_time() -> None:
     touch_xy_wait(550, 1800, seconds=3)  # Clear newly unlocked
     logger.info("Fountain of Time collected")
 
-    touch_img_wait("buttons/back", region=boundaries["backMenu"])
+    touch_img_when_visible("buttons/back")
 
 
 def open_tower(name) -> None:
@@ -724,10 +728,7 @@ def attempt_kt() -> None:
     touch_xy_wait(700, 1850, seconds=2)
     touch_img_wait("buttons/pause", confidence=0.8, retry=5)
     touch_img_wait("buttons/exitbattle")
-    touch_img_wait("buttons/back", boundaries["backMenu"], retry=3)
-    touch_img_wait("buttons/back", boundaries["backMenu"], retry=3)
-    # Last one only needed for multifights
-    touch_img_wait("buttons/back", region=boundaries["backMenu"], retry=3)
+    touch_img_when_visible_while_visible("buttons/back")
     logger.info("Tower attempted successfully")
 
 
@@ -838,49 +839,39 @@ def make_store_purchases_h(counter, settings: MakeStorePurchasesSettings) -> Non
 
 
 def make_store_purchases(settings: MakeStorePurchasesSettings, skipQuick=0) -> None:
-    if settings["quick_buy"] and skipQuick == 0:
-        make_store_purchases_quick(settings)
-        return
-
+    is_quick_buy = settings["quick_buy"] and skipQuick == 0
+    buy_type = "quick buy" if is_quick_buy else "purchase"
     t = settings["times"]
-    logger.info(f"Making store purchases {t} times...")
+    logger.info(f"Making {t} store {buy_type}s...")
     reset_to_screen(Screen.RANHORN)
 
-    touch_xy_wait(300, 1725, seconds=5)
+    touch_img_when_visible("buildings/store")
 
-    if not locate_img("labels/store"):
+    if not wait_until_img_visible("labels/store"):
         logger.error("Store not found, attempting to recover")
         reset_to_screen(Screen.RANHORN)
         return
 
-    i = 1
-    # First purchases
-    make_store_purchases_h(i, settings)
-    # refresh purchases
-    while i < settings["times"]:
-        touch_xy_wait(1000, 300)
-        touch_img_wait("buttons/confirm", seconds=5)
-        i += 1
-        logger.info("Refreshed store {i} times.")
+    if is_quick_buy:
+        make_store_purchases_quick(settings)
+    else:
+        i = 1
+        # First purchases
         make_store_purchases_h(i, settings)
-    logger.info("    Store purchases attempted.")
+        # refresh purchases
+        while i < settings["times"]:
+            touch_xy_wait(1000, 300)
+            touch_img_wait("buttons/confirm", seconds=5)
+            i += 1
+            logger.info("Refreshed store {i} times.")
+            make_store_purchases_h(i, settings)
 
-    # wait before next task as loading ranhorn can be slow
-    touch_img_wait("buttons/back", seconds=2)
+    logger.info("Store purchases complete")
+
+    touch_img_when_visible("buttons/back")
 
 
 def make_store_purchases_quick(settings: MakeStorePurchasesSettings) -> None:
-    t = settings["times"]
-    logger.info(f"Making {t} store quick buys...")
-    reset_to_screen(Screen.RANHORN)
-
-    touch_xy_wait(300, 1725, seconds=5)
-
-    if not locate_img("labels/store"):
-        logger.error("Store not found")
-        reset_to_screen(Screen.RANHORN)
-        return
-
     if not touch_img_wait("buttons/quickbuy", seconds=2):
         logger.info("Quickbuy not found, switching to old style")
         touch_img_wait("buttons/back")
@@ -896,9 +887,6 @@ def make_store_purchases_quick(settings: MakeStorePurchasesSettings) -> None:
             touch_img_wait("buttons/purchase", seconds=2)
             touch_xy_wait(970, 90)
             counter += 1
-        logger.info("Store purchases attempted.")
-
-        touch_img_wait("buttons/back")
 
 
 def battle_guild_hunts() -> None:
@@ -954,30 +942,32 @@ def battle_guild_hunts() -> None:
 # Once for Dailies once for Weeklies
 def collect_quests() -> None:
     logger.info("Collecting quests...")
+    reset_to_screen()
 
-    touch_xy_wait(960, 250)
-
-    if not locate_img("labels/quests"):
+    if not touch_img_when_visible("menus/quests"):
         logger.error("Quests not found")
         reset_to_screen()
         return
 
-    touch_xy_wait(400, 1650)  # Dailies
-    if locate_img("labels/questcomplete"):
-        logger.info("Daily Quest(s) found, collecting..")
-        touch_xy_wait(930, 680, seconds=4)  # Click top quest
-        touch_img_wait("buttons/fullquestchest", seconds=3, retry=3)
-        touch_xy_wait(400, 1650)
+    if wait_until_img_visible("buttons/collect_quest", timeout_s=3):
+        logger.debug("Collecting daily quests...")
+        touch_img("buttons/collect_quest")
+        touch_img_when_visible("buttons/fullquestchest", timeout_s=3)
+        wait(0.25)
+        touch_escape()
     touch_xy_wait(600, 1650)  # Weeklies
-    if locate_img("labels/questcomplete"):
-        logger.info("Weekly Quest(s) found, collecting..")
-        touch_xy_wait(930, 680, seconds=4)  # Click top quest
-        touch_img_wait("buttons/fullquestchest", seconds=3, retry=3)
-        touch_xy_wait(600, 1650, seconds=2)
-        touch_xy_wait(600, 1650)  # Second in case we get Limited Rewards popup
+    if wait_until_img_visible("buttons/collect_quest", timeout_s=3):
+        logger.debug("Collecting weekly quests...")
+        touch_img("buttons/collect_quest")
+        touch_img_when_visible("buttons/fullquestchest", timeout_s=3)
+        wait(0.25)
+        touch_escape_wait()
+        # Second in case we get Limited Rewards popup
+        if not locate_img("buttons/back"):
+            touch_escape()
     logger.info("Quests collected")
 
-    touch_img_wait("buttons/back", retry=3)
+    touch_img_when_visible("buttons/back")
 
 
 def collect_merchants() -> None:
@@ -988,8 +978,8 @@ def collect_merchants() -> None:
     if touch_img_wait("buttons/funinthewild", seconds=2):
         touch_xy_wait(250, 1820, seconds=2)  # Ticket
         touch_xy_wait(250, 1820, seconds=2)  # Reward
+
     drag_wait((1000, 1825), (100, 1825), 500)
-    drag_wait((1000, 1825), (100, 1825), 500, seconds=3)
 
     if not locate_img("buttons/noblesociety"):
         logger.error("Nobles not found")
@@ -998,11 +988,11 @@ def collect_merchants() -> None:
 
     logger.info("Collecting nobles...")
     touch_xy_wait(675, 1825)
-    if not locate_img("buttons/confirm_nobles", confidence=0.8, retry=2):
+    if locate_img("buttons/confirm_nobles", confidence=0.8, retry=2):
         logger.warning("Noble resource collection screen not found, skipping")
         touch_xy_wait(70, 1810)
     else:
-        # Champion
+        # Regal
         touch_xy_wait(750, 1600)  # Icon
         touch_xy_wait(440, 1470, seconds=0.5)
         touch_xy_wait(440, 1290, seconds=0.5)
@@ -1018,8 +1008,8 @@ def collect_merchants() -> None:
         touch_xy_wait(440, 915, seconds=0.5)
         touch_xy_wait(440, 725, seconds=0.5)
         touch_xy_wait(600, 1600)  # Icon
-        # Regal
-        touch_xy_wait(450, 1600)  # Icon
+        # Champs
+        touch_xy_wait(425, 1600)  # Icon
         touch_xy_wait(440, 1470, seconds=0.5)
         touch_xy_wait(440, 1290, seconds=0.5)
         touch_xy_wait(440, 1100, seconds=0.5)
@@ -1345,8 +1335,8 @@ def run_lab() -> None:
                 if locate_img("labels/notice", retry=3):
                     touch_xy_wait(550, 1250)
                 # Clear Roamer Deals, long wait for the Limited Offer to pop up for Lab completion
-                touch_xy_wait(550, 1550, seconds=5)
-                touch_xy_wait(550, 1650)  # Clear Limited Offer
+                touch_escape_wait(5)
+                touch_escape()  # Clear Limited Offer
                 logger.info("Lab swept!")
                 return
         else:  # Else we run lab manually
@@ -1761,7 +1751,7 @@ def challenge_hoe(settings: ChallengeOpponentSettings) -> None:
         locate_img("buttons/heroclassselect", boundaries["heroclassselect"], retry=3)
         touch_xy_wait(550, 1800)
 
-        touch_img_while_visible("buttons/skip", boundaries["skipAoH"], 0.8)
+        touch_img_when_visible("buttons/skip")
         if get_battle_results(type="HoE"):
             logger.info(f"Battle #{i + 1} victory!")
         else:
@@ -1795,6 +1785,4 @@ def challenge_hoe(settings: ChallengeOpponentSettings) -> None:
         touch_escape_wait()  # Click to clear loot
     logger.info("Heroes of Esperia battles complete")
 
-    touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
-    touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
-    touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
+    touch_img_when_visible_while_visible("buttons/back")
