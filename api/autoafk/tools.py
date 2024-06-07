@@ -315,6 +315,10 @@ def touch_img_wait(
     return bool(box)
 
 
+def touch_img(*args, **kwargs):
+    return touch_img_wait(*args, seconds=0, **kwargs)
+
+
 def touch_img_while_other_visible(
     image: str,
     other: str,
@@ -346,6 +350,19 @@ def touch_img_while_visible(
     return touch_img_while_other_visible(
         image, image, region, region, confidence, seconds, tries
     )
+
+
+def touch_img_when_visible_while_visible(
+    image: str,
+    region=(0, 0, RESOLUTION[0], RESOLUTION[1]),
+    confidence=0.9,
+    timeout=30,
+    grayscale: None | bool = None,
+    seconds=1,
+    tries=5,
+):
+    wait_until_img_visible(image, region, confidence, timeout, grayscale)
+    return touch_img_while_visible(image, region, confidence, seconds, tries)
 
 
 ## Util
@@ -455,6 +472,10 @@ def touch_escape_wait(seconds=1) -> None:
     touch_xy_wait(300, 50, seconds=seconds)  # maybe x=420 is better :)
 
 
+def touch_escape():
+    return touch_escape_wait(seconds=0)
+
+
 class Screen(enum.Enum):
     CAMPAIGN = "campaign"
     DARK_FOREST = "darkforest"
@@ -513,17 +534,17 @@ def reset_to_screen(screen=Screen.CAMPAIGN, seconds=1, tries=8) -> None:
 
         # If any of these escapes exist, tap one of them
         (
-            touch_img_wait("buttons/back", (0, 1500, 250, 419))
-            or touch_img_wait("buttons/back_narrow", (0, 1500, 250, 419))
-            or touch_img_wait("buttons/exit", (578, 1250, 290, 88))
-            or touch_img_wait("buttons/exitmenu", (700, 0, 379, 500))
-            or touch_img_wait("buttons/exitmenu_trial", (700, 0, 379, 500))
+            touch_img_wait("buttons/back")
+            or touch_img_wait("buttons/back_narrow")
+            or touch_img_wait("buttons/exit")
+            or touch_img_wait("buttons/exitmenu")
+            or touch_img_wait("buttons/exitmenu_trial")
         )
 
         # If there is a confirmation, tap it
         (
-            touch_img_wait("buttons/confirm_small")  # (200, 750, 600, 649)
-            or touch_img_wait("buttons/confirm_stageexit", (200, 750, 600, 649))
+            touch_img_wait("buttons/confirm_small")
+            or touch_img_wait("buttons/confirm_stageexit")
         )
 
         go_to_screen(screen)
