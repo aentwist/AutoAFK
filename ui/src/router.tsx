@@ -1,4 +1,4 @@
-import { createHashRouter } from "react-router-dom";
+import { createMemoryRouter } from "react-router-dom";
 import App from "./App";
 import Console from "./views/Console";
 import Error from "./views/Error";
@@ -8,7 +8,7 @@ import Settings from "./views/Settings";
 import TaskGroups from "./views/TaskGroups";
 import Tasks from "./views/Tasks";
 
-const router = createHashRouter([
+const router = createMemoryRouter([
   {
     element: <App />,
     errorElement: <Error />,
