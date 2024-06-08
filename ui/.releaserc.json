@@ -9,10 +9,7 @@
     [
       "@semantic-release/github",
       {
-        "assets": [
-          "out/make/{deb,rpm}/x64/auto-afk*",
-          "out/make/squirrel.windows/x64/AutoAFK*"
-        ]
+        "assets": ["out/make/{deb,rpm,squirrel.windows}/x64/*"]
       }
     ]
   ]

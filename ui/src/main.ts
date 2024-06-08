@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { Api } from "./api";
 import type { RootState } from "./stores";
+import { registerUpdateHandlers, startUpdatePolling } from "./update";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) {
@@ -46,6 +47,7 @@ const createWindow = () => {
 app.on("ready", () => {
   registerHandlers();
   createWindow();
+  startUpdatePolling();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -92,4 +94,6 @@ function registerHandlers(): void {
 
   // Send outgoing messages
   Api.getInstance().registerCommands();
+
+  registerUpdateHandlers();
 }
