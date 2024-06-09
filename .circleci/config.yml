@@ -83,7 +83,7 @@ jobs:
                 working_directory: ~/
                 command: |
                   if [ ! -d ~/.asdf ]; then
-                    git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.0
+                      git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.0
                   fi
                   echo '. "$HOME/.asdf/asdf.sh"' >> ~/.bashrc
                   . ~/.bashrc
@@ -244,6 +244,8 @@ jobs:
 
       - attach_workspace:
           at: ../api
+      # Need the correct version when building, for auto-updating
+      - run: npm version $(cat ../api/v.txt)
       - run: npm run make
       - persist_to_workspace:
           root: "."
@@ -251,6 +253,10 @@ jobs:
             - out/make
 
   release:
+    parameters:
+      check:
+        type: boolean
+        default: false
     docker:
       - image: node:22.1.0-bookworm-slim
     resource_class: medium
@@ -263,6 +269,13 @@ jobs:
           command: |
             apt update
             apt install -y git
+      # Need curl if we need to check cancel
+      - when:
+          condition: << parameters.check >>
+          steps:
+            - run:
+                working_directory: ~/
+                command: apt install -y curl
 
       - checkout:
           path: ~/project
@@ -279,16 +292,49 @@ jobs:
 
       - attach_workspace:
           at: "."
-      - run: npx semantic-release
+      # Dry-run the release because we need the next version number for the
+      # build, and we can skip the whole process if there will be no release.
+      # See https://semantic-release.gitbook.io/semantic-release/support/faq#is-there-a-way-to-preview-which-version-would-currently-get-published
+      - when:
+          condition: << parameters.check >>
+          steps:
+            # Note that the version regex is not up to SemVer spec
+            - run: |
+                npx semantic-release --dry-run \
+                    | { grep -Po 'next release version is \K(?:\d+\.){2}\d+' || :; } \
+                    > v.txt
+                cat v.txt
+            - run: |
+                if [ ! -s v.txt ]; then
+                    curl \
+                        --header "Circle-Token: $CIRCLE_TOKEN" \
+                        -X POST \
+                        "https://circleci.com/api/v2/workflow/$CIRCLE_WORKFLOW_ID/cancel"
+                fi
+            - persist_to_workspace:
+                root: "."
+                paths:
+                  - v.txt
+      - when:
+          condition:
+            not: << parameters.check >>
+          steps:
+            - run: npx semantic-release
 
 workflows:
-  main:
+  publish:
     when:
       equal:
         - << pipeline.git.branch >>
         - master
     jobs:
-      - get_scrcpy_server
+      - release:
+          name: check_release
+          check: true
+
+      - get_scrcpy_server:
+          requires:
+            - check_release
 
       - get_adb_server:
           name: get_adb_server_linux
