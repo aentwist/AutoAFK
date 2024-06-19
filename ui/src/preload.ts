@@ -9,7 +9,7 @@ import { CommandType } from "./types";
 const electronApi = {
   saveState: (state: Partial<RootState>): Promise<void> =>
     ipcRenderer.invoke("save-state", state),
-  loadState: (): Promise<undefined | RootState> =>
+  loadState: (): Promise<undefined | Partial<RootState>> =>
     ipcRenderer.invoke("load-state"),
 
   connect: (data: SettingsData) => ipcRenderer.send(CommandType.CONNECT, data),

@@ -81,16 +81,19 @@ function registerHandlers(): void {
     },
   );
 
-  ipcMain.handle("load-state", async (): Promise<undefined | RootState> => {
-    let data: string;
-    try {
-      data = await fs.readFile(statePath, "utf8");
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === "ENOENT") return undefined;
-      throw err;
-    }
-    return JSON.parse(data);
-  });
+  ipcMain.handle(
+    "load-state",
+    async (): Promise<undefined | Partial<RootState>> => {
+      let data: string;
+      try {
+        data = await fs.readFile(statePath, "utf8");
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+        throw err;
+      }
+      return JSON.parse(data);
+    },
+  );
 
   // Send outgoing messages
   Api.getInstance().registerCommands();
