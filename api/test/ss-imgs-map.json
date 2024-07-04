@@ -55,6 +55,7 @@
   "dark-forest/bounty-board/team-collect": ["buttons/collect_all"],
   "dark-forest/bounty-board/team": ["buttons/dispatch", "buttons/back"],
   "dark-forest/bounty-board/team-dispatch": ["buttons/confirm"],
+  "dark-forest/roamer": ["buttons/exitmenu"],
   "dark-forest/towers/kings-tower": ["buttons/back"],
   "dark-forest/trift": ["buttons/back"],
   "dark-forest/arena/menu": ["buttons/back"],
