@@ -96,10 +96,10 @@ def _start_adb_server() -> None:
     logger.debug(f"Using adb at {adb_path}")
 
     logger.debug("Starting adb server...")
-    subprocess.run([adb_path, "start-server"])
+    subprocess.run([adb_path, "start-server"], capture_output=True, text=True)
 
     def kill_adb_server() -> None:
-        subprocess.run([adb_path, "kill-server"])
+        subprocess.run([adb_path, "kill-server"], capture_output=True, text=True)
 
     # atexit.register(kill_adb_server)
 
