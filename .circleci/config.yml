@@ -160,6 +160,8 @@ jobs:
             - run: >
                 pyinstaller
                 --add-binary=adb.exe:.
+                --add-binary=AdbWinApi.dll:.
+                --add-binary=AdbWinUsbApi.dll:.
                 --add-binary=scrcpy-server.jar:scrcpy
                 --add-data=autoafk/img:autoafk/img/
                 --distpath=dist/<< parameters.platform >>
