@@ -14,7 +14,7 @@ from com.dtmilano.android.adb.adbclient import AdbClient
 from com.dtmilano.android.viewclient import ViewClient
 from PIL import Image
 
-from autoafk import project_dir, settings, SRC_DIR
+from autoafk import IS_PROD, project_dir, settings, SRC_DIR
 from autoafk.logger import logger
 
 
@@ -101,7 +101,8 @@ def _start_adb_server() -> None:
     def kill_adb_server() -> None:
         subprocess.run([adb_path, "kill-server"], capture_output=True, text=True)
 
-    # atexit.register(kill_adb_server)
+    if IS_PROD:
+        atexit.register(kill_adb_server)
 
 
 def _is_correct_resolution(dims: tuple[int, int]) -> bool:
