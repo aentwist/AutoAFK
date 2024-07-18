@@ -60,4 +60,8 @@ export class Api {
       browserWindow.webContents.send("message", message);
     });
   }
+
+  kill(): void {
+    this.api.kill();
+  }
 }

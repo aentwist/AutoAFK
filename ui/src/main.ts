@@ -55,6 +55,8 @@ app.on("ready", () => {
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
+    // TODO: Might need to kill elsewhere for macOS
+    Api.getInstance().kill();
     app.quit();
   }
 });
