@@ -48,7 +48,7 @@ const initialState: SettingSliceState = {
     {
       key: "victory_check_freq_min",
       name: "Victory check frequency (minutes)",
-      value: 2,
+      value: 1,
     },
     {
       key: "surpress_victory_check_spam",

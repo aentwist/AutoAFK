@@ -473,7 +473,7 @@ def touch_escape_wait(seconds=1) -> None:
     Args:
         seconds (int, optional): passed to `touch_xy_wait`. Defaults to 1.
     """
-    touch_xy_wait(300, 50, seconds=seconds)  # maybe x=420 is better :)
+    touch_xy_wait(420, 50, seconds=seconds)
 
 
 def touch_escape():
