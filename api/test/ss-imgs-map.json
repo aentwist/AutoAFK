@@ -23,7 +23,7 @@
   "campaign/menu-2-collapsed": ["buttons/downarrow"],
   "campaign/afk-rewards": ["buttons/collect", "buttons/close"],
   "campaign/fast-rewards": ["buttons/close"],
-  "campaign/multi-battle-preview": ["buttons/begin"],
+  "campaign/multi-battle-preview": ["buttons/formation_select", "buttons/begin"],
   "campaign/multi-battle": [
     "buttons/heroclassselect",
     "buttons/beginbattle",
@@ -69,5 +69,11 @@
   ],
 
   "misc/battle": ["buttons/pause"],
-  "misc/battle-menu": ["buttons/exitbattle"]
+  "misc/battle-menu": [
+    "buttons/exitbattle",
+    "buttons/tryagain",
+    "buttons/continue"
+  ],
+  "misc/formations": ["buttons/formation_select", "labels/popular-formations"],
+  "misc/use-formation": ["buttons/checkbox_blank", "buttons/confirm_small"]
 }

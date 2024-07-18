@@ -41,7 +41,9 @@ const TOWERS_BY_DAY = [
   [Tower.WILDER, Tower.GB, Tower.HYPO],
 ];
 const isTowerOpen = (tower: Tower): boolean => {
-  const dayIdx = Temporal.Now.plainDateISO().dayOfWeek - 1;
+  // > between 1 and 7, inclusive, with Monday being 1, and Sunday 7
+  // See https://tc39.es/proposal-temporal/docs/plaindate.html#dayOfWeek
+  const dayIdx = Temporal.Now.plainDateISO("UTC").dayOfWeek;
   return dayIdx === 0 || TOWERS_BY_DAY[dayIdx].includes(tower);
 };
 
@@ -223,7 +225,7 @@ const initialState: TaskSliceState = [
     type: TaskType.PUSH,
     defaultIsSelected: false,
     isSelected: false,
-    disabled: true,
+    disabled: !isTowerOpen(Tower.LB),
     settings: pushSettings(),
   },
   {
@@ -232,7 +234,7 @@ const initialState: TaskSliceState = [
     type: TaskType.PUSH,
     defaultIsSelected: false,
     isSelected: false,
-    disabled: true,
+    disabled: !isTowerOpen(Tower.MAULER),
     settings: pushSettings(),
   },
   {
@@ -241,7 +243,7 @@ const initialState: TaskSliceState = [
     type: TaskType.PUSH,
     defaultIsSelected: false,
     isSelected: false,
-    disabled: true,
+    disabled: !isTowerOpen(Tower.WILDER),
     settings: pushSettings(),
   },
   {
@@ -250,6 +252,7 @@ const initialState: TaskSliceState = [
     type: TaskType.PUSH,
     defaultIsSelected: false,
     isSelected: false,
+    disabled: !isTowerOpen(Tower.GB),
     settings: pushSettings(),
   },
   {
@@ -258,7 +261,7 @@ const initialState: TaskSliceState = [
     type: TaskType.PUSH,
     defaultIsSelected: false,
     isSelected: false,
-    disabled: true,
+    disabled: !isTowerOpen(Tower.CELE),
     settings: pushSettings(),
   },
   {
@@ -267,6 +270,7 @@ const initialState: TaskSliceState = [
     type: TaskType.PUSH,
     defaultIsSelected: false,
     isSelected: false,
+    disabled: !isTowerOpen(Tower.HYPO),
     settings: pushSettings(),
   },
 

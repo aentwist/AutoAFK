@@ -12,7 +12,6 @@ class AppSettings(TypedDict):
     surpress_victory_check_spam: bool
     ignore_formations: bool
     use_popular_formations: bool
-    copy_artifacts: bool
     hibernate_when_finished: bool
 
     enable_telegram: bool

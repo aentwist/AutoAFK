@@ -21,6 +21,7 @@ from autoafk.tools import (
     touch_img_when_visible_after_wait,
     touch_img_when_visible_while_visible,
     touch_img_while_other_visible,
+    touch_xy,
     touch_xy_wait,
     wait,
     wait_until_img_visible,
@@ -34,7 +35,7 @@ boundaries = {
     "ranhornSelect": (0, 1750, 210, 160),
     # campaign/auto battle
     "begin": (322, 1590, 442, 144),
-    "multiBegin": (309, 1408, 467, 129),
+    "multiBegin": (290, 1395, 500, 165),
     "autobattle": (214, 1774, 256, 112),
     "battle": (574, 1779, 300, 110),
     "battleLarge": (310, 1758, 464, 144),
@@ -162,35 +163,18 @@ def attempt_campaign() -> None:
     logger.info("Attempting campaign battle...")
     reset_to_screen()
 
-    touch_img_wait("buttons/begin", boundaries["begin"], seconds=2, retry=3)
-    # Check if we're multi or single stage
-    multi = locate_img("buttons/begin", boundaries["multiBegin"], 0.7, retry=3)
-    logger.debug(f"{'Multi' if multi else 'Single'} stage detected")
-    if multi:
-        # Second button to enter multi
-        touch_img_wait(
-            "buttons/begin", boundaries["multiBegin"], 0.7, seconds=2, retry=5
-        )
+    open_campaign()
 
-    # Many retries since on initial load this screen can take a while. Use
-    # error handling due to the level of uncertainty.
-    if not locate_img(
-        "buttons/heroclassselect", retry=20, region=boundaries["heroclassselect"]
-    ):
-        logger.error("Hero class select button not found")
-        reset_to_screen()
-        return
-
-    # Start and exit battle
-    if multi:  # Multi has a different button for reasons
-        touch_img_wait("buttons/beginbattle", boundaries["battle"], 0.7, seconds=4)
-    else:
-        touch_img_wait("buttons/battle", boundaries["battle"], 0.8, seconds=4)
+    # Begin button is 'beginbattle' for multis and 'begin' for singles, so we
+    # use location
+    wait_until_img_visible("buttons/formations")
+    touch_xy(700, 1850)
     # Actions to exit an active fight and back out to the Campaign screen
     # 3 retries as ulting heroes can cover the button
-    touch_img_wait("buttons/pause", boundaries["pauseBattle"], retry=3)
-    touch_img_wait("buttons/exitbattle", boundaries["exitBattle"])
-    touch_img_wait("buttons/back", boundaries["backMenu"], seconds=3, retry=3)
+    touch_img_when_visible("buttons/pause")
+    touch_img_when_visible("buttons/exitbattle")
+    touch_img_when_visible("buttons/back", timeout_s=3)
+
     logger.info("Campaign battle attempted")
 
 
@@ -471,21 +455,89 @@ def collect_fountain_of_time() -> None:
     touch_img_when_visible("buttons/back")
 
 
-def open_tower(name) -> None:
-    logger.info(f"Opening {name}...")
-    reset_to_screen(Screen.DARK_FOREST)
+class PushSettings(TypedDict):
+    formation: int
 
-    wait(3)  # Medium wait to make sure tower button is active
-    touch_xy_wait(500, 870, seconds=3)  # Long pause for animation opening towers
 
-    if not locate_img(
-        "labels/kingstower", boundaries["kingstowerLabel"], 0.85, retry=3
-    ):
-        logger.error("Tower selection screen not found")
-        reset_to_screen()
-        return
+def run_autobattle(settings: PushSettings) -> None:
+    app_settings = app_settings_h.app_settings
 
-    towers = {
+    config_battle_formation(settings)
+    touch_img_when_visible("buttons/autobattle")
+    touch_img_when_visible("buttons/activate")
+    while True:
+        # Wait for a time, then tap to prompt the status popup
+        wait(app_settings["victory_check_freq_min"] * 60)
+        touch_escape()
+        is_status_open = wait_until_img_visible("buttons/cancel", timeout_s=0.5)
+        # Sometimes the menu doesn't open, about a 2% chance. Since it is rare
+        # just take another wait before checking.
+        if not is_status_open:
+            continue
+
+        # If we see 0 then we haven't won
+        is_defeat = locate_img("labels/autobattle_0", boundaries["autobattle0"])
+        if is_defeat:
+            if not app_settings["surpress_victory_check_spam"]:
+                t = app_settings["victory_check_freq_min"]
+                logger.info(f"No victory found, checking again in {t} minutes.")
+
+            touch_img("buttons/cancel")
+        # Otherwise assume victory. Exit the battle, clear the victory screen,
+        # and clear limited time rewards.
+        else:
+            t = settings["formation"]
+            logger.info(
+                f"Victory found! Loading the {t} formation for the current stage.."
+            )
+
+            touch_img("buttons/exit")
+            touch_img_when_visible("buttons/pause", timeout_s=1)
+            is_try_again = touch_img_when_visible("buttons/tryagain", timeout_s=5)
+            if not is_try_again:
+                # If we happened to exit autobattle right when finishing, we need to reset
+                if locate_img("labels/taptocontinue", grayscale=True):
+                    # touch try again, next stage, or tap for next battle
+                    touch_xy(550, 1750)
+                    # in KT there is no next stage button...
+                    touch_img_when_visible("buttons/challenge_plain", timeout_s=3)
+                else:
+                    # we got it while moving stages
+                    is_campaign = wait_until_img_visible("buttons/begin", timeout_s=1)
+                    if is_campaign:
+                        # the multibattle preview might have opened. try just tapping that
+                        is_multi = touch_img_when_visible(
+                            "buttons/begin_plain", timeout_s=1
+                        )
+                        if not is_multi:
+                            open_campaign()
+                    else:
+                        touch_img("buttons/challenge_plain")
+
+            # Where does this need to go in relation to the above?
+            is_limited_rewards = touch_img_when_visible(
+                "labels/taptocontinue", timeout_s=3, grayscale=True
+            )
+            if is_limited_rewards:
+                wait(3)
+            # To clear the bundle pop up every 20 stages
+            touch_escape()
+
+            config_battle_formation(settings)
+            touch_img_when_visible("buttons/autobattle")
+            touch_img_when_visible("buttons/activate")
+
+        # TODO: This should be more responsive, check it more often than when
+        # checking for victories
+        handle_pause_and_stop_events()
+
+
+def open_tower(tower: str) -> None:
+    touch_xy(500, 870)
+    wait_until_img_visible("labels/kingstower")
+    wait(0.5)
+
+    TOWER_LOCATIONS = {
         "King's Tower": [500, 870],
         "Lightbearer Tower": [300, 1000],
         "Wilder Tower": [800, 600],
@@ -494,241 +546,113 @@ def open_tower(name) -> None:
         "Hypogean Tower": [600, 1500],
         "Celestial Tower": [300, 500],
     }
-    for tower, location in towers.items():
-        if tower == name:
-            touch_xy_wait(location[0], location[1], seconds=3)
+    loc = TOWER_LOCATIONS[tower]
+    touch_xy_wait(loc[0], loc[1])
+
+    touch_img_when_visible_after_wait("buttons/challenge_plain", seconds=0.1)
 
 
-class PushSettings(TypedDict):
-    formation: int
+# TODO: Add a stop after x duration feature or similar
+# stop after no victory for x duration
+def push_tower(tower: str, settings: PushSettings) -> None:
+    logger.info(f"Pushing {tower}...")
+    reset_to_screen(Screen.DARK_FOREST)
+
+    open_tower(tower)
+    run_autobattle(settings)
 
 
-# This is a long one, we have a whole host of fail safes because we want it to be as stable as possible
-class TowerPusher:
-    tower_open = False  # for defining if we need to open tower or not
+def push_kt(settings: PushSettings) -> None:
+    push_tower("King's Tower", settings)
 
-    # Loads selected formation, enables auto-battle and periodically checks for victory
-    def push_tower(tower, settings: PushSettings) -> None:
-        # while True:
-        # Open tower is needed then set it to enabled
-        if TowerPusher.tower_open is False:
-            open_tower(tower)
-            TowerPusher.tower_open = True
 
-        # Two checks, one for the Challenge button in the tower screen and one for the AutoBattle button on the hero selection screen
-        # Both checks we check for two positives in a row so they aren't detected in the background while AutoBattle is running
-        # If found we run config_battle_formation() to configure the formation and enable auto battle
-        challengetimer = 0
-        autobattletimer = 0
-        # Challenge button
-        while locate_img(
-            "buttons/challenge_plain",
-            boundaries["challengeTower"],
-            0.8,
-            seconds=2,
-            retry=3,
-        ):
-            challengetimer += 1
-            if challengetimer >= 2:
-                touch_img_wait(
-                    "buttons/challenge_plain",
-                    boundaries["challengeTower"],
-                    0.8,
-                    seconds=3,
-                    retry=3,
-                )
-                config_battle_formation(settings)
-                challengetimer = 0
-        # Autobattle button
-        # higher confidence so we don't find it in the background
-        while locate_img(
-            "buttons/autobattle", boundaries["autobattle"], 0.92, seconds=2, retry=3
-        ):
-            autobattletimer += 1
-            if autobattletimer >= 2:
-                config_battle_formation(settings)
-                autobattletimer = 0
+def push_lb_tower(settings: PushSettings) -> None:
+    push_tower("Lightbearer Tower", settings)
 
-        app_settings = app_settings_h.app_settings
 
-        # We wait for the given duration (minus some time for configuring teams) then touch_xy_wait() to prompt the AutoBattle notice and check for victory
-        wait((app_settings["victory_check_freq_min"] * 60) - 30)
+def push_mauler_tower(settings: PushSettings) -> None:
+    push_tower("Mauler Tower", settings)
 
-        handle_pause_and_stop_events()
 
-        touch_xy_wait(550, 1750)
+def push_wilder_tower(settings: PushSettings) -> None:
+    push_tower("Wilder Tower", settings)
 
-        # Make sure the AutoBattle notice screen is visible
-        # Make sure the popup is visible
-        if locate_img("labels/autobattle", boundaries["autobattleLabel"], retry=2):
-            # If it's 0 assume we haven't passed (not that bold an assumption..)
-            if locate_img("labels/autobattle_0", boundaries["autobattle0"], retry=3):
-                if not app_settings["surpress_victory_check_spam"]:
-                    t = app_settings["victory_check_freq_min"]
-                    logger.info(f"No victory found, checking again in {t} minutes.")
 
-                touch_img_wait("buttons/cancel", boundaries["cancelAB"], retry=3)
-            # If we don't see 0 we assume victory. We exit the battle, clear
-            # victory screen and clear time limited rewards screen
-            else:
-                t = settings["formation"]
-                logger.info(
-                    f"Victory found! Loading the {t} formation for the current stage.."
-                )
+def push_gb_tower(settings: PushSettings) -> None:
+    push_tower("Graveborn Tower", settings)
 
-                touch_img_wait("buttons/exit", boundaries["exitAB"], retry=3)
-                # 3 retries as ulting heroes can cover the button
-                touch_img_wait("buttons/pause", boundaries["pauseBattle"], 0.8, retry=3)
-                touch_img_wait("buttons/exitbattle", boundaries["exitBattle"], retry=2)
-                touch_img_wait(
-                    "labels/taptocontinue",
-                    boundaries["taptocontinue"],
-                    0.8,
-                    seconds=4,
-                    retry=2,
-                    grayscale=True,
-                )
-                # To clear the Limited Rewards pop up every 20 stages
-                touch_xy_wait(550, 1750)
-        # If after touching we don't get the Auto Battle notice pop up, then
-        # something has gone wrong so we reset and load push_tower again
-        else:
-            logger.warning("Autobattle screen not found, reloading auto-push...")
-            reset_to_screen()
-            TowerPusher.tower_open = False
-            open_tower(tower)
-            TowerPusher.tower_open = True
+
+def push_cele_tower(settings: PushSettings) -> None:
+    push_tower("Celestial Tower", settings)
+
+
+def push_hypo_tower(settings: PushSettings) -> None:
+    push_tower("Hypogean Tower", settings)
+
+
+def open_campaign() -> None:
+    # might need to wait some, its heavily animated
+    touch_img_when_visible("buttons/begin")
+    # now maybe 2 are visible, constrain with a region
+    touch_img_when_visible("buttons/begin_plain", timeout_s=1)
 
 
 def push_campaign(settings: PushSettings) -> None:
-    app_settings = app_settings_h.app_settings
+    logger.info("Pushing campaign...")
+    reset_to_screen()
 
-    while True:
-        if not touch_img_wait("buttons/begin", confidence=0.7, retry=3):
-            if locate_img(
-                "buttons/autobattle", boundaries["autobattle"], 0.95, seconds=2, retry=3
-            ) and not locate_img("labels/autobattle"):
-                config_battle_formation(settings)
-            else:
-                handle_pause_and_stop_events()
-                touch_xy_wait(550, 1750)  # Click to prompt the AutoBattle popup
-
-                if not locate_img("labels/autobattle"):
-                    reset_to_screen()
-                else:
-                    # If it's 0 continue
-                    if locate_img("labels/autobattle_0", boundaries["autobattle0"]):
-                        if not app_settings["surpress_victory_check_spam"]:
-                            t = app_settings["victory_check_freq_min"]
-                            logger.warning(
-                                f"No victory found, checking again in {t} minutes."
-                            )
-                        touch_img_wait(
-                            "buttons/cancel", boundaries["cancelAB"], retry=3
-                        )
-                        wait((app_settings["victory_check_freq_min"] * 60) - 30)
-                    else:  # If it's not 0 we have passed a stage
-                        logger.info(
-                            "Victory found! Loading the "
-                            + str(
-                                settings["formation"]
-                                + " formation for the current stage.."
-                            )
-                        )
-                        touch_img_wait("buttons/exit", boundaries["exitAB"], retry=3)
-                        # 3 retries as ulting heroes can cover the button
-                        touch_img_wait(
-                            "buttons/pause", boundaries["pauseBattle"], 0.8, retry=3
-                        )
-                        touch_img_wait(
-                            "buttons/exitbattle", boundaries["exitBattle"], retry=3
-                        )
-                        touch_img_wait(
-                            "labels/taptocontinue",
-                            boundaries["taptocontinue"],
-                            0.8,
-                            grayscale=True,
-                        )
+    open_campaign()
+    run_autobattle(settings)
 
 
 def config_battle_formation(settings: PushSettings) -> None:
     app_settings = app_settings_h.app_settings
 
     if app_settings["ignore_formations"]:
-        logger.warning("ignoreformations enabled, skipping formation selection")
-        touch_img_wait(
-            "buttons/autobattle",
-            suppress=True,
-            retry=3,
-            region=boundaries["autobattle"],
-        )  # So we don't hit it in the background while autobattle is active
-        touch_img_while_other_visible(
-            "buttons/activate",
-            "labels/autobattle",
-            region=boundaries["activateAB"],
-            secureregion=boundaries["autobattleLabel"],
-        )
+        logger.warning("Ignore formations is enabled, skipping formation selection...")
         return
-    elif touch_img_wait(
-        "buttons/formations", boundaries["formations"], seconds=3, retry=3
-    ):
-        if app_settings["use_popular_formations"]:  # Use popular formations tab
-            touch_xy_wait(800, 1650, seconds=2)  # Change to 'Popular' tab
-        touch_xy_wait(850, 425 + (settings["formation"] * 175), seconds=2)
-        touch_img_wait("buttons/use", boundaries["useAB"], seconds=2, retry=3)
 
-        # Configure Artifacts
-        # loop because sometimes isVisible returns None here
-        counter = 0
-        artifacts = None
-        while artifacts is None and counter <= 5:
-            # Check checkbox status
-            artifacts = locate_img("buttons/checkbox_checked", (230, 1100, 80, 80))
-            counter += 1
-        # If still None after 5 tries give error and contiue without configuring
-        if counter >= 5:
-            logger.error("Couldn't read artifact status")
+    # Select formation
+    touch_img_when_visible("buttons/formations")
+    if app_settings["use_popular_formations"]:
+        touch_img_when_visible("labels/popular-formations")
+        wait_until_img_visible("labels/popular-formations-following")
+    wait_until_img_visible("buttons/formation_select")
+    touch_xy(850, 425 + (settings["formation"] * 175))
+    touch_img_when_visible("buttons/use")
+    wait_until_img_visible("buttons/confirm_small")
 
-        if artifacts is not app_settings["copy_artifacts"] and artifacts is not None:
-            if app_settings["copy_artifacts"]:
-                logger.info("Enabling Artifact copying")
-            else:
-                logger.info("Disabling Artifact copying")
-            touch_xy_wait(275, 1150)
+    # Configure artifacts
+    artifacts_region = (230, 1100, 80, 80)
+    use_artifacts = locate_img("buttons/checkbox_checked", artifacts_region)
+    if bool(use_artifacts) != settings["copy_artifacts"]:
+        if not use_artifacts:
+            next_state = "buttons/checkbox_checked"
+            next_text = "Enabling"
+        else:
+            next_state = "buttons/checkbox_blank"
+            next_text = "Disabling"
+        logger.info(f"{next_text} artifact copying...")
+        touch_xy(275, 1150)
+        wait_until_img_visible(next_state, artifacts_region)
 
-        touch_img_wait("buttons/confirm_small", boundaries["confirmAB"], retry=3)
-        # So we don't hit it in the background while autobattle is active
-        touch_img_wait("buttons/autobattle", boundaries["autobattle"], retry=3)
-        touch_img_while_other_visible(
-            "buttons/activate",
-            "labels/autobattle",
-            boundaries["activateAB"],
-            boundaries["autobattleLabel"],
-        )
-    else:
-        logger.warning("Could not find Formations button")
+    touch_img("buttons/confirm_small")
 
 
 def attempt_kt() -> None:
     logger.info("Attempting Kings Tower battle...")
     reset_to_screen(Screen.DARK_FOREST)
 
-    touch_xy_wait(500, 870, seconds=3)  # Long pause for animation
+    open_tower("King's Tower")
 
-    if not locate_img("labels/kingstower"):
-        logger.error("Tower screen not found")
-        reset_to_screen(Screen.DARK_FOREST)
-        return
-
-    touch_xy_wait(555, 585)
-    # lower confidence and retries for animated button
-    touch_img_wait("buttons/challenge_plain", confidence=0.7, seconds=5, retry=5)
     # For reasons sometimes this button is 'beginbattle' and sometimes it is
-    # 'begin', so we use touch_xy_wait
-    touch_xy_wait(700, 1850, seconds=2)
-    touch_img_wait("buttons/pause", confidence=0.8, retry=5)
-    touch_img_wait("buttons/exitbattle")
-    touch_img_when_visible_while_visible("buttons/back")
+    # 'begin', so we use location
+    wait_until_img_visible("buttons/formations")
+    touch_xy(700, 1850)
+    touch_img_when_visible("buttons/pause")
+    touch_img_when_visible("buttons/exitbattle")
+    touch_img_when_visible_while_visible("buttons/back", seconds=0.25)
+
     logger.info("Tower attempted successfully")
 
 
