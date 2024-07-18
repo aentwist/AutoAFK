@@ -165,6 +165,7 @@ def wait(seconds=1) -> None:
 
 def touch_xy(x: int, y: int) -> None:
     TOUCH_DURATION_MS = 10
+    logger.debug(f"touch (x={x}, y={y})")
     adb_client.longTouch(x, y, TOUCH_DURATION_MS)
 
 
@@ -272,6 +273,8 @@ def wait_until_img_visible(
             logger.debug(f"{image} available after {i * POLLING_INTERVAL_S}s")
             break
         wait(POLLING_INTERVAL_S)
+    else:
+        logger.debug(f"{image} not available after {timeout_s}s")
 
     return box
 
