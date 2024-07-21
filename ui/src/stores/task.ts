@@ -31,20 +31,21 @@ enum Tower {
   CELE,
   HYPO,
 }
+// Which towers are open, Monday-Sunday
 const TOWERS_BY_DAY = [
-  [Tower.LB, Tower.MAULER, Tower.WILDER, Tower.GB, Tower.CELE, Tower.HYPO],
   [Tower.LB],
   [Tower.MAULER],
   [Tower.WILDER, Tower.CELE],
   [Tower.GB, Tower.HYPO],
   [Tower.LB, Tower.MAULER, Tower.CELE],
   [Tower.WILDER, Tower.GB, Tower.HYPO],
+  [Tower.LB, Tower.MAULER, Tower.WILDER, Tower.GB, Tower.CELE, Tower.HYPO],
 ];
 const isTowerOpen = (tower: Tower): boolean => {
   // > between 1 and 7, inclusive, with Monday being 1, and Sunday 7
   // See https://tc39.es/proposal-temporal/docs/plaindate.html#dayOfWeek
-  const dayIdx = Temporal.Now.plainDateISO("UTC").dayOfWeek;
-  return dayIdx === 0 || TOWERS_BY_DAY[dayIdx].includes(tower);
+  const dayIdx = Temporal.Now.plainDateISO("UTC").dayOfWeek - 1;
+  return TOWERS_BY_DAY[dayIdx].includes(tower);
 };
 
 const numberOfBattlesSetting = (num: number) => ({
