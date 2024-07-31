@@ -76,5 +76,6 @@
   ],
   "misc/formations": ["buttons/formation_select", "labels/popular-formations"],
   "misc/popular-formations": ["labels/popular-formations-following"],
+  "misc/formation": ["buttons/use"],
   "misc/use-formation": ["buttons/checkbox_blank", "buttons/confirm_small"]
 }
