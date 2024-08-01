@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal, TypedDict
+from typing import Callable, TypedDict
 
 from autoafk import settings as app_settings_h
 from autoafk.logger import logger
@@ -459,15 +459,47 @@ class PushSettings(TypedDict):
     formation: int
 
 
-def run_autobattle(settings: PushSettings) -> None:
+def run_autobattle(settings: PushSettings, open_mode: Callable[[], None]) -> None:
     app_settings = app_settings_h.app_settings
+
+    open_mode()
 
     config_battle_formation(settings)
     touch_img_when_visible("buttons/autobattle")
     touch_img_when_visible("buttons/activate")
     while True:
-        # Wait for a time, then tap to prompt the status popup
         wait(app_settings["victory_check_freq_min"] * 60)
+
+        # If a spam popup previously showed up, then it will reappear inside of
+        # autobattle after beating the next battle.
+        #
+        # For campaign, this will stop the battling even with autobattle still
+        # active. When exiting to clear it, we fall out of the mode to the main
+        # screen.
+        #
+        # For tower, it doesn't stop the battling and we don't fall out. Clear
+        # it anyway if we happen to see it in the background.
+        #
+        # To handle both of these cases no matter where we stop, do a full reset
+        # and reopen.
+        is_spam = locate_img("labels/tap-anywhere-to-close")
+        if is_spam:
+            reset_to_screen()
+
+            open_mode()
+
+            config_battle_formation(settings)
+            touch_img_when_visible("buttons/autobattle")
+            touch_img_when_visible("buttons/activate")
+            continue
+
+        # Make sure we are checking for victory at a well-known time so we don't
+        # get caught in a weird state. Choose right when a battle starts. If the
+        # team goes down instantly than we are still in trouble, but that should
+        # never happen using winning formations unless we don't have a build, in
+        # which case we are stuck anyway.
+        wait_until_img_visible("buttons/autobattle")
+        wait_until_img_visible("buttons/pause")
         touch_escape()
         is_status_open = wait_until_img_visible("buttons/cancel", timeout_s=0.5)
         # Sometimes the menu doesn't open, about a 2% chance. Since it is rare
@@ -483,8 +515,8 @@ def run_autobattle(settings: PushSettings) -> None:
                 logger.info(f"No victory found, checking again in {t} minutes.")
 
             touch_img("buttons/cancel")
-        # Otherwise assume victory. Exit the battle, clear the victory screen,
-        # and clear limited time rewards.
+        # Otherwise assume victory. Go back to hero select, clear victory
+        # popups, load the formation for the current stage, and resume.
         else:
             t = settings["formation"]
             logger.info(
@@ -492,36 +524,11 @@ def run_autobattle(settings: PushSettings) -> None:
             )
 
             touch_img("buttons/exit")
-            touch_img_when_visible("buttons/pause", timeout_s=1)
-            is_try_again = touch_img_when_visible("buttons/tryagain", timeout_s=5)
-            if not is_try_again:
-                # If we happened to exit autobattle right when finishing, we need to reset
-                if locate_img("labels/taptocontinue", grayscale=True):
-                    # touch try again, next stage, or tap for next battle
-                    touch_xy(550, 1750)
-                    # in KT there is no next stage button...
-                    touch_img_when_visible("buttons/challenge_plain", timeout_s=3)
-                else:
-                    # we got it while moving stages
-                    is_campaign = wait_until_img_visible("buttons/begin", timeout_s=1)
-                    if is_campaign:
-                        # the multibattle preview might have opened. try just tapping that
-                        is_multi = touch_img_when_visible(
-                            "buttons/begin_plain", timeout_s=1
-                        )
-                        if not is_multi:
-                            open_campaign()
-                    else:
-                        touch_img("buttons/challenge_plain")
+            touch_img_when_visible("buttons/pause")
+            touch_img_when_visible("buttons/tryagain")
 
-            # Where does this need to go in relation to the above?
-            is_limited_rewards = touch_img_when_visible(
-                "labels/taptocontinue", timeout_s=3, grayscale=True
-            )
-            if is_limited_rewards:
-                wait(3)
-            # To clear the bundle pop up every 20 stages
-            touch_escape()
+            # Clear popup spam. These episodes occur about every 20 stages.
+            touch_img_when_visible("labels/tap-anywhere-to-close", timeout_s=3)
 
             config_battle_formation(settings)
             touch_img_when_visible("buttons/autobattle")
@@ -558,8 +565,7 @@ def push_tower(tower: str, settings: PushSettings) -> None:
     logger.info(f"Pushing {tower}...")
     reset_to_screen(Screen.DARK_FOREST)
 
-    open_tower(tower)
-    run_autobattle(settings)
+    run_autobattle(settings, open_mode=lambda: open_tower(tower))
 
 
 def push_kt(settings: PushSettings) -> None:
@@ -601,8 +607,7 @@ def push_campaign(settings: PushSettings) -> None:
     logger.info("Pushing campaign...")
     reset_to_screen()
 
-    open_campaign()
-    run_autobattle(settings)
+    run_autobattle(settings, open_mode=open_campaign)
 
 
 def config_battle_formation(settings: PushSettings) -> None:
