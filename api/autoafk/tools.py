@@ -174,6 +174,11 @@ def touch_xy_wait(*args, seconds=1) -> None:
     wait(seconds)
 
 
+def touch_xy_after_wait(*args, seconds=1) -> None:
+    wait(seconds)
+    touch_xy(*args)
+
+
 def drag(start: tuple[int, int], end: tuple[int, int], duration=100) -> None:
     adb_client.drag(start, end, duration)
 
@@ -478,6 +483,11 @@ def touch_escape_wait(seconds=1) -> None:
 
 def touch_escape():
     return touch_escape_wait(seconds=0)
+
+
+def touch_escape_after_wait(seconds=1):
+    wait(seconds)
+    return touch_escape()
 
 
 class Screen(enum.Enum):

@@ -14,6 +14,7 @@ from autoafk.tools import (
     Screen,
     select_opponent,
     touch_escape,
+    touch_escape_after_wait,
     touch_escape_wait,
     touch_img,
     touch_img_wait,
@@ -21,6 +22,7 @@ from autoafk.tools import (
     touch_img_when_visible_after_wait,
     touch_img_when_visible_while_visible,
     touch_xy,
+    touch_xy_after_wait,
     touch_xy_wait,
     wait,
     wait_until_img_visible,
@@ -36,43 +38,37 @@ def collect_afk_rewards() -> None:
     logger.info("Collecting AFK rewards...")
     reset_to_screen()
 
-    touch_xy_wait(550, 1550)
-    touch_img_wait("buttons/collect")
-    touch_xy_wait(550, 1800)  # Click campaign in case we level up
-    touch_xy_wait(550, 1800)  # again for the time limited deal popup
+    touch_xy_after_wait(550, 1550, seconds=0.1)
+    touch_img_when_visible("buttons/collect")
     logger.info("AFK rewards collected!")
 
+    touch_escape_after_wait()  # In case we level up
+    touch_img_when_visible("labels/tap-anywhere-to-close", timeout_s=3)
 
-# TODO: Check if mail. If not, we do not need to touch_escape.
+
 def collect_mail() -> None:
     logger.info("Collecting mail...")
     reset_to_screen()
 
-    if not (
-        touch_img_when_visible("buttons/mail")
-        and touch_img_when_visible("buttons/collect_all")
-    ):
-        logger.error("Mail not found")
-    else:
-        touch_escape()
-        logger.info("Mail collected!")
+    touch_img_when_visible("buttons/mail")
+    touch_img_when_visible("buttons/collect_all")
+    logger.info("Mail collected!")
 
-    touch_img_when_visible_while_visible("buttons/back")
+    # Note that if there is no mail we only need to escape once (no rewards)
+    touch_escape_after_wait(0.1)  # Clear rewards
+    touch_escape_after_wait(0.1)  # Exit
 
 
 def send_and_receive_companion_points(mercs=False) -> None:
     logger.info("Sending/receiving companion points...")
     reset_to_screen()
 
-    if not (
-        touch_img_when_visible("buttons/friends")
-        and touch_img_when_visible("buttons/sendandreceive")
-    ):
-        logger.error("No friends")
-    else:
-        logger.info("Companion points sent/received")
+    touch_img_when_visible("buttons/friends")
+    touch_img_when_visible("buttons/sendandreceive")
+    logger.info("Companion points sent/received")
 
     if mercs:
+        logger.info("Lending out mercs...")
         touch_xy_wait(720, 1760)  # Short term
         touch_xy_wait(990, 190)  # Manage
         touch_xy_wait(630, 1590)  # Apply
@@ -93,17 +89,18 @@ def collect_fast_rewards(settings: CollectFastRewardsSettings) -> None:
     reset_to_screen()
 
     # Check whether the pixel where the notification dot is has a high enough red value
+    wait_until_img_visible("buttons/fastrewards")
     if not check_pixel(980, 1620, 0) > 220:
-        logger.warning("Fast Rewards already done")
+        logger.warning("Fast Rewards already collected")
         return
 
-    touch_xy_wait(950, 1660)
-    for i in range(settings["times"]):
-        touch_xy_wait(710, 1260, seconds=3)
-        touch_xy_wait(550, 1800)
+    touch_img("buttons/fastrewards")
+    for _ in range(settings["times"]):
+        touch_xy_after_wait(710, 1260)  # Button changes depending on use
+        touch_escape_after_wait()  # Clear rewards
     logger.info("Fast rewards collected")
 
-    touch_img_wait("buttons/close")
+    touch_img_when_visible("buttons/close")
 
 
 # Loads and exits a campaign abttle for dailies quest
@@ -117,13 +114,11 @@ def attempt_campaign() -> None:
     # use location
     wait_until_img_visible("buttons/formations")
     touch_xy(700, 1850)
-    # Actions to exit an active fight and back out to the Campaign screen
-    # 3 retries as ulting heroes can cover the button
+    logger.info("Campaign battle attempted")
+
     touch_img_when_visible("buttons/pause")
     touch_img_when_visible("buttons/exitbattle")
     touch_img_when_visible("buttons/back", timeout_s=3)
-
-    logger.info("Campaign battle attempted")
 
 
 class SoloBountySettings(TypedDict):
@@ -144,28 +139,26 @@ class DispatchBountiesSettings(DispatchSoloBountiesSettings):
     team_bounties: bool
 
 
-# Handles the Bounty Board, calls dispatch_solo_bounties() to handle solo dust/diamond recognition and dispatching
 def dispatch_bounties(settings: DispatchBountiesSettings) -> None:
     logger.info("Dispatching bounties...")
     reset_to_screen(Screen.DARK_FOREST)
 
-    touch_xy_wait(600, 1320)  # Open bounty board
+    touch_xy_after_wait(600, 1320, seconds=0.1)
 
-    if not locate_img("labels/bountyboard", retry=3):
-        logger.error("Bounty board not found")
-        reset_to_screen(Screen.DARK_FOREST)
-        return
+    wait_until_img_visible("labels/bountyboard")
 
     if settings["solo_bounties"]:
-        touch_xy_wait(650, 1700)  # Solo tab
-        touch_img_wait("buttons/collect_all", seconds=3)
+        touch_xy(650, 1700)  # Solo tab
+        touch_img_when_visible_after_wait(
+            "buttons/collect_all", timeout_s=1, seconds=0.1
+        )
         dispatch_solo_bounties(settings)
 
     if settings["team_bounties"]:
-        touch_xy_wait(950, 1700)  # Team tab
-        touch_img_wait("buttons/collect_all", seconds=2)
-        touch_img_wait("buttons/dispatch", confidence=0.8, grayscale=True)
-        touch_img_wait("buttons/confirm")
+        touch_xy_after_wait(950, 1700, seconds=0.1)  # Team tab
+        touch_img_when_visible("buttons/collect_all", timeout_s=1)
+        touch_img_when_visible("buttons/dispatch")
+        touch_img_when_visible("buttons/confirm")
 
     # TODO::imgs-untested
     if settings["event_bounties"]:
@@ -178,7 +171,7 @@ def dispatch_bounties(settings: DispatchBountiesSettings) -> None:
 
     logger.info("Bounties dispatched")
 
-    touch_img_wait("buttons/back")
+    touch_img_when_visible("buttons/back")
 
 
 # Loops through the bounty board returning found Dispatch buttons for dispatcher() to handle
@@ -233,9 +226,6 @@ def dispatcher(dispatches, settings: SoloBountySettings) -> None:
                 touch_xy_wait(350, 1150)
                 touch_xy_wait(750, 1150)
                 break  # done processing this dispatch button
-
-
-# TODO::imgs-untested below
 
 
 class ChallengeSettings(TypedDict):
