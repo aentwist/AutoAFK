@@ -20,7 +20,6 @@ from autoafk.tools import (
     touch_img_when_visible,
     touch_img_when_visible_after_wait,
     touch_img_when_visible_while_visible,
-    touch_img_while_other_visible,
     touch_xy,
     touch_xy_wait,
     wait,
@@ -28,51 +27,8 @@ from autoafk.tools import (
 )
 
 
-boundaries = {
-    # locate
-    "campaignSelect": (424, 1750, 232, 170),
-    "darkforestSelect": (208, 1750, 226, 170),
-    "ranhornSelect": (0, 1750, 210, 160),
-    # campaign/auto battle
-    "begin": (322, 1590, 442, 144),
-    "multiBegin": (290, 1395, 500, 165),
-    "autobattle": (214, 1774, 256, 112),
-    "battle": (574, 1779, 300, 110),
-    "battleLarge": (310, 1758, 464, 144),
-    "formations": (914, 1762, 102, 134),
-    "useAB": (604, 1754, 242, 84),
-    "confirmAB": (566, 1188, 252, 90),
-    "activateAB": (580, 1208, 272, 86),
+REGIONS = {
     "autobattle0": (562, 994, 144, 122),
-    "autobattleLabel": (200, 578, 684, 178),
-    "exitAB": (578, 1250, 290, 88),
-    "cancelAB": (218, 1248, 298, 90),
-    "pauseBattle": (24, 1419, 119, 104),
-    "exitBattle": (168, 886, 130, 116),
-    "tryagain": (478, 892, 128, 120),
-    "continueBattle": (766, 888, 172, 128),
-    "taptocontinue": (374, 1772, 330, 62),
-    "kingstowerLabel": (253, 0, 602, 100),
-    "challengeTower": (356, 726, 364, 1024),
-    "heroclassselect": (5, 1620, 130, 120),
-    "collectAfk": (590, 1322, 270, 82),
-    "mailLocate": (874, 575, 190, 157),
-    "collectMail": (626, 1518, 305, 102),
-    "backMenu": (0, 1720, 150, 200),
-    "friends": (880, 754, 178, 168),
-    "sendrecieve": (750, 1560, 306, 100),
-    "exitMerc": (912, 360, 129, 108),
-    "fastrewards": (872, 1612, 130, 106),
-    "closeFR": (266, 1218, 236, 92),
-    "challengeAoH": (294, 1738, 486, 140),
-    "attackAoH": (714, 654, 180, 606),
-    "battleAoH": (294, 1760, 494, 148),
-    "skipAoH": (650, 1350, 200, 200),
-    "defeat": (116, 720, 832, 212),
-    "exitAoH": (930, 318, 126, 132),
-    # Misc
-    "inngiftarea": (160, 1210, 500, 100),
-    "dialogue_left": (40, 1550, 200, 300),
 }
 
 
@@ -80,12 +36,8 @@ def collect_afk_rewards() -> None:
     logger.info("Collecting AFK rewards...")
     reset_to_screen()
 
-    if not locate_img("buttons/campaign_selected", boundaries["campaignSelect"]):
-        logger.error("AFK rewards button not found")
-        return
-
     touch_xy_wait(550, 1550)
-    touch_img_wait("buttons/collect", boundaries["collectAfk"], 0.8)
+    touch_img_wait("buttons/collect")
     touch_xy_wait(550, 1800)  # Click campaign in case we level up
     touch_xy_wait(550, 1800)  # again for the time limited deal popup
     logger.info("AFK rewards collected!")
@@ -125,7 +77,7 @@ def send_and_receive_companion_points(mercs=False) -> None:
         touch_xy_wait(990, 190)  # Manage
         touch_xy_wait(630, 1590)  # Apply
         touch_xy_wait(750, 1410)  # Auto lend
-        touch_img_wait("buttons/exitmenu", region=boundaries["exitMerc"])
+        touch_img_wait("buttons/exitmenu")
         logger.info("Mercenaries lent out")
 
     touch_img_when_visible_after_wait("buttons/back", seconds=0.25)
@@ -140,10 +92,6 @@ def collect_fast_rewards(settings: CollectFastRewardsSettings) -> None:
     logger.info(f"Collecting fast rewards {t} times...")
     reset_to_screen()
 
-    if not locate_img("buttons/fastrewards", region=boundaries["fastrewards"]):
-        logger.error("Fast rewards button not found")
-        return
-
     # Check whether the pixel where the notification dot is has a high enough red value
     if not check_pixel(980, 1620, 0) > 220:
         logger.warning("Fast Rewards already done")
@@ -155,7 +103,7 @@ def collect_fast_rewards(settings: CollectFastRewardsSettings) -> None:
         touch_xy_wait(550, 1800)
     logger.info("Fast rewards collected")
 
-    touch_img_wait("buttons/close", region=boundaries["closeFR"])
+    touch_img_wait("buttons/close")
 
 
 # Loads and exits a campaign abttle for dailies quest
@@ -230,7 +178,7 @@ def dispatch_bounties(settings: DispatchBountiesSettings) -> None:
 
     logger.info("Bounties dispatched")
 
-    touch_img_wait("buttons/back", boundaries["backMenu"])
+    touch_img_wait("buttons/back")
 
 
 # Loops through the bounty board returning found Dispatch buttons for dispatcher() to handle
@@ -314,17 +262,15 @@ def challenge_arena(settings: ChallengeOpponentSettings) -> None:
         return
 
     # retries for animated button
-    touch_img_wait("buttons/challenge", boundaries["challengeAoH"], retry=3)
+    touch_img_wait("buttons/challenge", retry=3)
 
     for i in range(settings["battles"]):
         select_opponent(choice=settings["opponent_number"])
         # This is rather than Battle button as that is animated and hard to read
-        while locate_img(
-            "buttons/heroclassselect", boundaries["heroclassselect"], retry=3
-        ):
+        while locate_img("buttons/heroclassselect", retry=3):
             touch_xy_wait(550, 1800)
         # Retries as ulting heros can cover the button
-        touch_img_wait("buttons/skip", boundaries["skipAoH"], 0.8, retry=5)
+        touch_img_wait("buttons/skip", retry=5)
         if get_battle_results(type="arena"):
             logger.info(f"Battle #{i + 1} victory!")
             touch_xy_wait(600, 550)  # Clear loot popup
@@ -336,9 +282,9 @@ def challenge_arena(settings: ChallengeOpponentSettings) -> None:
 
     logger.info("Arena battles completed")
 
-    touch_img_wait("buttons/exitmenu", region=boundaries["exitAoH"])
-    touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
-    touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
+    touch_img_wait("buttons/exitmenu")
+    touch_img_wait("buttons/back", retry=3)
+    touch_img_wait("buttons/back", retry=3)
 
 
 def collect_gladiator_coins() -> None:
@@ -359,8 +305,8 @@ def collect_gladiator_coins() -> None:
     touch_xy_wait(50, 1850)
     logger.info("Gladiator coins collected")
 
-    touch_img_wait("buttons/back", region=boundaries["backMenu"])
-    touch_img_wait("buttons/back", region=boundaries["backMenu"])
+    touch_img_wait("buttons/back")
+    touch_img_wait("buttons/back")
 
 
 def use_bag_consumables() -> None:
@@ -375,7 +321,7 @@ def use_bag_consumables() -> None:
 
     if locate_img("buttons/confirm_grey"):
         logger.warning("Nothing selected/available! Returning...")
-        touch_img_wait("buttons/back", region=boundaries["backMenu"])
+        touch_img_wait("buttons/back")
         return
 
     touch_xy_wait(550, 1650, seconds=2)
@@ -389,15 +335,15 @@ def use_bag_consumables() -> None:
             logger.error(
                 "Something went wrong (normally gear chests being selected), returning..."
             )
-            touch_img_wait("buttons/back", region=boundaries["backMenu"])
-            touch_img_wait("buttons/back", region=boundaries["backMenu"])
+            touch_img_wait("buttons/back")
+            touch_img_wait("buttons/back")
             return
 
     touch_xy_wait(550, 1800)  # Use
     touch_xy_wait(950, 1700)  # 'All' Bag button to clear loot
     logger.info("Bag consumables used")
 
-    touch_img_wait("buttons/back", region=boundaries["backMenu"])
+    touch_img_wait("buttons/back")
 
 
 # TODO Get image for the fire debuff banner
@@ -419,13 +365,13 @@ def collect_ts_rewards() -> None:
             if touch_img_wait("buttons/ts_path"):
                 touch_xy_wait(370, 945)  # Choose path
                 touch_xy_wait(520, 1700)  # Confirm path
-                touch_img_wait("buttons/back", boundaries["backMenu"], retry=3)
-                touch_img_wait("buttons/back", boundaries["backMenu"], retry=3)
+                touch_img_wait("buttons/back", retry=3)
+                touch_img_wait("buttons/back", retry=3)
             else:
                 touch_xy_wait(400, 50, seconds=2)  # Clear Rank Up
                 touch_xy_wait(400, 50, seconds=2)  # Clear Loot
-                touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
-                touch_img_wait("buttons/back", retry=3, region=boundaries["backMenu"])
+                touch_img_wait("buttons/back", retry=3)
+                touch_img_wait("buttons/back", retry=3)
                 logger.info("    Treasure Scramble daily loot collected!")
             break
     else:
@@ -508,7 +454,7 @@ def run_autobattle(settings: PushSettings, open_mode: Callable[[], None]) -> Non
             continue
 
         # If we see 0 then we haven't won
-        is_defeat = locate_img("labels/autobattle_0", boundaries["autobattle0"])
+        is_defeat = locate_img("labels/autobattle_0", REGIONS["autobattle0"])
         if is_defeat:
             if not app_settings["surpress_victory_check_spam"]:
                 t = app_settings["victory_check_freq_min"]
@@ -673,16 +619,14 @@ def collect_inn_gifts() -> None:
         return
 
     for i in range(3):  # ???
-        if touch_img_wait(
-            "buttons/inn_gift", boundaries["inngiftarea"], 0.75, seconds=2
-        ):
+        if touch_img_wait("buttons/inn_gift", seconds=2):
             touch_xy_wait(550, 1400, seconds=0.5)  # Clear loot
             touch_xy_wait(550, 1400, seconds=0.5)  # Clear loot
 
     logger.info("Inn Gifts collected.")
 
     # wait before next task as loading ranhorn can be slow
-    touch_img_wait("buttons/back", boundaries["backMenu"], seconds=2)
+    touch_img_wait("buttons/back", seconds=2)
 
 
 class MakeStorePurchasesSettings(TypedDict):
@@ -1195,9 +1139,7 @@ def circus_tour(settings: ChallengeSettings) -> None:
 
         if i == 1:
             # If Challenge is covered by text we clear it
-            while locate_img(
-                "labels/dialogue_left", boundaries["dialogue_left"], retry=2
-            ):
+            while locate_img("labels/dialogue_left", retry=2):
                 logger.warning("Clearing dialogue..")
                 touch_xy_wait(550, 900)  # Clear dialogue box on new boss rotation
                 touch_xy_wait(550, 900)  # Only need to do this on the first battle
@@ -1391,7 +1333,7 @@ def challenge_hoe(settings: ChallengeOpponentSettings) -> None:
             return
 
         # This is rather than Battle button as that is animated and hard to read
-        locate_img("buttons/heroclassselect", boundaries["heroclassselect"], retry=3)
+        locate_img("buttons/heroclassselect", retry=3)
         touch_xy_wait(550, 1800)
 
         touch_img_when_visible("buttons/skip")
@@ -1412,7 +1354,7 @@ def challenge_hoe(settings: ChallengeOpponentSettings) -> None:
             touch_xy_wait(550, 1420)  # Rank up confirm button
             errorcounter += 1
 
-    touch_img_wait("buttons/exitmenu", region=boundaries["exitAoH"])
+    touch_img_wait("buttons/exitmenu")
     logger.info("Collecting Quests")
     touch_xy_wait(975, 300, seconds=2)  # Bounties
     touch_xy_wait(975, 220, seconds=2)  # Quests
@@ -1421,7 +1363,7 @@ def challenge_hoe(settings: ChallengeOpponentSettings) -> None:
     touch_xy_wait(870, 1650, seconds=2)  # Season quests tab
     touch_xy_wait(850, 880, seconds=2)  # Top season quest
     touch_xy_wait(550, 420, seconds=2)  # Click to clear loot
-    touch_img_wait("buttons/exitmenu", region=boundaries["exitAoH"], seconds=2)
+    touch_img_wait("buttons/exitmenu", seconds=2)
     if check_pixel(550, 1850, 2) > 150:
         logger.info("Collecting Heroes of Esperia Pass loot")
         touch_xy_wait(550, 1800, seconds=2)  # Collect all at the pass screen
