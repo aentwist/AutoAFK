@@ -160,14 +160,16 @@ def dispatch_bounties(settings: DispatchBountiesSettings) -> None:
         touch_img_when_visible("buttons/dispatch")
         touch_img_when_visible("buttons/confirm")
 
-    # TODO::imgs-untested
-    if settings["event_bounties"]:
-        if touch_img_wait("labels/event_bounty"):
-            touch_img_wait("buttons/collect_all", seconds=2)
-            while touch_img_wait("buttons/dispatch_bounties"):
-                touch_xy_wait(530, 1030, seconds=2)
-                touch_xy_wait(120, 1500)
-                touch_img_wait("buttons/dispatch", confidence=0.8, grayscale=True)
+    if settings["event_bounties"] and touch_img_when_visible(
+        "labels/event_bounty", timeout_s=0.1
+    ):
+        touch_img_when_visible("buttons/collect_all", timeout_s=1)
+        while touch_img_when_visible_after_wait(
+            "buttons/dispatch_bounties", timeout_s=1, seconds=0.1
+        ):
+            touch_xy_after_wait(530, 1030, seconds=0.25)
+            touch_xy_after_wait(120, 1500, seconds=0.25)
+            touch_img_when_visible("buttons/dispatch")
 
     logger.info("Bounties dispatched")
 

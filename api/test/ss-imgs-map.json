@@ -54,6 +54,7 @@
   "dark-forest/bounty-board/solo-dispatch": ["buttons/dispatch"],
   "dark-forest/bounty-board/team-collect": ["buttons/collect_all"],
   "dark-forest/bounty-board/team": ["buttons/dispatch", "buttons/back"],
+  "dark-forest/bounty-board/team-with-event": ["labels/event_bounty"],
   "dark-forest/bounty-board/team-dispatch": ["buttons/confirm"],
   "dark-forest/roamer": ["buttons/exitmenu"],
   "dark-forest/towers/kings-tower": ["buttons/back"],
