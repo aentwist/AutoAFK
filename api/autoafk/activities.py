@@ -1231,330 +1231,68 @@ def run_lab() -> None:
     logger.info("Running Arcane Labyrinth...")
     reset_to_screen(Screen.DARK_FOREST)
 
-    touch_xy_wait(400, 1150, seconds=3)
+    touch_xy(400, 1150)
+    wait_until_img_visible("labels/lab", timeout_s=3)
 
-    if locate_img("labels/labfloor3", confidence=0.8, retry=3):
-        logger.info("Lab already open! Continuing..")
-        touch_xy_wait(50, 1800, seconds=2)  # Exit Lab Menu
-        return
-    if locate_img("labels/lablocked", confidence=0.8):
-        logger.info("Dismal Lab not unlocked! Continuing..")
-        touch_xy_wait(50, 1800, seconds=2)  # Exit Lab Menu
+    if locate_img("labels/lablocked"):
+        logger.info("Dismal Lab not unlocked")
+        touch_xy(50, 1800)  # Exit Lab Menu
         return
 
-    # for whether we go left or right for the first battle
-    lowerdirection = ""
-    # For whether we go left or right to get the double battle at the end
-    upperdirection = ""
-    if locate_img("labels/lab", retry=3):
-        # Check for Swept
-        if locate_img("labels/labswept", confidence=0.8, retry=3):
-            logger.info("Lab already swept! Continuing..")
-            touch_xy_wait(50, 1800, seconds=2)  # Exit Lab Menu
-            return
-        # Check for Sweep
-        if touch_img_wait("buttons/labsweep", confidence=0.8, seconds=3, retry=3):
-            logger.info("Sweep available!")
-            if touch_img_wait(
-                "buttons/labsweepbattle", confidence=0.8, seconds=3, retry=3
-            ):
-                touch_xy_wait(720, 1450, seconds=3)  # Click Confirm
-                touch_xy_wait(550, 1550, seconds=3)  # Clear Rewards
-                # And again for safe measure
-                if locate_img("labels/notice", retry=3):
-                    touch_xy_wait(550, 1250)
-                # Clear Roamer Deals, long wait for the Limited Offer to pop up for Lab completion
-                touch_escape_wait(5)
-                touch_escape()  # Clear Limited Offer
-                logger.info("Lab swept!")
-                return
-        else:  # Else we run lab manually
-            logger.info("Sweep not found, running manually...")
+    if locate_img("labels/labswept"):
+        logger.info("Lab already swept")
+        touch_xy(50, 1800)  # Exit Lab Menu
+        return
 
-            # Pre-run set up
-            logger.info("Entering Lab")
-            touch_xy_wait(750, 1100, seconds=2)  # Center of Dismal
-            touch_xy_wait(550, 1475, seconds=2)  # Challenge
-            touch_xy_wait(550, 1600, seconds=2)  # Begin Adventure
-            touch_xy_wait(700, 1250, seconds=6)  # Confirm
-            touch_xy_wait(550, 1600, seconds=3)  # Clear Debuff
-            # TODO Check Dismal Floor 1 text
-            logger.info("Sweeping to 2nd Floor")
-            touch_xy_wait(950, 1600, seconds=2)  # Level Sweep
-            touch_xy_wait(550, 1550, seconds=8)  # Confirm, long wait for animations
-            touch_xy_wait(550, 1600, seconds=2)  # Clear Resources Exceeded message
-            touch_xy_wait(550, 1600, seconds=2)  # And again for safe measure
-            touch_xy_wait(550, 1600, seconds=3)  # Clear Loot
-            touch_xy_wait(550, 1250, seconds=5)  # Abandon Roamer
-            logger.info("Choosing relics")
-            for _ in range(6):
-                touch_xy_wait(550, 900)  # Relic i
-                touch_xy_wait(550, 1325, seconds=3)  # Choose
-            logger.info("Entering 3rd Floor")
-            touch_xy_wait(550, 550, seconds=2)  # Portal to 3rd Floor
-            touch_xy_wait(550, 1200, seconds=5)  # Enter
-            touch_xy_wait(550, 1600, seconds=2)  # Clear Debuff
-            # TODO Check Dismal Floor 3 text
+    # Check for Sweep
+    if touch_img("buttons/labsweep"):
+        logger.info("Sweep available!")
+        touch_img_when_visible("buttons/labsweepbattle")
+        wait()
+        touch_xy_wait(720, 1450, seconds=3)  # Click Confirm
+        touch_xy_wait(550, 1550, seconds=3)  # Clear Rewards
+        # And again for safe measure
+        if locate_img("labels/notice", retry=3):
+            touch_xy_wait(550, 1250)
+        # Clear Roamer
+        touch_img_when_visible("buttons/exitmenu")
+        # Clear popup spam
+        touch_img_when_visible("labels/tap-anywhere-to-close")
+        logger.info("Lab swept!")
+        return
 
-            # Check which route we are taking, as to avoid the cart
-            touch_xy_wait(400, 1400, seconds=2)  # Open first tile on the left
-            if locate_img("labels/labguard", retry=2):
-                logger.warning("Loot Route: Left")
-                lowerdirection = "left"
-            else:
-                logger.warning("Loot Route: Right")
-                lowerdirection = "right"
-                touch_xy_wait(550, 50, seconds=3)  # Back to Lab screen
+    # Else we run lab manually
+    logger.info("Sweep not found, running manually...")
 
-            # 1st Row (single)
-            handle_lab_tile(1, lowerdirection)
-            # Check we're at the battle screen
-            if locate_img("buttons/heroclassselect", retry=3):
-                config_lab_teams(1)
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab") == False:
-                return
+    # Pre-run set up
+    logger.info("Entering Lab")
+    touch_xy_wait(750, 1100, seconds=2)  # Center of Dismal
+    touch_xy_wait(550, 1475, seconds=2)  # Challenge
+    touch_xy_wait(550, 1600, seconds=2)  # Begin Adventure
+    touch_xy_wait(700, 1250, seconds=6)  # Confirm
+    touch_xy_wait(550, 1600, seconds=3)  # Clear Debuff
 
-            # 2nd Row (multi)
-            handle_lab_tile(2, lowerdirection)
-            # Check we're at the battle screen
-            if locate_img("buttons/heroclassselect", retry=3):
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab", firstOfMulti=True) is False:
-                return
-            touch_xy_wait(750, 1725, seconds=4)  # Continue to second battle
-            # Check we're at the battle screen
-            if locate_img("buttons/heroclassselect", retry=3):
-                config_lab_teams(2)
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab") is False:
-                return
+    # TODO Check Dismal Floor 1 text
+    logger.info("Sweeping all floors...")
+    touch_xy_wait(950, 1600, seconds=2)  # Level Sweep
+    touch_xy_wait(550, 1550, seconds=8)  # Confirm, long wait for animations
+    touch_xy_wait(550, 1600, seconds=2)  # Clear Resources Exceeded message
+    touch_xy_wait(550, 1600, seconds=2)  # And again for safe measure
+    touch_xy_wait(550, 1600, seconds=3)  # Clear Loot
+    touch_xy_wait(550, 1250, seconds=5)  # Abandon Roamer
 
-            # 3rd Row (single relic)
-            handle_lab_tile(3, lowerdirection)
-            # Check we're at the battle screen
-            if locate_img("buttons/heroclassselect", retry=3):
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab") is False:
-                return
-            touch_xy_wait(550, 1350, seconds=2)  # Clear Relic reward
-
-            # 4th Row (multi)
-            handle_lab_tile(4, lowerdirection)
-            # Check we're at the battle screen
-            if locate_img("buttons/heroclassselect", retry=3):
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab", firstOfMulti=True) is False:
-                return
-            touch_xy_wait(750, 1725, seconds=4)  # Continue to second battle
-            # Check we're at the battle screen
-            if locate_img("buttons/heroclassselect", retry=3):
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab") is False:
-                return
-
-            # 5th Row (single)
-            handle_lab_tile(5, lowerdirection)
-            # Check we're at the battle screen
-            if locate_img("buttons/heroclassselect", retry=3):
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab") is False:
-                return
-
-            # 6th Row (single relic)
-            handle_lab_tile(6, lowerdirection)
-            # Check we're at the battle screen
-            if locate_img("buttons/heroclassselect", retry=3):
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab") is False:
-                return
-            touch_xy_wait(550, 1350, seconds=2)  # Clear Relic reward
-
-            # Check which route we are taking for the upper tiles
-            drag_wait((550, 200), (550, 1800), duration=1000)
-            touch_xy_wait(400, 1450, seconds=2)  # First tile on the left
-            if locate_img("labels/labpraeguard", retry=2):
-                logger.warning("Loot Route: Left")
-                upperdirection = "left"
-            else:
-                logger.warning("Loot Route: Right")
-                upperdirection = "right"
-                touch_xy_wait(550, 50, seconds=2)  # Back to Lab screen
-
-            # 7th Row (multi)
-            handle_lab_tile(7, upperdirection)
-            if locate_img("buttons/heroclassselect", retry=3):
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab", firstOfMulti=True) is False:
-                return
-            touch_xy_wait(750, 1725, seconds=4)  # Continue to second battle
-            if locate_img("buttons/heroclassselect", retry=3):
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab") is False:
-                return
-
-            # 8th Row (multi)
-            handle_lab_tile(8, upperdirection)
-            if locate_img("buttons/heroclassselect", retry=3):
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab", firstOfMulti=True) is False:
-                return
-            touch_xy_wait(750, 1725, seconds=4)  # Continue to second battle
-            if locate_img("buttons/heroclassselect", retry=3):
-                # config_lab_teams(2, pet=False)  # We've lost heroes to Thoran etc by now, so lets re-pick 5 strongest heroes
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab") is False:
-                return
-
-            # 9th Row (witches den or fountain)
-            handle_lab_tile(9, upperdirection)
-            if locate_img("labels/labwitchsden", retry=3):
-                logger.warning("    Clearing Witch's Den")
-                touch_xy_wait(550, 1500, seconds=3)  # Go
-                touch_xy_wait(300, 1600, seconds=4)  # Abandon
-            if locate_img("labels/labfountain", retry=3):
-                logger.warning("    Clearing Divine Fountain")
-                touch_xy_wait(725, 1250, seconds=3)  # Confirm
-                touch_xy_wait(725, 1250, seconds=2)  # Go
-
-            # 10th row (single boss)
-            handle_lab_tile(10, upperdirection)
-            if locate_img("buttons/heroclassselect", retry=3):
-                config_lab_teams(
-                    1, pet=False
-                )  # We've lost heroes to Thoran etc by now, so lets re-pick 5 strongest heroes
-                touch_xy_wait(550, 1850, seconds=4)  # Battle
-            else:
-                logger.error("Battle Screen not found! Exiting")
-                reset_to_screen()
-                return
-            if get_battle_results(type="lab") is False:
-                return
-
-            wait(6)  # Long pause for Value Bundle to pop up
-            touch_xy_wait(550, 1650, seconds=3)  # Clear Value Bundle for completing lab
-            touch_xy_wait(550, 550, seconds=3)  # Loot Chest
-            touch_xy_wait(550, 1650, seconds=2)  # Clear Loot
-            touch_xy_wait(550, 1650, seconds=2)  # Clear Notice
-            touch_xy_wait(550, 1650, seconds=2)  # One more for safe measure
-            touch_xy_wait(50, 1800, seconds=2)  # Click Back to Exit
-            logger.info("    Manual Lab run complete!")
-    else:
-        logger.error("Can't find Lab screen! Exiting..")
-        reset_to_screen()
-
-
-# Clears selected team and replaces it with top5 heroes, and 6th-10th for team2, selects pets from the first and second slots
-def config_lab_teams(team: Literal[1, 2], pet=True) -> None:
-    if team == 1:
-        hero_y = 1300
-        pet_x = 150
-    else:
-        hero_y = 1550
-        pet_x = 350
-
-    touch_xy_wait(1030, 1100, seconds=2)  # Clear Team
-    touch_xy_wait(550, 1250, seconds=2)  # Confirm
-
-    # Populate hero slots 5-1. Go in reverse order since top heroes tend to be
-    # squishier so they get back line.
-    for i in reversed(range(5)):
-        touch_xy_wait(130 + i * 200, hero_y)  # Select
-    # Choose pet
-    if pet:
-        if touch_img_wait("buttons/pet_empty", (5, 210, 140, 100), 0.75, retry=3):
-            touch_xy_wait(pet_x, 1250, seconds=2)  # Select
-            touch_xy_wait(750, 1800, seconds=4)  # Confirm
-
-
-# Will select the correct Lab tile and take us to the battle screen
-# Elevation is either Upper or Lower dependon on whether we have scrolled the screen up or not for the scond half
-# Side is left or right, we choose once at the start and once after scrolling up to get both multi fights
-# Tile is the row of the tile we're aiming for, from 1 at the bottom to 10 at the final boss
-def handle_lab_tile(tile: int, side: Literal["right", "left"]) -> None:
-    elevation = "upper" if tile > 6 else "lower"
-    if tile in (4, 6, 10):
-        logger.info(f"Battling {elevation} tile {tile}")
-    else:
-        logger.info(f"Battling {elevation} {side} tile {tile}")
-
-    MULTI_TILES = (2, 4, 7, 8)
-    RELIC_TILES = (3, 6)
-
-    TILE_X_COEFF = (1, 2, 1, 0, 1, 0, 1, 2, 1, 0)
-    tile_x_side_coeff = -1 if side == "left" else 1
-    tile_x = 550 + tile_x_side_coeff * TILE_X_COEFF[tile - 1] * 150
-    tile_y = 1450 - ((tile - 1) % 6) * 200
-
-    touch_xy_wait(tile_x, tile_y, seconds=2)  # Tile
-    # Not Witches Den or Well
-    if tile != 9:
-        # Not the 7th left, as there is no Go since we opened the tile to check
-        # direction
-        if not (tile == 7 and side == "left"):
-            # Go slightly lower for relic tiles
-            touch_xy_wait(550, 1600 if tile in RELIC_TILES else 1500, seconds=4)  # Go
-        # Handle High Difficulty popup at first multi
-        if tile == MULTI_TILES[0] and locate_img(
-            "labels/notice", confidence=0.8, retry=3
-        ):
-            touch_xy_wait(450, 1150, seconds=2)  # Don't show this again
-            touch_xy_wait(725, 1250, seconds=4)  # Go
-        if tile in MULTI_TILES:
-            touch_xy_wait(750, 1500, seconds=4)  # Begin Battle
+    wait(6)  # Long pause for Value Bundle to pop up
+    touch_xy_wait(550, 1650, seconds=3)  # Clear Value Bundle for completing lab
+    touch_xy_wait(550, 550, seconds=3)  # Loot Chest
+    touch_xy_wait(550, 1650, seconds=2)  # Clear Loot
+    touch_xy_wait(550, 1650, seconds=2)  # Clear Notice
+    touch_xy_wait(550, 1650, seconds=2)  # One more for safe measure
+    touch_xy_wait(50, 1800, seconds=2)  # Click Back to Exit
+    logger.info("Manual Lab run complete!")
 
 
 # Returns result of a battle, diferent types for the different types of post-battle screens, count for number of battles in Arena
-# firstOfMulti is so we don't touch_img_wait to clear loot after a lab battle, which would exit us from the battle screen for the second fight
-def get_battle_results(type, firstOfMulti=False) -> None:
+def get_battle_results(type) -> None:
     counter = 0
 
     if type == "BoB":
@@ -1588,30 +1326,6 @@ def get_battle_results(type, firstOfMulti=False) -> None:
                 return False
             counter += 1
         logger.error("Battletimer expired")
-        return False
-
-    if type == "lab":
-        while counter < 15:
-            # For 'resources exceeded' message
-            if locate_img("labels/notice"):
-                touch_xy_wait(550, 1250)
-            if locate_img("labels/victory"):
-                logger.info("    Lab Battle Victory!")
-                if (
-                    firstOfMulti is False
-                ):  # Else we exit before second battle while trying to collect loot
-                    touch_xy_wait(
-                        550, 1850, seconds=5
-                    )  # Clear loot popup and wait for Lab to load again
-                return
-            if locate_img("labels/defeat"):
-                # TODO Use Duras Tears so we can continue
-                logger.error("    Lab Battle  Defeat! Exiting..")
-                reset_to_screen()
-                return False
-            counter += 1
-        logger.error("Battletimer expired")
-        reset_to_screen()
         return False
 
     if type == "arena":
