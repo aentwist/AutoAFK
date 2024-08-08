@@ -12,7 +12,7 @@
     "make": "electron-forge make",
     "lint": "eslint --fix --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0 .",
     "format": "prettier --write .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --build"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.4.0",
