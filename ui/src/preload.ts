@@ -2,9 +2,9 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
 import { contextBridge, ipcRenderer } from "electron";
-import type { RootState } from "./stores";
-import type { Message, RunData, SettingsData } from "./types";
-import { CommandType } from "./types";
+import type { RootState } from "./stores/index.ts";
+import type { Message, RunData, SettingsData } from "./types.ts";
+import { CommandType } from "./types.ts";
 
 const electronApi = {
   saveState: (state: Partial<RootState>): Promise<void> =>
