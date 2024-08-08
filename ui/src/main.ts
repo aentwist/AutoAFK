@@ -1,9 +1,9 @@
 import { BrowserWindow, app, ipcMain, shell } from "electron";
 import fs from "fs/promises";
 import path from "path";
-import { Api } from "./api";
-import type { RootState } from "./stores";
-import { registerUpdateHandlers, startUpdatePolling } from "./update";
+import { Api } from "./api.ts";
+import type { RootState } from "./stores/index.ts";
+import { registerUpdateHandlers, startUpdatePolling } from "./update.ts";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) {

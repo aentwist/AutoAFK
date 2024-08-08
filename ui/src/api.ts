@@ -2,8 +2,8 @@ import { spawn } from "child_process";
 import type { BrowserWindow } from "electron";
 import { app, ipcMain } from "electron";
 import path from "path";
-import type { CommandData, Message, RunData, SettingsData } from "./types";
-import { CommandType } from "./types";
+import type { CommandData, Message, RunData, SettingsData } from "./types.ts";
+import { CommandType } from "./types.ts";
 
 export class Api {
   private static instance = new Api();
