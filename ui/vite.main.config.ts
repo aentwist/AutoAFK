@@ -1,5 +1,6 @@
 import type { ConfigEnv, UserConfig } from "vite";
 import { defineConfig, mergeConfig } from "vite";
+import require from "vite-plugin-require";
 import {
   external,
   getBuildConfig,
@@ -17,13 +18,14 @@ export default defineConfig((env) => {
       lib: {
         entry: forgeConfigSelf.entry!,
         fileName: () => "[name].js",
-        formats: ["cjs"],
+        formats: ["es"],
       },
       rollupOptions: {
         external,
       },
     },
-    plugins: [pluginHotRestart("restart")],
+    // https://github.com/wangzongming/vite-plugin-require/issues/40
+    plugins: [pluginHotRestart("restart"), require.default()],
     define,
     resolve: {
       // Load the Node.js entry.
