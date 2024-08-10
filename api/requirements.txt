@@ -5,11 +5,11 @@
 #    pip-compile --output-file=requirements.txt
 #
 adbutils==1.2.15
-    # via scrcpy-client
+    # via
+    #   -r requirements.in
+    #   scrcpy-client
 altgraph==0.17.4
     # via pyinstaller
-androidviewclient==23.4.0
-    # via -r requirements.in
 apkutils2==1.0.0
     # via adbutils
 attrs==23.2.0
@@ -21,9 +21,7 @@ black==24.4.2
 build==1.2.1
     # via pip-tools
 certifi==2024.2.2
-    # via
-    #   culebratester-client
-    #   requests
+    # via requests
 charset-normalizer==3.3.2
     # via requests
 cigam==0.0.3
@@ -35,12 +33,6 @@ click==8.1.7
     #   pip-tools
     #   ufmt
     #   usort
-contourpy==1.2.1
-    # via matplotlib
-culebratester-client==2.0.70
-    # via androidviewclient
-cycler==0.12.1
-    # via matplotlib
 decorator==5.1.1
     # via retry
 deprecation==2.1.0
@@ -51,22 +43,16 @@ entrypoint2==1.1
     # via pyscreenshot
 exceptiongroup==1.2.1
     # via pytest
-fonttools==4.52.4
-    # via matplotlib
 idna==3.7
     # via requests
 iniconfig==2.0.0
     # via pytest
 jeepney==0.8.0
     # via pyscreenshot
-kiwisolver==1.4.5
-    # via matplotlib
 libcst==1.3.1
     # via
     #   ufmt
     #   usort
-matplotlib==3.9.0
-    # via androidviewclient
 moreorless==0.4.0
     # via
     #   ufmt
@@ -76,11 +62,7 @@ mss==9.0.1
 mypy-extensions==1.0.0
     # via black
 numpy==1.26.4
-    # via
-    #   androidviewclient
-    #   contourpy
-    #   matplotlib
-    #   opencv-python
+    # via opencv-python
 opencv-python==4.9.0.80
     # via scrcpy-client
 packaging==24.0
@@ -88,7 +70,6 @@ packaging==24.0
     #   black
     #   build
     #   deprecation
-    #   matplotlib
     #   pipdeptree
     #   pyinstaller
     #   pyinstaller-hooks-contrib
@@ -100,7 +81,6 @@ pathspec==0.12.1
 pillow==10.3.0
     # via
     #   adbutils
-    #   matplotlib
     #   pyscreeze
 pip-tools==7.4.1
     # via -r dev-requirements.in
@@ -120,8 +100,6 @@ pyinstaller==6.7.0
     # via -r dev-requirements.in
 pyinstaller-hooks-contrib==2024.6
     # via pyinstaller
-pyparsing==3.1.2
-    # via matplotlib
 pyproject-hooks==1.1.0
     # via
     #   build
@@ -132,26 +110,16 @@ pyscreeze==0.1.29
     # via -r requirements.in
 pytest==8.2.2
     # via -r dev-requirements.in
-python-dateutil==2.9.0.post0
-    # via
-    #   culebratester-client
-    #   matplotlib
 python-json-logger==2.0.7
     # via -r requirements.in
 pyyaml==6.0.1
     # via libcst
 requests==2.31.0
-    # via
-    #   adbutils
-    #   androidviewclient
+    # via adbutils
 retry==0.9.2
     # via adbutils
 scrcpy-client @ git+https://github.com/leng-yue/py-scrcpy-client@v0.4.9
     # via -r requirements.in
-six==1.16.0
-    # via
-    #   culebratester-client
-    #   python-dateutil
 stdlibs==2024.5.15
     # via usort
 toml==0.10.2
@@ -175,9 +143,7 @@ typing-extensions==4.11.0
 ufmt==2.6.0
     # via -r dev-requirements.in
 urllib3==2.2.1
-    # via
-    #   culebratester-client
-    #   requests
+    # via requests
 usort==1.0.8.post1
     # via ufmt
 wheel==0.43.0

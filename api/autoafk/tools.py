@@ -3,15 +3,15 @@ import enum
 import io
 import math
 import os
+import re
 import subprocess
 import time
 
+import adbutils
 import numpy
 import psutil
 import pyscreeze
 import scrcpy
-from com.dtmilano.android.adb.adbclient import AdbClient
-from com.dtmilano.android.viewclient import ViewClient
 from PIL import Image
 
 from autoafk import IS_PROD, project_dir, settings, SRC_DIR
@@ -22,7 +22,7 @@ RESOLUTION = (1080, 1920)
 DPI = 240
 
 
-adb_client: AdbClient
+device: adbutils.AdbDevice
 scrcpy_client: scrcpy.Client
 
 
@@ -30,25 +30,25 @@ scrcpy_client: scrcpy.Client
 
 
 def connect() -> None:
-    global adb_client
+    global device
     global scrcpy_client
 
     logger.info("Connecting...")
 
     _start_emulator()
     _start_adb_server()
+    adb = adbutils.AdbClient()
 
     # Connect to device
-    # TODO: Allow specifying serial number, e.g. emulator-5554
-    # port = settings.app_settings["port"]
-    # serial = f"127.0.0.1:{port}"
-    # logger.debug(f"Connecting to device with serial {serial}...")
-    logger.debug(f"Connecting to device...")
-    adb_client, _ = ViewClient.connectToDeviceOrExit()  # serialno=serial
+    port = settings.app_settings["port"]
+    serial = f"127.0.0.1:{port}"
+    logger.debug(f"Attempting to connect to a device listening on {serial}...")
+    adb.connect(serial)
+    device = adb.device(serial)
 
     # Start and connect to scrcpy
     logger.debug("Connecting to scrcpy...")
-    scrcpy_client = scrcpy.Client(adb_client.serialno)
+    scrcpy_client = scrcpy.Client(serial)
     scrcpy_client.start(daemon_threaded=True)
     # We need to wait for the scrcpy server to spin up...
     while True:
@@ -114,15 +114,15 @@ def _check_device_resolution() -> None:
 
     logger.debug("Checking resolution...")
 
-    display = adb_client.getPhysicalDisplayInfo()
-    w = display["width"]
-    h = display["height"]
-    d = display["density"]
+    sz = device.window_size()
+    d_op = device.shell("wm density")
+    D_RE = "^[^0-9]+(\d+)$"
+    d = int(re.search(D_RE, d_op).group(1))
 
-    if not _is_correct_resolution((w, h)):
+    if not _is_correct_resolution((sz.width, sz.height)):
         logger.warning(
-            f"Unsupported resolution {w}x{h}. Please change your resolution to "
-            + f"{RESOLUTION[0]}x{RESOLUTION[1]}. {DISCLAIMER}"
+            f"Unsupported resolution {sz.width}x{sz.height}. Please change your "
+            + f"resolution to {RESOLUTION[0]}x{RESOLUTION[1]}. {DISCLAIMER}"
         )
     if d != DPI:
         logger.warning(
@@ -132,7 +132,7 @@ def _check_device_resolution() -> None:
 
 def _run_game() -> None:
     logger.debug("Running game...")
-    adb_client.shell("monkey -p com.lilithgame.hgame.gp 1")
+    device.shell("monkey -p com.lilithgame.hgame.gp 1")
 
 
 # Waits until the campaign_selected button is visible. While it isn't, try to recover.
@@ -164,9 +164,8 @@ def wait(seconds=1) -> None:
 
 
 def touch_xy(x: int, y: int) -> None:
-    TOUCH_DURATION_MS = 10
     logger.debug(f"touch (x={x}, y={y})")
-    adb_client.longTouch(x, y, TOUCH_DURATION_MS)
+    device.click(x, y)
 
 
 def touch_xy_wait(*args, seconds=1) -> None:
@@ -180,7 +179,7 @@ def touch_xy_after_wait(*args, seconds=1) -> None:
 
 
 def drag(start: tuple[int, int], end: tuple[int, int], duration=100) -> None:
-    adb_client.drag(start, end, duration)
+    device.swipe(start[0], start[1], end[0], end[1], duration)
 
 
 def drag_wait(*args, seconds=1, **kwargs):
