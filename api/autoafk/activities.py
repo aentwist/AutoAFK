@@ -480,7 +480,7 @@ def run_autobattle(settings: PushSettings, open_mode: Callable[[], None]) -> Non
 def open_tower(tower: str) -> None:
     touch_xy(500, 870)
     wait_until_img_visible("labels/kingstower")
-    wait(0.5)
+    wait()
 
     TOWER_LOCATIONS = {
         "King's Tower": [500, 870],
