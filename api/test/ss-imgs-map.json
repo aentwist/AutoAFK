@@ -27,18 +27,19 @@
   "campaign/multi-battle": [
     "buttons/heroclassselect",
     "buttons/beginbattle",
+    "buttons/autobattle",
     "buttons/back"
   ],
   "campaign/single-battle": [
     "buttons/heroclassselect",
     "buttons/battle",
+    "buttons/autobattle",
     "buttons/back"
   ],
 
   "dark-forest/tab": [
     "buttons/campaign_unselected",
     "buttons/darkforest_selected",
-    "buttons/ranhorn_unselected",
 
     "buildings/trift"
   ],
@@ -62,8 +63,6 @@
   "dark-forest/arena/menu": ["buttons/back"],
 
   "ranhorn/tab": [
-    "buttons/campaign_unselected",
-    "buttons/darkforest_unselected",
     "buttons/ranhorn_selected",
 
     "buildings/store"
