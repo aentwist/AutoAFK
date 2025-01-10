@@ -466,9 +466,14 @@ def run_autobattle(settings: PushSettings, open_mode: Callable[[], None]) -> Non
             touch_img_when_visible("buttons/tryagain")
 
             # Clear popup spam. These episodes occur about every 20 stages.
+            # For campaign, they show up here.
             touch_img_when_visible("labels/tap-anywhere-to-close", timeout_s=3)
 
             config_battle_formation(settings)
+
+            # Annoyingly, for tower, they show up here.
+            touch_img_when_visible("labels/tap-anywhere-to-close", timeout_s=3)
+
             touch_img_when_visible("buttons/autobattle")
             touch_img_when_visible("buttons/activate")
 
@@ -478,6 +483,8 @@ def run_autobattle(settings: PushSettings, open_mode: Callable[[], None]) -> Non
 
 
 def open_tower(tower: str) -> None:
+    reset_to_screen(Screen.DARK_FOREST)
+
     touch_xy(500, 870)
     wait_until_img_visible("labels/kingstower")
     wait()
