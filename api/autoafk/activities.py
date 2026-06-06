@@ -30,7 +30,7 @@ from autoafk.tools import (
 
 
 REGIONS = {
-    "autobattle0": (562, 994, 144, 122),
+    "autobattle0": (705, 1595, 815, 1640),
 }
 
 
@@ -404,7 +404,7 @@ def run_autobattle(settings: PushSettings, open_mode: Callable[[], None]) -> Non
 
     config_battle_formation(settings)
     touch_img_when_visible("buttons/autobattle")
-    touch_img_when_visible("buttons/activate")
+    touch_img_when_visible("buttons/confirm")
     while True:
         wait(app_settings["victory_check_freq_min"] * 60)
 
@@ -428,21 +428,7 @@ def run_autobattle(settings: PushSettings, open_mode: Callable[[], None]) -> Non
 
             config_battle_formation(settings)
             touch_img_when_visible("buttons/autobattle")
-            touch_img_when_visible("buttons/activate")
-            continue
-
-        # Make sure we are checking for victory at a well-known time so we don't
-        # get caught in a weird state. Choose right when a battle starts. If the
-        # team goes down instantly than we are still in trouble, but that should
-        # never happen using winning formations unless we don't have a build, in
-        # which case we are stuck anyway.
-        wait_until_img_visible("buttons/autobattle")
-        wait_until_img_visible("buttons/pause")
-        touch_escape()
-        is_status_open = wait_until_img_visible("buttons/cancel", timeout_s=0.5)
-        # Sometimes the menu doesn't open, about a 2% chance. Since it is rare
-        # just take another wait before checking.
-        if not is_status_open:
+            touch_img_when_visible("buttons/confirm")
             continue
 
         # If we see 0 then we haven't won
@@ -452,7 +438,6 @@ def run_autobattle(settings: PushSettings, open_mode: Callable[[], None]) -> Non
                 t = app_settings["victory_check_freq_min"]
                 logger.info(f"No victory found, checking again in {t} minutes.")
 
-            touch_img("buttons/cancel")
         # Otherwise assume victory. Go back to hero select, clear victory
         # popups, load the formation for the current stage, and resume.
         else:
@@ -461,9 +446,8 @@ def run_autobattle(settings: PushSettings, open_mode: Callable[[], None]) -> Non
                 f"Victory found! Loading the {t} formation for the current stage.."
             )
 
-            touch_img("buttons/exit")
-            touch_img_when_visible("buttons/pause")
-            touch_img_when_visible("buttons/tryagain")
+            touch_escape()
+            touch_img_when_visible("buttons/exit")
 
             # Clear popup spam. These episodes occur about every 20 stages.
             # For campaign, they show up here.
@@ -475,7 +459,7 @@ def run_autobattle(settings: PushSettings, open_mode: Callable[[], None]) -> Non
             touch_img_when_visible("labels/tap-anywhere-to-close", timeout_s=3)
 
             touch_img_when_visible("buttons/autobattle")
-            touch_img_when_visible("buttons/activate")
+            touch_img_when_visible("buttons/confirm")
 
         # TODO: This should be more responsive, check it more often than when
         # checking for victories

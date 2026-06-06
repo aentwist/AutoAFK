@@ -74,6 +74,8 @@
     "buttons/tryagain",
     "buttons/continue"
   ],
+  "misc/enable-auto-battle": ["buttons/confirm"],
+  "misc/auto-battle": ["labels/autobattle_0"],
   "misc/formations": ["buttons/formation_select", "labels/popular-formations"],
   "misc/popular-formations": ["labels/popular-formations-following"],
   "misc/formation": ["buttons/use"],
